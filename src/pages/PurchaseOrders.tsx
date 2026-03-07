@@ -1,0 +1,93 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { PageHeader } from "@/components/PageHeader";
+import { StatusBadge } from "@/components/StatusBadge";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+export default function PurchaseOrders() {
+  const { orgId } = useAuth();
+  const navigate = useNavigate();
+
+  const { data: orders, isLoading } = useQuery({
+    queryKey: ["purchase-orders", orgId],
+    enabled: !!orgId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("purchase_orders")
+        .select("*, suppliers(name), profiles!purchase_orders_created_by_fkey(full_name)")
+        .order("created_at", { ascending: false });
+      return data ?? [];
+    },
+  });
+
+  return (
+    <div>
+      <PageHeader
+        title="Purchase Orders"
+        description="Manage purchasing workflows"
+        actions={
+          <Button onClick={() => navigate("/purchase-orders/new")}>
+            <Plus className="h-4 w-4" />
+            New PO
+          </Button>
+        }
+      />
+
+      <div className="p-8">
+        <div className="fieldcore-card overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/50 text-left">
+                <th className="px-5 py-3 font-medium text-muted-foreground">PO #</th>
+                <th className="px-5 py-3 font-medium text-muted-foreground">Supplier</th>
+                <th className="px-5 py-3 font-medium text-muted-foreground">Created By</th>
+                <th className="px-5 py-3 font-medium text-muted-foreground">Amount</th>
+                <th className="px-5 py-3 font-medium text-muted-foreground">Status</th>
+                <th className="px-5 py-3 font-medium text-muted-foreground">Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {isLoading && (
+                <tr>
+                  <td colSpan={6} className="px-5 py-8 text-center text-muted-foreground">
+                    Loading...
+                  </td>
+                </tr>
+              )}
+              {orders?.length === 0 && !isLoading && (
+                <tr>
+                  <td colSpan={6} className="px-5 py-8 text-center text-muted-foreground">
+                    No purchase orders yet
+                  </td>
+                </tr>
+              )}
+              {orders?.map((po: any) => (
+                <tr
+                  key={po.id}
+                  className="hover:bg-muted/30 cursor-pointer transition-colors"
+                  onClick={() => navigate(`/purchase-orders/${po.id}`)}
+                >
+                  <td className="px-5 py-3 font-medium text-foreground">{po.po_number}</td>
+                  <td className="px-5 py-3 text-foreground">{po.suppliers?.name ?? "—"}</td>
+                  <td className="px-5 py-3 text-muted-foreground">{po.profiles?.full_name ?? "—"}</td>
+                  <td className="px-5 py-3 font-medium text-foreground">
+                    ${Number(po.total_amount).toLocaleString()}
+                  </td>
+                  <td className="px-5 py-3">
+                    <StatusBadge status={po.status} />
+                  </td>
+                  <td className="px-5 py-3 text-muted-foreground">
+                    {new Date(po.created_at).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
