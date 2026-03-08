@@ -232,7 +232,7 @@ export default function Reports() {
 
   const { data: salesItemData, isLoading: loadingSales } = useQuery({
     queryKey: ["report-sales-item", orgId, startISO, endISO],
-    enabled: selectedKey === "sales_by_item" && !!orgId,
+    enabled: selectedKey === "sales_by_item" && !!orgId && canAccessKey("sales_by_item"),
     queryFn: async () => {
       let soQ = supabase.from("sales_orders").select("id").in("status", ["fulfilled", "invoiced", "paid", "closed"]);
       if (startISO) soQ = soQ.gte("created_at", startISO);
