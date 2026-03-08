@@ -253,6 +253,15 @@ export default function CreateSalesOrder() {
           </Button>
         </div>
       </div>
+      </div>
+
+      {showAssistant && prefill && (
+        <FormAssistantPanel
+          commandText={prefill.raw || prefill.command || "AI command"}
+          onIntentReceived={handleAssistantIntent}
+          onClose={() => setShowAssistant(false)}
+        />
+      )}
     </div>
   );
 }
