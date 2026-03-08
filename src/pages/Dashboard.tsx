@@ -97,6 +97,36 @@ export default function Dashboard() {
     },
   });
 
+  // Open reconciliations (non-zero variance, recent)
+  const { data: openReconciliations } = useQuery({
+    queryKey: ["open-reconciliations", orgId],
+    enabled: !!orgId && (roles.includes("admin") || roles.includes("procurement")),
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("reconciliations")
+        .select("id, created_at, variance, inventory_items:item_id(name)")
+        .neq("variance", 0)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      return data ?? [];
+    },
+  });
+
+  // Unfulfilled sales orders (quote or order status)
+  const { data: unfulfilledSalesOrders } = useQuery({
+    queryKey: ["unfulfilled-sales-orders", orgId],
+    enabled: !!orgId && (roles.includes("admin") || roles.includes("sales")),
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("sales_orders")
+        .select("id, so_number, customer_name, total_amount, status, created_at")
+        .in("status", ["quote", "order"])
+        .order("created_at", { ascending: false })
+        .limit(5);
+      return data ?? [];
+    },
+  });
+
   // Stats
   const { data: stats } = useQuery({
     queryKey: ["dashboard-stats", orgId],
