@@ -203,7 +203,7 @@ export default function Reports() {
 
   const { data: valuationData, isLoading: loadingValuation } = useQuery({
     queryKey: ["report-valuation", orgId],
-    enabled: selectedKey === "inventory_valuation" && !!orgId,
+    enabled: selectedKey === "inventory_valuation" && !!orgId && canAccessKey("inventory_valuation"),
     queryFn: async () => {
       const { data: items } = await supabase.from("inventory_items").select("id, name, sku, item_type, default_unit_cost");
       if (!items || items.length === 0) return [];
