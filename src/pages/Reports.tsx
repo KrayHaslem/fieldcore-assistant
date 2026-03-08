@@ -254,7 +254,7 @@ export default function Reports() {
 
   const { data: salesPersonData, isLoading: loadingSalesPerson } = useQuery({
     queryKey: ["report-sales-person", orgId, user?.id, startISO, endISO],
-    enabled: selectedKey === "sales_by_salesperson" && !!orgId && !!user,
+    enabled: selectedKey === "sales_by_salesperson" && !!orgId && !!user && canAccessKey("sales_by_salesperson"),
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_sales_by_salesperson", {
         _user_id: user!.id,
