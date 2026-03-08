@@ -305,29 +305,26 @@ serve(async (req) => {
       mv(I(2), "received", 2, "purchase_order", PO(7), sarah),    // Triplex pumps from PO-007
       mv(I(6), "received", 20, "purchase_order", PO(8), james),   // Steel plates from PO-008
       mv(I(12), "received", 2, "purchase_order", PO(11), james),  // Hydraulic fittings from PO-011
-      // Gate valves and check valves received (historical, pre-existing stock)
-      mv(I(3), "received", 20, "manual", null, sarah),
-      mv(I(4), "received", 15, "manual", null, sarah),
-      mv(I(5), "received", 8, "manual", null, sarah),
-      // Pump components received (for assemblies - shaft, impeller, seal kits)
-      mv(I(8), "received", 15, "manual", null, james),
-      mv(I(9), "received", 15, "manual", null, james),
-      mv(I(10), "received", 15, "manual", null, james),
-      // Consumables received
-      mv(I(20), "received", 100, "manual", null, maria),
-      mv(I(21), "received", 50, "manual", null, maria),
-      mv(I(22), "received", 15, "manual", null, maria),
-      mv(I(23), "received", 60, "manual", null, maria),
-      mv(I(24), "received", 8, "manual", null, maria),
-      mv(I(25), "received", 10, "manual", null, maria),
-      // Internal use items received
-      mv(I(14), "received", 20, "manual", null, james),
-      mv(I(15), "received", 12, "manual", null, james),
-      mv(I(16), "received", 10, "manual", null, james),
-      mv(I(17), "received", 8, "manual", null, james),
-      mv(I(18), "received", 6, "manual", null, james),
-      mv(I(19), "received", 6, "manual", null, james),
-      mv(I(11), "received", 30, "manual", null, james),   // O-rings
+      // Historical stock received from closed POs (full audit trail)
+      mv(I(3), "received", 20, "purchase_order", PO(13), sarah),   // Gate valves from PO-H01
+      mv(I(4), "received", 15, "purchase_order", PO(13), sarah),   // Check valves from PO-H01
+      mv(I(11), "received", 30, "purchase_order", PO(13), james),  // O-rings from PO-H01
+      mv(I(5), "received", 8, "purchase_order", PO(14), sarah),    // Safety valves from PO-H02
+      mv(I(8), "received", 15, "purchase_order", PO(15), james),   // Pump shafts from PO-H03
+      mv(I(9), "received", 15, "purchase_order", PO(15), james),   // Impellers from PO-H03
+      mv(I(10), "received", 15, "purchase_order", PO(15), james),  // Seal kits from PO-H03
+      mv(I(20), "received", 100, "purchase_order", PO(16), maria), // Safety glasses from PO-H04
+      mv(I(21), "received", 50, "purchase_order", PO(16), maria),  // Gloves from PO-H04
+      mv(I(22), "received", 15, "purchase_order", PO(16), maria),  // Hard hats from PO-H04
+      mv(I(23), "received", 60, "purchase_order", PO(17), maria),  // Paper towels from PO-H05
+      mv(I(24), "received", 8, "purchase_order", PO(17), maria),   // Coffee from PO-H05
+      mv(I(25), "received", 10, "purchase_order", PO(18), maria),  // Printer paper from PO-H06
+      mv(I(14), "received", 20, "purchase_order", PO(19), james),  // Engine oil from PO-H07
+      mv(I(15), "received", 12, "purchase_order", PO(19), james),  // Hydraulic fluid from PO-H07
+      mv(I(16), "received", 10, "purchase_order", PO(19), james),  // Air filters from PO-H07
+      mv(I(17), "received", 8, "purchase_order", PO(19), james),   // Brake pads from PO-H07
+      mv(I(18), "received", 6, "purchase_order", PO(19), james),   // Trans filters from PO-H07
+      mv(I(19), "received", 6, "purchase_order", PO(19), james),   // V-belts from PO-H07
 
       // Assembly production: +12 pump housings total
       mv(I(1), "assembled", 5, "assembly_record", AR(1), maria),
