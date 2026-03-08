@@ -37,6 +37,7 @@ interface ReportDef {
   name: string;
   description: string;
   hasDateRange: boolean;
+  accessRoles: string[];
 }
 
 const reportCategories: { title: string; icon: typeof ShoppingCart; reports: ReportDef[] }[] = [
@@ -44,35 +45,35 @@ const reportCategories: { title: string; icon: typeof ShoppingCart; reports: Rep
     title: "Purchasing",
     icon: ShoppingCart,
     reports: [
-      { key: "spending_supplier", name: "Spending by Supplier", description: "Total spend grouped by supplier", hasDateRange: true },
-      { key: "monthly_purchase_totals", name: "Monthly Purchase Totals", description: "Purchase spend by month as a bar chart", hasDateRange: true },
-      { key: "quarterly_spending", name: "Quarterly Spending", description: "Purchase spend grouped by quarter", hasDateRange: true },
-      { key: "open_pos", name: "Open Purchase Orders", description: "All POs not yet closed, grouped by status", hasDateRange: false },
-      { key: "pending_approvals", name: "Pending Approvals", description: "POs awaiting approval by department", hasDateRange: false },
-      { key: "purchase_history_item", name: "Purchase History by Item", description: "All purchases of a specific item over time", hasDateRange: true },
+      { key: "spending_supplier", name: "Spending by Supplier", description: "Total spend grouped by supplier", hasDateRange: true, accessRoles: ["admin", "finance", "procurement"] },
+      { key: "monthly_purchase_totals", name: "Monthly Purchase Totals", description: "Purchase spend by month as a bar chart", hasDateRange: true, accessRoles: ["admin", "finance", "procurement"] },
+      { key: "quarterly_spending", name: "Quarterly Spending", description: "Purchase spend grouped by quarter", hasDateRange: true, accessRoles: ["admin", "finance", "procurement"] },
+      { key: "open_pos", name: "Open Purchase Orders", description: "All POs not yet closed, grouped by status", hasDateRange: false, accessRoles: ["admin", "procurement"] },
+      { key: "pending_approvals", name: "Pending Approvals", description: "POs awaiting approval by department", hasDateRange: false, accessRoles: ["admin", "procurement"] },
+      { key: "purchase_history_item", name: "Purchase History by Item", description: "All purchases of a specific item over time", hasDateRange: true, accessRoles: ["admin", "finance", "procurement"] },
     ],
   },
   {
     title: "Inventory",
     icon: Package,
     reports: [
-      { key: "inventory_valuation", name: "Inventory Valuation", description: "On-hand quantity x unit cost per item", hasDateRange: false },
-      { key: "reconciliation_history", name: "Reconciliation History", description: "Expected vs actual and variance over time", hasDateRange: true },
-      { key: "inventory_performance", name: "Inventory Performance by Item", description: "Movement history per item as a net quantity trend", hasDateRange: true },
-      { key: "recommended_stock", name: "Recommended Stock Levels", description: "Suggested reorder quantities based on sales velocity and lead time", hasDateRange: false },
-      { key: "inventory_loss", name: "Inventory Loss Summary", description: "Items with negative reconciliation variance", hasDateRange: true },
-      { key: "assembly_history", name: "Assembly History", description: "Finished goods produced over time with components consumed", hasDateRange: true },
+      { key: "inventory_valuation", name: "Inventory Valuation", description: "On-hand quantity x unit cost per item", hasDateRange: false, accessRoles: ["admin", "finance", "procurement"] },
+      { key: "reconciliation_history", name: "Reconciliation History", description: "Expected vs actual and variance over time", hasDateRange: true, accessRoles: ["admin", "procurement"] },
+      { key: "inventory_performance", name: "Inventory Performance by Item", description: "Movement history per item as a net quantity trend", hasDateRange: true, accessRoles: ["admin", "procurement"] },
+      { key: "recommended_stock", name: "Recommended Stock Levels", description: "Suggested reorder quantities based on sales velocity and lead time", hasDateRange: false, accessRoles: ["admin", "procurement"] },
+      { key: "inventory_loss", name: "Inventory Loss Summary", description: "Items with negative reconciliation variance", hasDateRange: true, accessRoles: ["admin", "finance", "procurement"] },
+      { key: "assembly_history", name: "Assembly History", description: "Finished goods produced over time with components consumed", hasDateRange: true, accessRoles: ["admin", "procurement"] },
     ],
   },
   {
     title: "Sales",
     icon: DollarSign,
     reports: [
-      { key: "sales_by_item", name: "Sales by Item", description: "Units sold and revenue per item", hasDateRange: true },
-      { key: "margin_by_item", name: "Margin by Item", description: "Revenue minus cost of goods sold per item", hasDateRange: true },
-      { key: "quarterly_revenue", name: "Quarterly Revenue", description: "Total revenue grouped by quarter", hasDateRange: true },
-      { key: "sales_by_salesperson", name: "Sales by Salesperson", description: "Total sales value and units per sales user", hasDateRange: true },
-      { key: "margins_by_timeframe", name: "Margins by Timeframe", description: "Gross margin with weekly, monthly, or quarterly grouping", hasDateRange: true },
+      { key: "sales_by_item", name: "Sales by Item", description: "Units sold and revenue per item", hasDateRange: true, accessRoles: ["admin", "finance", "sales"] },
+      { key: "margin_by_item", name: "Margin by Item", description: "Revenue minus cost of goods sold per item", hasDateRange: true, accessRoles: ["admin", "finance"] },
+      { key: "quarterly_revenue", name: "Quarterly Revenue", description: "Total revenue grouped by quarter", hasDateRange: true, accessRoles: ["admin", "finance", "sales"] },
+      { key: "sales_by_salesperson", name: "Sales by Salesperson", description: "Total sales value and units per sales user", hasDateRange: true, accessRoles: ["admin", "finance", "sales"] },
+      { key: "margins_by_timeframe", name: "Margins by Timeframe", description: "Gross margin with weekly, monthly, or quarterly grouping", hasDateRange: true, accessRoles: ["admin", "finance"] },
     ],
   },
 ];
@@ -139,7 +140,15 @@ export default function Reports() {
     }
   }, []);
 
+  const canAccessReport = (report: ReportDef) =>
+    roles.includes("admin") || report.accessRoles.some((r) => roles.includes(r));
+  const canAccessKey = (key: ReportKey) => {
+    const r = allReports.find((rr) => rr.key === key);
+    return r ? canAccessReport(r) : false;
+  };
+
   const selected = allReports.find((r) => r.key === selectedKey) ?? null;
+  const hasAccess = selected ? canAccessReport(selected) : false;
 
   const quickSelect = (start: Date, end: Date) => { setStartDate(start); setEndDate(end); };
   const now = new Date();
@@ -150,7 +159,7 @@ export default function Reports() {
 
   const { data: spendingData, isLoading: loadingSpending } = useQuery({
     queryKey: ["report-spending-supplier", orgId, startISO, endISO],
-    enabled: selectedKey === "spending_supplier" && !!orgId,
+    enabled: selectedKey === "spending_supplier" && !!orgId && canAccessKey("spending_supplier"),
     queryFn: async () => {
       let q = supabase.from("purchase_orders").select("total_amount, suppliers!purchase_orders_supplier_id_fkey(name)").neq("status", "draft");
       if (startISO) q = q.gte("created_at", startISO);
@@ -167,7 +176,7 @@ export default function Reports() {
 
   const { data: openPOs, isLoading: loadingOpen } = useQuery({
     queryKey: ["report-open-pos", orgId],
-    enabled: selectedKey === "open_pos" && !!orgId,
+    enabled: selectedKey === "open_pos" && !!orgId && canAccessKey("open_pos"),
     queryFn: async () => {
       const { data } = await supabase.from("purchase_orders")
         .select("po_number, status, total_amount, created_at, suppliers!purchase_orders_supplier_id_fkey(name), departments!purchase_orders_department_id_fkey(name)")
@@ -179,7 +188,7 @@ export default function Reports() {
 
   const { data: pendingData, isLoading: loadingPending } = useQuery({
     queryKey: ["report-pending", orgId],
-    enabled: selectedKey === "pending_approvals" && !!orgId,
+    enabled: selectedKey === "pending_approvals" && !!orgId && canAccessKey("pending_approvals"),
     queryFn: async () => {
       const { data } = await supabase.from("purchase_orders")
         .select("po_number, total_amount, created_at, suppliers!purchase_orders_supplier_id_fkey(name), departments!purchase_orders_department_id_fkey(name)")
@@ -194,7 +203,7 @@ export default function Reports() {
 
   const { data: valuationData, isLoading: loadingValuation } = useQuery({
     queryKey: ["report-valuation", orgId],
-    enabled: selectedKey === "inventory_valuation" && !!orgId,
+    enabled: selectedKey === "inventory_valuation" && !!orgId && canAccessKey("inventory_valuation"),
     queryFn: async () => {
       const { data: items } = await supabase.from("inventory_items").select("id, name, sku, item_type, default_unit_cost");
       if (!items || items.length === 0) return [];
@@ -211,7 +220,7 @@ export default function Reports() {
 
   const { data: reconData, isLoading: loadingRecon } = useQuery({
     queryKey: ["report-recon", orgId, startISO, endISO],
-    enabled: selectedKey === "reconciliation_history" && !!orgId,
+    enabled: selectedKey === "reconciliation_history" && !!orgId && canAccessKey("reconciliation_history"),
     queryFn: async () => {
       let q = supabase.from("reconciliations").select("*, inventory_items!reconciliations_item_id_fkey(name)").order("created_at", { ascending: false });
       if (startISO) q = q.gte("created_at", startISO);
@@ -223,7 +232,7 @@ export default function Reports() {
 
   const { data: salesItemData, isLoading: loadingSales } = useQuery({
     queryKey: ["report-sales-item", orgId, startISO, endISO],
-    enabled: selectedKey === "sales_by_item" && !!orgId,
+    enabled: selectedKey === "sales_by_item" && !!orgId && canAccessKey("sales_by_item"),
     queryFn: async () => {
       let soQ = supabase.from("sales_orders").select("id").in("status", ["fulfilled", "invoiced", "paid", "closed"]);
       if (startISO) soQ = soQ.gte("created_at", startISO);
@@ -245,7 +254,7 @@ export default function Reports() {
 
   const { data: salesPersonData, isLoading: loadingSalesPerson } = useQuery({
     queryKey: ["report-sales-person", orgId, user?.id, startISO, endISO],
-    enabled: selectedKey === "sales_by_salesperson" && !!orgId && !!user,
+    enabled: selectedKey === "sales_by_salesperson" && !!orgId && !!user && canAccessKey("sales_by_salesperson"),
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_sales_by_salesperson", {
         _user_id: user!.id,
@@ -261,7 +270,7 @@ export default function Reports() {
 
   const { data: monthlyPurchaseData, isLoading: loadingMonthly } = useQuery({
     queryKey: ["report-monthly-purchase", orgId, startISO, endISO],
-    enabled: selectedKey === "monthly_purchase_totals" && !!orgId,
+    enabled: selectedKey === "monthly_purchase_totals" && !!orgId && canAccessKey("monthly_purchase_totals"),
     queryFn: async () => {
       let q = supabase.from("purchase_orders").select("total_amount, created_at").neq("status", "draft");
       if (startISO) q = q.gte("created_at", startISO);
@@ -280,7 +289,7 @@ export default function Reports() {
 
   const { data: quarterlySpendData, isLoading: loadingQtrSpend } = useQuery({
     queryKey: ["report-quarterly-spend", orgId, startISO, endISO],
-    enabled: selectedKey === "quarterly_spending" && !!orgId,
+    enabled: selectedKey === "quarterly_spending" && !!orgId && canAccessKey("quarterly_spending"),
     queryFn: async () => {
       let q = supabase.from("purchase_orders").select("total_amount, created_at").neq("status", "draft");
       if (startISO) q = q.gte("created_at", startISO);
@@ -304,7 +313,7 @@ export default function Reports() {
 
   const { data: purchaseHistoryData, isLoading: loadingPurchaseHistory } = useQuery({
     queryKey: ["report-purchase-history-item", orgId, selectedItemId, startISO, endISO],
-    enabled: selectedKey === "purchase_history_item" && !!orgId && !!selectedItemId,
+    enabled: selectedKey === "purchase_history_item" && !!orgId && !!selectedItemId && canAccessKey("purchase_history_item"),
     queryFn: async () => {
       const { data } = await supabase
         .from("purchase_order_items")
@@ -325,7 +334,7 @@ export default function Reports() {
 
   const { data: inventoryPerfData, isLoading: loadingInvPerf } = useQuery({
     queryKey: ["report-inv-perf", orgId, startISO, endISO],
-    enabled: selectedKey === "inventory_performance" && !!orgId,
+    enabled: selectedKey === "inventory_performance" && !!orgId && canAccessKey("inventory_performance"),
     queryFn: async () => {
       let q = supabase.from("inventory_movements")
         .select("item_id, quantity, created_at, inventory_items:item_id(name, item_type)")
@@ -355,7 +364,7 @@ export default function Reports() {
 
   const { data: recommendedStockData, isLoading: loadingRecommended } = useQuery({
     queryKey: ["report-recommended-stock", orgId],
-    enabled: selectedKey === "recommended_stock" && !!orgId,
+    enabled: selectedKey === "recommended_stock" && !!orgId && canAccessKey("recommended_stock"),
     queryFn: async () => {
       const { data: items } = await supabase
         .from("inventory_items")
@@ -382,7 +391,7 @@ export default function Reports() {
 
   const { data: inventoryLossData, isLoading: loadingLoss } = useQuery({
     queryKey: ["report-inv-loss", orgId, startISO, endISO],
-    enabled: selectedKey === "inventory_loss" && !!orgId,
+    enabled: selectedKey === "inventory_loss" && !!orgId && canAccessKey("inventory_loss"),
     queryFn: async () => {
       let q = supabase.from("reconciliations")
         .select("item_id, variance, inventory_items:item_id(name, default_unit_cost)")
@@ -402,7 +411,7 @@ export default function Reports() {
 
   const { data: assemblyHistData, isLoading: loadingAssembly } = useQuery({
     queryKey: ["report-assembly-history", orgId, startISO, endISO],
-    enabled: selectedKey === "assembly_history" && !!orgId,
+    enabled: selectedKey === "assembly_history" && !!orgId && canAccessKey("assembly_history"),
     queryFn: async () => {
       let q = supabase.from("assembly_records")
         .select("id, quantity_produced, created_at, inventory_items:finished_item_id(name)")
@@ -430,7 +439,7 @@ export default function Reports() {
 
   const { data: marginItemData, isLoading: loadingMarginItem } = useQuery({
     queryKey: ["report-margin-item", orgId, startISO, endISO],
-    enabled: selectedKey === "margin_by_item" && !!orgId,
+    enabled: selectedKey === "margin_by_item" && !!orgId && canAccessKey("margin_by_item"),
     queryFn: async () => {
       let soQ = supabase.from("sales_orders").select("id").in("status", ["fulfilled", "invoiced", "paid", "closed"]);
       if (startISO) soQ = soQ.gte("created_at", startISO);
@@ -460,7 +469,7 @@ export default function Reports() {
 
   const { data: quarterlyRevData, isLoading: loadingQtrRev } = useQuery({
     queryKey: ["report-quarterly-rev", orgId, startISO, endISO],
-    enabled: selectedKey === "quarterly_revenue" && !!orgId,
+    enabled: selectedKey === "quarterly_revenue" && !!orgId && canAccessKey("quarterly_revenue"),
     queryFn: async () => {
       let q = supabase.from("sales_orders").select("total_amount, created_at").in("status", ["fulfilled", "invoiced", "paid", "closed"]);
       if (startISO) q = q.gte("created_at", startISO);
@@ -479,7 +488,7 @@ export default function Reports() {
 
   const { data: marginTimeData, isLoading: loadingMarginTime } = useQuery({
     queryKey: ["report-margin-time", orgId, startISO, endISO, marginGrouping],
-    enabled: selectedKey === "margins_by_timeframe" && !!orgId,
+    enabled: selectedKey === "margins_by_timeframe" && !!orgId && canAccessKey("margins_by_timeframe"),
     queryFn: async () => {
       let soQ = supabase.from("sales_orders").select("id, created_at").in("status", ["fulfilled", "invoiced", "paid", "closed"]);
       if (startISO) soQ = soQ.gte("created_at", startISO);
@@ -563,28 +572,32 @@ export default function Reports() {
       <div className="flex p-8 gap-6 max-w-7xl">
         {/* Left — Report Selector */}
         <div className="w-64 shrink-0 space-y-6">
-          {reportCategories.map((cat) => (
-            <div key={cat.title}>
-              <div className="flex items-center gap-2 mb-2">
-                <cat.icon className="h-4 w-4 text-primary" />
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{cat.title}</h3>
+          {reportCategories.map((cat) => {
+            const accessible = cat.reports.filter(canAccessReport);
+            if (accessible.length === 0) return null;
+            return (
+              <div key={cat.title}>
+                <div className="flex items-center gap-2 mb-2">
+                  <cat.icon className="h-4 w-4 text-primary" />
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{cat.title}</h3>
+                </div>
+                <div className="space-y-1">
+                  {accessible.map((r) => (
+                    <button
+                      key={r.key}
+                      onClick={() => setSelectedKey(r.key)}
+                      className={cn(
+                        "w-full text-left px-3 py-2 text-sm rounded-md transition-colors",
+                        selectedKey === r.key ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-muted"
+                      )}
+                    >
+                      {r.name}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-1">
-                {cat.reports.map((r) => (
-                  <button
-                    key={r.key}
-                    onClick={() => setSelectedKey(r.key)}
-                    className={cn(
-                      "w-full text-left px-3 py-2 text-sm rounded-md transition-colors",
-                      selectedKey === r.key ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-muted"
-                    )}
-                  >
-                    {r.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Right — Report Display */}
