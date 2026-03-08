@@ -619,6 +619,26 @@ export default function Reports() {
                       <Button variant="ghost" size="sm" onClick={() => quickSelect(startOfQuarter(subQuarters(now, 1)), endOfQuarter(subQuarters(now, 1)))}>Last Quarter</Button>
                       <Button variant="ghost" size="sm" onClick={() => quickSelect(startOfYear(now), endOfYear(now))}>This Year</Button>
                       <Button variant="ghost" size="sm" onClick={() => quickSelect(startOfYear(subYears(now, 1)), endOfYear(subYears(now, 1)))}>Last Year</Button>
+                      <span className="text-muted-foreground text-xs self-center mx-1">|</span>
+                      {[1, 2, 3, 4].map((q) => {
+                        const qStart = new Date(now.getFullYear(), (q - 1) * 3, 1);
+                        const qEnd = endOfMonth(new Date(now.getFullYear(), q * 3 - 1, 1));
+                        return (
+                          <Button key={q} variant="ghost" size="sm" onClick={() => quickSelect(qStart, qEnd)}>
+                            Q{q} {now.getFullYear()}
+                          </Button>
+                        );
+                      })}
+                      {[1, 2, 3, 4].map((q) => {
+                        const prevYear = now.getFullYear() - 1;
+                        const qStart = new Date(prevYear, (q - 1) * 3, 1);
+                        const qEnd = endOfMonth(new Date(prevYear, q * 3 - 1, 1));
+                        return (
+                          <Button key={`prev-${q}`} variant="ghost" size="sm" onClick={() => quickSelect(qStart, qEnd)}>
+                            Q{q} {prevYear}
+                          </Button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
