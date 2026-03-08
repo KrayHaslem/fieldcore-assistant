@@ -375,6 +375,24 @@ export default function CreatePurchaseOrder() {
 
   const total = calculateTotal();
 
+  // Approval preview
+  const { data: approvalPreview } = useQuery({
+    queryKey: ["approval-preview", orgId, department?.id ?? null, total],
+    enabled: !!orgId && total > 0,
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_approval_rule", {
+        _org_id: orgId!,
+        _department_id: department?.id ?? null,
+        _total_amount: total,
+      });
+      return data?.[0] ?? null;
+    },
+  });
+
+  const requiresApproval = total > 0
+    && approvalPreview !== null
+    && approvalPreview.auto_approve === false;
+
   const handleAssistantIntent = (intent: Record<string, any>): string => {
     const updates: string[] = [];
 
