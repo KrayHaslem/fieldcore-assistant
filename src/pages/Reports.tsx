@@ -177,12 +177,29 @@ export default function Reports() {
     },
   });
 
+  const { data: salesPersonData, isLoading: loadingSalesPerson } = useQuery({
+    queryKey: ["report-sales-person", orgId, user?.id, startISO, endISO],
+    enabled: selectedKey === "sales_by_salesperson" && !!orgId && !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_sales_by_salesperson", {
+        _user_id: user!.id,
+        _start_date: startISO!,
+        _end_date: endISO!,
+      });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const isSalesOnly = roles.includes("sales") && !roles.includes("admin") && !roles.includes("finance");
+
   const isLoading = selectedKey === "spending_supplier" ? loadingSpending
     : selectedKey === "open_pos" ? loadingOpen
     : selectedKey === "pending_approvals" ? loadingPending
     : selectedKey === "inventory_valuation" ? loadingValuation
     : selectedKey === "reconciliation_history" ? loadingRecon
     : selectedKey === "sales_by_item" ? loadingSales
+    : selectedKey === "sales_by_salesperson" ? loadingSalesPerson
     : false;
 
   return (
