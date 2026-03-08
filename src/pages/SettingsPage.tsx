@@ -573,6 +573,18 @@ export default function SettingsPage() {
           <DialogFooter><Button onClick={saveOrg} disabled={orgSaving || !orgForm.name.trim()}>{orgSaving ? "Saving..." : "Save"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirm Dialog */}
+      <Dialog open={!!confirmAction} onOpenChange={(open) => { if (!open) setConfirmAction(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Confirm</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">{confirmAction?.message}</p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setConfirmAction(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => confirmAction?.onConfirm()}>Confirm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
