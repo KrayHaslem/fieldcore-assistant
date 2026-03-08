@@ -303,7 +303,7 @@ export default function CreatePurchaseOrder() {
           _total_amount: totalAmount,
         });
         rule = ruleData?.[0];
-        autoApprove = !rule || rule.auto_approve === true;
+        autoApprove = !rule || rule.auto_approve !== false;
       }
 
       // Create PO
