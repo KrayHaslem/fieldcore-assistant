@@ -159,7 +159,7 @@ export default function Reports() {
 
   const { data: spendingData, isLoading: loadingSpending } = useQuery({
     queryKey: ["report-spending-supplier", orgId, startISO, endISO],
-    enabled: selectedKey === "spending_supplier" && !!orgId,
+    enabled: selectedKey === "spending_supplier" && !!orgId && canAccessKey("spending_supplier"),
     queryFn: async () => {
       let q = supabase.from("purchase_orders").select("total_amount, suppliers!purchase_orders_supplier_id_fkey(name)").neq("status", "draft");
       if (startISO) q = q.gte("created_at", startISO);
