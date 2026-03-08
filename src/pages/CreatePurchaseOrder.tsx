@@ -382,7 +382,7 @@ export default function CreatePurchaseOrder() {
     queryFn: async () => {
       const { data } = await supabase.rpc("get_approval_rule", {
         _org_id: orgId!,
-        _department_id: department?.id ?? null,
+        _department_id: department?.id ?? '',
         _total_amount: total,
       });
       return data?.[0] ?? null;
