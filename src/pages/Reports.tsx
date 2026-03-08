@@ -411,7 +411,7 @@ export default function Reports() {
 
   const { data: assemblyHistData, isLoading: loadingAssembly } = useQuery({
     queryKey: ["report-assembly-history", orgId, startISO, endISO],
-    enabled: selectedKey === "assembly_history" && !!orgId,
+    enabled: selectedKey === "assembly_history" && !!orgId && canAccessKey("assembly_history"),
     queryFn: async () => {
       let q = supabase.from("assembly_records")
         .select("id, quantity_produced, created_at, inventory_items:finished_item_id(name)")
