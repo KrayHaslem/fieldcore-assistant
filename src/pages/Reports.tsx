@@ -11,7 +11,7 @@ import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOf
 import { CalendarIcon, ShoppingCart, Package, DollarSign, BarChart3 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
-type ReportKey = "spending_supplier" | "open_pos" | "pending_approvals" | "inventory_valuation" | "reconciliation_history" | "sales_by_item";
+type ReportKey = "spending_supplier" | "open_pos" | "pending_approvals" | "inventory_valuation" | "reconciliation_history" | "sales_by_item" | "sales_by_salesperson";
 
 interface ReportDef {
   key: ReportKey;
@@ -43,6 +43,7 @@ const reportCategories: { title: string; icon: typeof ShoppingCart; reports: Rep
     icon: DollarSign,
     reports: [
       { key: "sales_by_item", name: "Sales by Item", description: "Units sold and revenue per item", hasDateRange: true },
+      { key: "sales_by_salesperson", name: "Sales by Salesperson", description: "Revenue and order count per salesperson", hasDateRange: true },
     ],
   },
 ];
@@ -66,7 +67,7 @@ function DatePicker({ date, onChange, label }: { date: Date | undefined; onChang
 }
 
 export default function Reports() {
-  const { orgId } = useAuth();
+  const { orgId, user, roles } = useAuth();
   const [selectedKey, setSelectedKey] = useState<ReportKey | null>(null);
   const [startDate, setStartDate] = useState<Date | undefined>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date | undefined>(endOfMonth(new Date()));
@@ -176,12 +177,29 @@ export default function Reports() {
     },
   });
 
+  const { data: salesPersonData, isLoading: loadingSalesPerson } = useQuery({
+    queryKey: ["report-sales-person", orgId, user?.id, startISO, endISO],
+    enabled: selectedKey === "sales_by_salesperson" && !!orgId && !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_sales_by_salesperson", {
+        _user_id: user!.id,
+        _start_date: startISO!,
+        _end_date: endISO!,
+      });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const isSalesOnly = roles.includes("sales") && !roles.includes("admin") && !roles.includes("finance");
+
   const isLoading = selectedKey === "spending_supplier" ? loadingSpending
     : selectedKey === "open_pos" ? loadingOpen
     : selectedKey === "pending_approvals" ? loadingPending
     : selectedKey === "inventory_valuation" ? loadingValuation
     : selectedKey === "reconciliation_history" ? loadingRecon
     : selectedKey === "sales_by_item" ? loadingSales
+    : selectedKey === "sales_by_salesperson" ? loadingSalesPerson
     : false;
 
   return (
@@ -428,6 +446,46 @@ export default function Reports() {
                             ))}
                           </tbody>
                         </table>
+                      )}
+                    </>
+                  )}
+
+                  {/* Sales by Salesperson */}
+                  {selectedKey === "sales_by_salesperson" && (
+                    <>
+                      {(!salesPersonData || salesPersonData.length === 0) ? <NoData /> : (
+                        <div className="p-4 space-y-4">
+                          {isSalesOnly && (
+                            <p className="text-sm text-muted-foreground italic">Showing your performance only.</p>
+                          )}
+                          <div className="h-64">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={salesPersonData}>
+                                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                                <XAxis dataKey="salesperson_name" tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v.toLocaleString()}`} />
+                                <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+                                <Bar dataKey="total_revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                          <table className="w-full text-sm">
+                            <thead><tr className="border-b bg-muted/50 text-left">
+                              <th className="px-4 py-2 font-medium text-muted-foreground">Salesperson</th>
+                              <th className="px-4 py-2 font-medium text-muted-foreground text-right">Orders</th>
+                              <th className="px-4 py-2 font-medium text-muted-foreground text-right">Total Revenue</th>
+                            </tr></thead>
+                            <tbody className="divide-y">
+                              {salesPersonData.map((r: any) => (
+                                <tr key={r.salesperson_name}>
+                                  <td className="px-4 py-2 font-medium text-foreground">{r.salesperson_name}</td>
+                                  <td className="px-4 py-2 text-right text-foreground">{r.order_count}</td>
+                                  <td className="px-4 py-2 text-right font-medium text-foreground">${Number(r.total_revenue).toLocaleString()}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       )}
                     </>
                   )}
