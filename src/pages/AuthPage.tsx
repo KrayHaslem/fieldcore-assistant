@@ -9,14 +9,14 @@ import { Package } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AuthPage() {
-  const { session, loading } = useAuth();
-  
-  if (!loading && session) return <Navigate to="/" replace />;
+  const { session, loading: authLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+
+  if (!authLoading && session) return <Navigate to="/" replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
