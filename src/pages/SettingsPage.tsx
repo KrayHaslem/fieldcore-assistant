@@ -86,14 +86,22 @@ export default function SettingsPage() {
     if (!orgForm.name.trim()) return;
     setOrgSaving(true);
     const payload = { name: orgForm.name.trim(), industry: orgForm.industry.trim() || null };
-    const { error } = editingOrgId
-      ? await supabase.from("organizations").update(payload).eq("id", editingOrgId)
-      : await supabase.from("organizations").insert(payload);
-    setOrgSaving(false);
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: editingOrgId ? "Organization updated" : "Organization created" });
-    setOrgDialog(false);
-    qc.invalidateQueries({ queryKey: ["tenants"] });
+    if (editingOrgId) {
+      const { error } = await supabase.from("organizations").update(payload).eq("id", editingOrgId);
+      setOrgSaving(false);
+      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+      toast({ title: "Organization updated" });
+      setOrgDialog(false);
+      qc.invalidateQueries({ queryKey: ["tenants"] });
+    } else {
+      const { data, error } = await supabase.from("organizations").insert(payload).select().single();
+      setOrgSaving(false);
+      if (error || !data) { toast({ title: "Error", description: error?.message ?? "Failed to create", variant: "destructive" }); return; }
+      toast({ title: "Organization created" });
+      setOrgDialog(false);
+      qc.invalidateQueries({ queryKey: ["tenants"] });
+      navigate(`/setup/${data.id}`);
+    }
   };
 
   const deleteOrg = async (id: string, name: string) => {
