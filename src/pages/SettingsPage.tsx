@@ -144,6 +144,7 @@ export default function SettingsPage() {
   // ---- Users & Roles ----
   const [roleDialog, setRoleDialog] = useState<string | null>(null);
   const [checkedRoles, setCheckedRoles] = useState<string[]>([]);
+  const [editingUserDept, setEditingUserDept] = useState<ComboBoxOption | null>(null);
   const [roleSaving, setRoleSaving] = useState(false);
 
   const { data: orgProfiles } = useQuery({
@@ -161,11 +162,26 @@ export default function SettingsPage() {
   const openRoleDialog = (userId: string) => {
     setRoleDialog(userId);
     setCheckedRoles(getRolesFor(userId));
+    const prof = orgProfiles?.find((p: any) => p.user_id === userId);
+    if (prof?.department_id) {
+      const dept = departments?.find((d: any) => d.id === prof.department_id);
+      setEditingUserDept(dept ? { id: dept.id, label: dept.name } : null);
+    } else {
+      setEditingUserDept(null);
+    }
+  };
+
+  const searchDepartmentsForUser = async (q: string): Promise<ComboBoxOption[]> => {
+    const { data } = await supabase
+      .from("departments")
+      .select("id, name")
+      .ilike("name", `%${q}%`)
+      .limit(20);
+    return (data ?? []).map((d) => ({ id: d.id, label: d.name }));
   };
 
   const saveRoles = async () => {
     if (!roleDialog || !orgId) return;
-    // Prevent removing own admin
     if (roleDialog === user?.id && !checkedRoles.includes("admin")) {
       toast({ title: "Cannot remove your own admin role", variant: "destructive" }); return;
     }
@@ -175,11 +191,14 @@ export default function SettingsPage() {
       _organization_id: orgId,
       _new_roles: checkedRoles as any,
     });
+    await supabase
+      .from("profiles")
+      .update({ department_id: editingUserDept?.id ?? null })
+      .eq("user_id", roleDialog);
     if (error) {
       toast({ title: "Failed to update roles", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Roles updated" });
-      // Refresh auth context if editing own roles
       if (roleDialog === user?.id) {
         await refreshRoles();
       }
@@ -187,6 +206,7 @@ export default function SettingsPage() {
     setRoleSaving(false);
     setRoleDialog(null);
     qc.invalidateQueries({ queryKey: ["all-user-roles"] });
+    qc.invalidateQueries({ queryKey: ["org-profiles"] });
   };
 
   // ---- Suppliers ----
