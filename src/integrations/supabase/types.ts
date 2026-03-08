@@ -354,6 +354,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          department_id: string | null
           email: string
           full_name: string
           id: string
@@ -363,6 +364,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          department_id?: string | null
           email: string
           full_name: string
           id?: string
@@ -372,6 +374,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          department_id?: string | null
           email?: string
           full_name?: string
           id?: string
@@ -380,6 +383,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_organization_id_fkey"
             columns: ["organization_id"]
@@ -461,6 +471,7 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          assigned_approver_id: string | null
           created_at: string
           created_by: string
           department_id: string | null
@@ -470,6 +481,8 @@ export type Database = {
           organization_id: string
           po_number: string
           received_at: string | null
+          required_approver_role: string | null
+          rule_is_department_scoped: boolean | null
           status: Database["public"]["Enums"]["po_status"]
           supplier_id: string | null
           total_amount: number | null
@@ -478,6 +491,7 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          assigned_approver_id?: string | null
           created_at?: string
           created_by: string
           department_id?: string | null
@@ -487,6 +501,8 @@ export type Database = {
           organization_id: string
           po_number: string
           received_at?: string | null
+          required_approver_role?: string | null
+          rule_is_department_scoped?: boolean | null
           status?: Database["public"]["Enums"]["po_status"]
           supplier_id?: string | null
           total_amount?: number | null
@@ -495,6 +511,7 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          assigned_approver_id?: string | null
           created_at?: string
           created_by?: string
           department_id?: string | null
@@ -504,6 +521,8 @@ export type Database = {
           organization_id?: string
           po_number?: string
           received_at?: string | null
+          required_approver_role?: string | null
+          rule_is_department_scoped?: boolean | null
           status?: Database["public"]["Enums"]["po_status"]
           supplier_id?: string | null
           total_amount?: number | null
@@ -843,6 +862,44 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_approval_rule: {
+        Args: { _department_id: string; _org_id: string; _total_amount: number }
+        Returns: {
+          approver_user_id: string
+          auto_approve: boolean
+          required_role: string
+          rule_is_department_scoped: boolean
+        }[]
+      }
+      get_my_approval_queue: {
+        Args: { _user_id: string }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          assigned_approver_id: string | null
+          created_at: string
+          created_by: string
+          department_id: string | null
+          id: string
+          notes: string | null
+          ordered_at: string | null
+          organization_id: string
+          po_number: string
+          received_at: string | null
+          required_approver_role: string | null
+          rule_is_department_scoped: boolean | null
+          status: Database["public"]["Enums"]["po_status"]
+          supplier_id: string | null
+          total_amount: number | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "purchase_orders"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
