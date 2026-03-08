@@ -247,10 +247,15 @@ export default function SettingsPage() {
   };
 
   const deleteRule = async (id: string) => {
-    if (!confirm("Delete this approval rule?")) return;
-    await supabase.from("approval_rules").delete().eq("id", id);
-    qc.invalidateQueries({ queryKey: ["approval-rules"] });
-    toast({ title: "Rule deleted" });
+    setConfirmAction({
+      message: "Delete this approval rule?",
+      onConfirm: async () => {
+        setConfirmAction(null);
+        await supabase.from("approval_rules").delete().eq("id", id);
+        qc.invalidateQueries({ queryKey: ["approval-rules"] });
+        toast({ title: "Rule deleted" });
+      },
+    });
   };
 
   // ---- Units ----
