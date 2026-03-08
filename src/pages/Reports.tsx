@@ -43,6 +43,7 @@ const reportCategories: { title: string; icon: typeof ShoppingCart; reports: Rep
     icon: DollarSign,
     reports: [
       { key: "sales_by_item", name: "Sales by Item", description: "Units sold and revenue per item", hasDateRange: true },
+      { key: "sales_by_salesperson", name: "Sales by Salesperson", description: "Revenue and order count per salesperson", hasDateRange: true },
     ],
   },
 ];
