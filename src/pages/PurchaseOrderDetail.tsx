@@ -89,7 +89,35 @@ export default function PurchaseOrderDetail() {
     },
   });
 
-  const canApprove = roles.includes("admin") || roles.includes("procurement") || roles.includes("finance");
+  const { data: assignedApproverName } = useQuery({
+    queryKey: ["approver-profile", po?.assigned_approver_id],
+    enabled: !!po?.assigned_approver_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", po!.assigned_approver_id!)
+        .single();
+      return data?.full_name ?? null;
+    },
+  });
+
+  const canApprove = useMemo(() => {
+    if (!po || !user) return false;
+    if (roles.includes("admin")) return true;
+    if ((po as any).assigned_approver_id) {
+      return (po as any).assigned_approver_id === user.id;
+    }
+    const hasRequiredRole = (po as any).required_approver_role
+      ? roles.includes((po as any).required_approver_role)
+      : false;
+    if (!hasRequiredRole) return false;
+    if ((po as any).rule_is_department_scoped && po.department_id) {
+      return (profile as any)?.department_id === po.department_id;
+    }
+    return true;
+  }, [po, user, roles, profile]);
+
   const isCreator = user?.id === po?.created_by;
 
   const handleStatusChange = async (newStatus: POStatus) => {
