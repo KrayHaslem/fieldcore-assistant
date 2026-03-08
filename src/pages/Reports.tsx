@@ -220,7 +220,7 @@ export default function Reports() {
 
   const { data: reconData, isLoading: loadingRecon } = useQuery({
     queryKey: ["report-recon", orgId, startISO, endISO],
-    enabled: selectedKey === "reconciliation_history" && !!orgId,
+    enabled: selectedKey === "reconciliation_history" && !!orgId && canAccessKey("reconciliation_history"),
     queryFn: async () => {
       let q = supabase.from("reconciliations").select("*, inventory_items!reconciliations_item_id_fkey(name)").order("created_at", { ascending: false });
       if (startISO) q = q.gte("created_at", startISO);
