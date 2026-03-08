@@ -129,10 +129,15 @@ export default function SettingsPage() {
   };
 
   const deleteDept = async (id: string, name: string) => {
-    if (!confirm(`Delete department "${name}"?`)) return;
-    const { error } = await supabase.from("departments").delete().eq("id", id);
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Deleted" }); qc.invalidateQueries({ queryKey: ["departments"] });
+    setConfirmAction({
+      message: `Delete department "${name}"?`,
+      onConfirm: async () => {
+        setConfirmAction(null);
+        const { error } = await supabase.from("departments").delete().eq("id", id);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+        toast({ title: "Deleted" }); qc.invalidateQueries({ queryKey: ["departments"] });
+      },
+    });
   };
 
   // ---- Users & Roles ----
