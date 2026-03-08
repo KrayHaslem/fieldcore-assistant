@@ -172,7 +172,100 @@ export default function CreateSalesOrder() {
 
   return (
     <div className="flex h-full">
-      <PageHeader
+      <div className="flex-1 min-w-0">
+        <PageHeader
+          title="New Sales Order"
+          description="Create a quote or sales order"
+          actions={
+            <Button variant="outline" size="sm" onClick={() => navigate("/sales")}>
+              <ArrowLeft className="h-4 w-4" /> Back
+            </Button>
+          }
+        />
+        <div className="p-8 max-w-4xl space-y-6">
+          <div className="fieldcore-card p-6 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm text-muted-foreground">Customer Name *</Label>
+                <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Enter customer name" />
+              </div>
+              <div>
+                <Label className="text-sm text-muted-foreground">Notes</Label>
+                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional notes..." rows={1} />
+              </div>
+            </div>
+          </div>
+
+          {/* Line Items */}
+          <div className="fieldcore-card p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">Line Items</h3>
+              <Button type="button" variant="outline" size="sm" onClick={addLine}>
+                <Plus className="h-4 w-4" /> Add Item
+              </Button>
+            </div>
+
+            {lines.map((l) => (
+              <div key={l.key} className="flex items-end gap-3 rounded-md border p-3">
+                <div className="flex-1">
+                  <Label className="text-xs text-muted-foreground">Item (resale)</Label>
+                  <ComboBox<ItemOption>
+                    value={l.item}
+                    onChange={(v) => updateLine(l.key, "item", v)}
+                    onSearch={searchItems}
+                    placeholder="Search items..."
+                    renderOption={(opt: ItemOption) => (
+                      <div className="flex justify-between w-full">
+                        <span className="font-medium">{opt.label}</span>
+                        <span className="text-xs text-muted-foreground ml-2">On hand: {opt.onHand}</span>
+                      </div>
+                    )}
+                  />
+                </div>
+                <div className="w-24">
+                  <Label className="text-xs text-muted-foreground">Qty</Label>
+                  <Input type="number" min="1" value={l.quantity} onChange={(e) => updateLine(l.key, "quantity", e.target.value)} />
+                </div>
+                <div className="w-28">
+                  <Label className="text-xs text-muted-foreground">Unit Price</Label>
+                  <Input type="number" min="0" step="0.01" value={l.unitPrice} onChange={(e) => updateLine(l.key, "unitPrice", e.target.value)} />
+                </div>
+                <div className="w-24 text-right">
+                  <Label className="text-xs text-muted-foreground">Total</Label>
+                  <p className="h-10 flex items-center justify-end text-sm font-medium text-foreground">${lineTotal(l).toFixed(2)}</p>
+                </div>
+                <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeLine(l.key)} disabled={lines.length === 1}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+
+            <div className="flex justify-end pt-2 border-t">
+              <p className="text-sm font-semibold text-foreground">Total: ${grandTotal.toFixed(2)}</p>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => handleSave("quote")} disabled={isSaving}>
+              Save as Quote
+            </Button>
+            <Button onClick={() => handleSave("order")} disabled={isSaving}>
+              {isSaving ? "Saving..." : "Create Sales Order"}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {showAssistant && prefill && (
+        <FormAssistantPanel
+          commandText={prefill.raw || prefill.command || "AI command"}
+          onIntentReceived={handleAssistantIntent}
+          onClose={() => setShowAssistant(false)}
+        />
+      )}
+    </div>
+  );
+}
         title="New Sales Order"
         description="Create a quote or sales order"
         actions={
