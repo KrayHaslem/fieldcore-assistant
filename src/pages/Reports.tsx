@@ -176,7 +176,7 @@ export default function Reports() {
 
   const { data: openPOs, isLoading: loadingOpen } = useQuery({
     queryKey: ["report-open-pos", orgId],
-    enabled: selectedKey === "open_pos" && !!orgId,
+    enabled: selectedKey === "open_pos" && !!orgId && canAccessKey("open_pos"),
     queryFn: async () => {
       const { data } = await supabase.from("purchase_orders")
         .select("po_number, status, total_amount, created_at, suppliers!purchase_orders_supplier_id_fkey(name), departments!purchase_orders_department_id_fkey(name)")
