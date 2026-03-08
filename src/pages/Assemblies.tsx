@@ -27,8 +27,11 @@ let rowKeyCounter = 0;
 
 export default function Assemblies() {
   const { user, orgId, roles } = useAuth();
+  const location = useLocation();
+  const prefill = (location.state as any)?.prefill;
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showAssistant, setShowAssistant] = useState(!!prefill);
 
   const canCreate = roles.includes("admin") || roles.includes("procurement") || roles.includes("employee");
 

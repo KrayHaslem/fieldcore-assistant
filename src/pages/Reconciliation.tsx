@@ -20,8 +20,11 @@ interface ItemOption extends ComboBoxOption {
 
 export default function Reconciliation() {
   const { user, orgId, roles } = useAuth();
+  const location = useLocation();
+  const prefill = (location.state as any)?.prefill;
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showAssistant, setShowAssistant] = useState(!!prefill);
 
   const canReconcile = roles.includes("admin") || roles.includes("procurement");
 
