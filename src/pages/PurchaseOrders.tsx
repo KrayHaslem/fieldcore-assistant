@@ -8,17 +8,28 @@ import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function PurchaseOrders() {
-  const { orgId } = useAuth();
+  const { orgId, user, roles } = useAuth();
   const navigate = useNavigate();
 
+  const isEmployeeOnly = roles.length > 0 &&
+    !roles.includes("admin") &&
+    !roles.includes("procurement") &&
+    !roles.includes("finance") &&
+    !roles.includes("sales");
+
   const { data: orders, isLoading } = useQuery({
-    queryKey: ["purchase-orders", orgId],
+    queryKey: ["purchase-orders", orgId, user?.id, roles],
     enabled: !!orgId,
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("purchase_orders")
-        .select("*, suppliers(name), profiles!purchase_orders_created_by_fkey(full_name)")
-        .order("created_at", { ascending: false });
+        .select("*, suppliers(name), profiles!purchase_orders_created_by_fkey(full_name)");
+
+      if (isEmployeeOnly) {
+        q = q.eq("created_by", user!.id);
+      }
+
+      const { data } = await q.order("created_at", { ascending: false });
       return data ?? [];
     },
   });
