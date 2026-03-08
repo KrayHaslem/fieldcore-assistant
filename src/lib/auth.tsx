@@ -22,6 +22,7 @@ type AuthContextType = {
   orgId: string | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  refreshRoles: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
