@@ -135,7 +135,9 @@ export default function PurchaseOrderDetail() {
     setIsUpdating(true);
     try {
       const orgId = po!.organization_id;
-      // Update each line item's quantity_received
+      let itemsReceived = 0;
+      let movementsCreated = 0;
+
       for (const li of lineItems ?? []) {
         const qtyReceived = parseInt(receivingItems[li.id] || "0", 10);
         await supabase
@@ -143,30 +145,39 @@ export default function PurchaseOrderDetail() {
           .update({ quantity_received: qtyReceived })
           .eq("id", li.id);
 
-        // Create inventory movement for received items (except internal_use)
-        if (qtyReceived > 0 && li.item_type !== "internal_use") {
-          await supabase.from("inventory_movements").insert({
-            item_id: li.item_id,
-            movement_type: "received",
-            quantity: qtyReceived,
-            source_type: "purchase_order",
-            source_id: po!.id,
-            created_by: user!.id,
-            organization_id: orgId,
-          });
+        if (qtyReceived > 0) {
+          itemsReceived++;
+          if (li.item_type !== "internal_use") {
+            const { error } = await supabase.from("inventory_movements").insert({
+              item_id: li.item_id,
+              movement_type: "received" as const,
+              quantity: qtyReceived,
+              source_type: "purchase_order" as const,
+              source_id: po!.id,
+              created_by: user!.id,
+              organization_id: orgId,
+              notes: `Received from PO ${po!.po_number}`,
+            });
+            if (error) throw error;
+            movementsCreated++;
+          }
         }
       }
 
-      // Update PO status
-      await supabase
+      const { error } = await supabase
         .from("purchase_orders")
-        .update({ status: "received", received_at: new Date().toISOString() })
+        .update({ status: "received" as const, received_at: new Date().toISOString() })
         .eq("id", id!);
+      if (error) throw error;
 
-      toast({ title: "Items Received", description: "Inventory has been updated." });
+      toast({
+        title: "Items Received",
+        description: `${itemsReceived} item(s) received, ${movementsCreated} inventory movement(s) created.`,
+      });
       setShowReceiveModal(false);
       queryClient.invalidateQueries({ queryKey: ["purchase-order", id] });
       queryClient.invalidateQueries({ queryKey: ["po-items", id] });
+      queryClient.invalidateQueries({ queryKey: ["inventory-quantities"] });
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
