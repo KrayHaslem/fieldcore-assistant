@@ -140,7 +140,11 @@ export default function Reports() {
     }
   }, []);
 
+  const canAccessReport = (report: ReportDef) =>
+    roles.includes("admin") || report.accessRoles.some((r) => roles.includes(r));
+
   const selected = allReports.find((r) => r.key === selectedKey) ?? null;
+  const hasAccess = selected ? canAccessReport(selected) : false;
 
   const quickSelect = (start: Date, end: Date) => { setStartDate(start); setEndDate(end); };
   const now = new Date();
