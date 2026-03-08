@@ -607,6 +607,12 @@ export default function Reports() {
               <BarChart3 className="mx-auto h-10 w-10 mb-3 opacity-40" />
               <p>Select a report from the left panel</p>
             </div>
+          ) : !hasAccess ? (
+            <div className="fieldcore-card p-12 text-center text-muted-foreground">
+              <BarChart3 className="mx-auto h-10 w-10 mb-3 opacity-40" />
+              <p className="font-medium text-foreground">Access Denied</p>
+              <p className="text-sm mt-1">You do not have permission to view this report.</p>
+            </div>
           ) : (
             <div className="space-y-4">
               <div className="fieldcore-card p-4">
