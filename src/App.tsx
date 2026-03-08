@@ -8,6 +8,7 @@ import { AppLayout } from "@/components/AppLayout";
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
 import PurchaseOrders from "./pages/PurchaseOrders";
+import CreatePurchaseOrder from "./pages/CreatePurchaseOrder";
 import Inventory from "./pages/Inventory";
 import SalesOrders from "./pages/SalesOrders";
 import Assemblies from "./pages/Assemblies";
@@ -39,6 +40,7 @@ function ProtectedRoutes() {
       <Route element={<AppLayout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/purchase-orders" element={<PurchaseOrders />} />
+        <Route path="/purchase-orders/new" element={<CreatePurchaseOrder />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/sales" element={<SalesOrders />} />
         <Route path="/assemblies" element={<Assemblies />} />
