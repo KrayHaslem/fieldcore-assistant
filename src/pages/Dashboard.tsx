@@ -434,6 +434,7 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+          </div>
 
           {/* Command History */}
           <div className="fieldcore-card h-fit">
