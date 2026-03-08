@@ -11,7 +11,7 @@ import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOf
 import { CalendarIcon, ShoppingCart, Package, DollarSign, BarChart3 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
-type ReportKey = "spending_supplier" | "open_pos" | "pending_approvals" | "inventory_valuation" | "reconciliation_history" | "sales_by_item";
+type ReportKey = "spending_supplier" | "open_pos" | "pending_approvals" | "inventory_valuation" | "reconciliation_history" | "sales_by_item" | "sales_by_salesperson";
 
 interface ReportDef {
   key: ReportKey;
