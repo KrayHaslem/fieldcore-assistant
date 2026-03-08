@@ -228,6 +228,11 @@ export default function SettingsPage() {
   const [ruleDialog, setRuleDialog] = useState(false);
   const [ruleForm, setRuleForm] = useState({ department_id: "", min_amount: "0", max_amount: "", required_role: "admin" as string, approver_user_id: "" });
   const [ruleSaving, setRuleSaving] = useState(false);
+  const [testRuleDialog, setTestRuleDialog] = useState(false);
+  const [testAmount, setTestAmount] = useState("");
+  const [testDeptId, setTestDeptId] = useState("");
+  const [testResult, setTestResult] = useState<any>(null);
+  const [testLoading, setTestLoading] = useState(false);
 
   const { data: approvalRules } = useQuery({
     queryKey: ["approval-rules", orgId], enabled: !!orgId && isAdmin,
@@ -236,6 +241,18 @@ export default function SettingsPage() {
       return data ?? [];
     },
   });
+
+  const runTestRule = async () => {
+    if (!orgId) return;
+    setTestLoading(true);
+    const { data } = await supabase.rpc("get_approval_rule", {
+      _org_id: orgId,
+      _department_id: testDeptId || null,
+      _total_amount: parseFloat(testAmount) || 0,
+    });
+    setTestResult(data?.[0] ?? null);
+    setTestLoading(false);
+  };
 
   const saveRule = async () => {
     if (!orgId) return;
