@@ -22,10 +22,13 @@ serve(async (req) => {
 
     const systemPrompt = `You are a command parser for FieldCore Resource Systems, a resource management app. Parse the user's natural language command into a structured JSON intent.
 
+Today's date is ${new Date().toISOString().split("T")[0]}.
+
 Supported intents:
 - create_purchase_order: { intent, supplier?, items: [{ name, quantity }], department? }
 - create_sales_order: { intent, customer?, items: [{ name, quantity }] }
-- show_report: { intent, report_name?, date_range? }
+- show_report: { intent, report_name?, date_range?: { start: string (ISO date), end: string (ISO date), label: string } }
+  When the user references a quarter ("Q3 spending", "quarterly revenue for Q1 last year"), parse it into explicit ISO start and end date strings. For example "Q3 2025" becomes start: "2025-07-01", end: "2025-09-30". When the user references a year ("spending last year"), parse it into the full year range.
 - reconcile_item: { intent, item_name? }
 - record_assembly: { intent, item_name?, quantity? }
 - navigate: { intent, destination } (for general navigation like "show purchase orders")

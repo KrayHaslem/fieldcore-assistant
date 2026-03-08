@@ -163,7 +163,13 @@ export default function Dashboard() {
       } else if (intent === "create_sales_order") {
         navigate("/sales", { state: { prefill: data } });
       } else if (intent === "show_report") {
-        navigate("/reports", { state: { prefill: data } });
+        navigate("/reports", {
+          state: {
+            prefill: data,
+            startDate: data.date_range?.start ?? null,
+            endDate: data.date_range?.end ?? null,
+          },
+        });
       } else if (intent === "reconcile_item") {
         navigate("/reconciliation", { state: { prefill: data } });
       } else if (intent === "record_assembly") {
