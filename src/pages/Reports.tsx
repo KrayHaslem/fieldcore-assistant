@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -10,6 +10,7 @@ import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths, subQuarters, subYears } from "date-fns";
 import { CalendarIcon, ShoppingCart, Package, DollarSign, BarChart3, ChevronDown, ChevronRight } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 type ReportKey =
@@ -113,6 +114,7 @@ function DatePicker({ date, onChange, label }: { date: Date | undefined; onChang
 
 export default function Reports() {
   const { orgId, user, roles } = useAuth();
+  const location = useLocation();
   const [selectedKey, setSelectedKey] = useState<ReportKey | null>(null);
   const [startDate, setStartDate] = useState<Date | undefined>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date | undefined>(endOfMonth(new Date()));
@@ -120,6 +122,22 @@ export default function Reports() {
   const [selectedItemName, setSelectedItemName] = useState<string>("");
   const [marginGrouping, setMarginGrouping] = useState<"weekly" | "monthly" | "quarterly">("monthly");
   const [expandedAssemblyIds, setExpandedAssemblyIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.startDate) {
+      setStartDate(new Date(state.startDate));
+    }
+    if (state?.endDate) {
+      setEndDate(new Date(state.endDate));
+    }
+    if (state?.prefill?.report_name) {
+      const match = allReports.find((r) =>
+        r.name.toLowerCase().includes(state.prefill.report_name.toLowerCase())
+      );
+      if (match) setSelectedKey(match.key);
+    }
+  }, []);
 
   const selected = allReports.find((r) => r.key === selectedKey) ?? null;
 
