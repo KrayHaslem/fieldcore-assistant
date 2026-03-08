@@ -146,12 +146,12 @@ export default function Reconciliation() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <Label className="text-sm text-muted-foreground">Search Item</Label>
-                <ComboBox
+                <ComboBox<ItemOption>
                   value={selectedItem}
-                  onChange={setSelectedItem}
+                  onChange={(v) => setSelectedItem(v as ItemOption | null)}
                   onSearch={handleSearch}
                   placeholder="Search inventory items..."
-                  renderOption={(opt) => (
+                  renderOption={(opt: ItemOption) => (
                     <div>
                       <span className="font-medium">{opt.label}</span>
                       {opt.sku && <span className="ml-2 text-xs text-muted-foreground">{opt.sku}</span>}
