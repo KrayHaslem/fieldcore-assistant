@@ -297,28 +297,28 @@ serve(async (req) => {
       mv(I(6), "received", 20, "purchase_order", PO(8), james),   // Steel plates from PO-008
       mv(I(12), "received", 2, "purchase_order", PO(11), james),  // Hydraulic fittings from PO-011
       // Gate valves and check valves received (historical, pre-existing stock)
-      mv(I(3), "received", 20, "purchase_order", null, sarah),
-      mv(I(4), "received", 15, "purchase_order", null, sarah),
-      mv(I(5), "received", 8, "purchase_order", null, sarah),
+      mv(I(3), "received", 20, "manual", null, sarah),
+      mv(I(4), "received", 15, "manual", null, sarah),
+      mv(I(5), "received", 8, "manual", null, sarah),
       // Pump components received (for assemblies - shaft, impeller, seal kits)
-      mv(I(8), "received", 15, "purchase_order", null, james),
-      mv(I(9), "received", 15, "purchase_order", null, james),
-      mv(I(10), "received", 15, "purchase_order", null, james),
+      mv(I(8), "received", 15, "manual", null, james),
+      mv(I(9), "received", 15, "manual", null, james),
+      mv(I(10), "received", 15, "manual", null, james),
       // Consumables received
-      mv(I(20), "received", 100, "purchase_order", null, maria),
-      mv(I(21), "received", 50, "purchase_order", null, maria),
-      mv(I(22), "received", 15, "purchase_order", null, maria),
-      mv(I(23), "received", 60, "purchase_order", null, maria),
-      mv(I(24), "received", 8, "purchase_order", null, maria),
-      mv(I(25), "received", 10, "purchase_order", null, maria),
+      mv(I(20), "received", 100, "manual", null, maria),
+      mv(I(21), "received", 50, "manual", null, maria),
+      mv(I(22), "received", 15, "manual", null, maria),
+      mv(I(23), "received", 60, "manual", null, maria),
+      mv(I(24), "received", 8, "manual", null, maria),
+      mv(I(25), "received", 10, "manual", null, maria),
       // Internal use items received
-      mv(I(14), "received", 20, "purchase_order", null, james),
-      mv(I(15), "received", 12, "purchase_order", null, james),
-      mv(I(16), "received", 10, "purchase_order", null, james),
-      mv(I(17), "received", 8, "purchase_order", null, james),
-      mv(I(18), "received", 6, "purchase_order", null, james),
-      mv(I(19), "received", 6, "purchase_order", null, james),
-      mv(I(11), "received", 30, "purchase_order", null, james),   // O-rings
+      mv(I(14), "received", 20, "manual", null, james),
+      mv(I(15), "received", 12, "manual", null, james),
+      mv(I(16), "received", 10, "manual", null, james),
+      mv(I(17), "received", 8, "manual", null, james),
+      mv(I(18), "received", 6, "manual", null, james),
+      mv(I(19), "received", 6, "manual", null, james),
+      mv(I(11), "received", 30, "manual", null, james),   // O-rings
 
       // Assembly production: +12 pump housings total
       mv(I(1), "assembled", 5, "assembly_record", AR(1), maria),
