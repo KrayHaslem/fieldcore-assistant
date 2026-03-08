@@ -68,8 +68,11 @@ function emptyLineItem(): LineItem {
 
 export default function CreatePurchaseOrder() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const prefill = (location.state as any)?.prefill;
   const { orgId, user } = useAuth();
   const { toast } = useToast();
+  const [showAssistant, setShowAssistant] = useState(!!prefill);
 
   const [supplier, setSupplier] = useState<SupplierOption | null>(null);
   const [department, setDepartment] = useState<DepartmentOption | null>(null);
