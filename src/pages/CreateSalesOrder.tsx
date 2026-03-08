@@ -28,8 +28,11 @@ let rowKey = 0;
 
 export default function CreateSalesOrder() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const prefill = (location.state as any)?.prefill;
   const { user, orgId } = useAuth();
   const { toast } = useToast();
+  const [showAssistant, setShowAssistant] = useState(!!prefill);
 
   const [customerName, setCustomerName] = useState("");
   const [notes, setNotes] = useState("");
