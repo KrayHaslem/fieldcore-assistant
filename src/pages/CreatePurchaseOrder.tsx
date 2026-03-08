@@ -291,6 +291,20 @@ export default function CreatePurchaseOrder() {
     const poNumber = generatePoNumber();
 
     try {
+      // Check approval rule at submit time (source of truth)
+      let autoApprove = !submitForApproval; // draft = no approval needed
+      let rule: any = null;
+
+      if (submitForApproval) {
+        const { data: ruleData } = await supabase.rpc("get_approval_rule", {
+          _org_id: orgId!,
+          _department_id: department?.id ?? null,
+          _total_amount: totalAmount,
+        });
+        rule = ruleData?.[0];
+        autoApprove = !rule || rule.auto_approve === true;
+      }
+
       // Create PO
       const { data: po, error: poErr } = await supabase
         .from("purchase_orders")
@@ -300,9 +314,24 @@ export default function CreatePurchaseOrder() {
           department_id: department?.id || null,
           notes: notes.trim() || null,
           total_amount: totalAmount,
-          status: submitForApproval ? "submitted" : "draft",
           created_by: user!.id,
           organization_id: orgId!,
+          status: !submitForApproval
+            ? "draft"
+            : autoApprove
+            ? "approved"
+            : "submitted",
+          approved_by: autoApprove && submitForApproval ? user!.id : null,
+          approved_at: autoApprove && submitForApproval ? new Date().toISOString() : null,
+          required_approver_role: !submitForApproval || autoApprove
+            ? null
+            : rule?.required_role || null,
+          assigned_approver_id: !submitForApproval || autoApprove
+            ? null
+            : rule?.approver_user_id || null,
+          rule_is_department_scoped: !submitForApproval || autoApprove
+            ? false
+            : rule?.rule_is_department_scoped ?? false,
         })
         .select()
         .single();
@@ -326,11 +355,16 @@ export default function CreatePurchaseOrder() {
 
       if (itemsErr) throw itemsErr;
 
-      toast({
-        title: submitForApproval ? "PO Submitted" : "Draft Saved",
-        description: `${poNumber} has been ${submitForApproval ? "submitted for approval" : "saved as draft"}.`,
-      });
-      navigate("/purchase-orders");
+      if (!submitForApproval) {
+        toast({ title: "Draft Saved", description: `${poNumber} saved as draft.` });
+        navigate("/purchase-orders");
+      } else if (autoApprove) {
+        toast({ title: "Purchase Order Created", description: `${poNumber} approved automatically.` });
+        navigate(`/purchase-orders/${po.id}`);
+      } else {
+        toast({ title: "Submitted for Approval", description: `${poNumber} requires ${rule?.required_role} approval.` });
+        navigate("/purchase-orders");
+      }
     } catch (err: any) {
       setError(err.message || "Failed to create purchase order");
     } finally {
