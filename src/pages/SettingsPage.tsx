@@ -18,7 +18,7 @@ import { Plus, Trash2, Pencil } from "lucide-react";
 const ALL_ROLES = ["admin", "procurement", "sales", "finance", "employee"] as const;
 
 export default function SettingsPage() {
-  const { user, profile, roles, orgId } = useAuth();
+  const { user, profile, roles, orgId, refreshRoles } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
   const isSuperAdmin = roles.includes("superadmin");
@@ -169,14 +169,22 @@ export default function SettingsPage() {
       toast({ title: "Cannot remove your own admin role", variant: "destructive" }); return;
     }
     setRoleSaving(true);
-    // Delete existing
-    await supabase.from("user_roles").delete().eq("user_id", roleDialog).eq("organization_id", orgId);
-    // Insert new
-    if (checkedRoles.length > 0) {
-      await supabase.from("user_roles").insert(checkedRoles.map((r) => ({ user_id: roleDialog, role: r as any, organization_id: orgId })));
+    const { error } = await supabase.rpc("update_user_roles", {
+      _target_user_id: roleDialog,
+      _organization_id: orgId,
+      _new_roles: checkedRoles as any,
+    });
+    if (error) {
+      toast({ title: "Failed to update roles", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Roles updated" });
+      // Refresh auth context if editing own roles
+      if (roleDialog === user?.id) {
+        await refreshRoles();
+      }
     }
     setRoleSaving(false);
-    toast({ title: "Roles updated" }); setRoleDialog(null);
+    setRoleDialog(null);
     qc.invalidateQueries({ queryKey: ["all-user-roles"] });
   };
 
