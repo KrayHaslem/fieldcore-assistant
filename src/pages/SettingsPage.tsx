@@ -56,6 +56,45 @@ export default function SettingsPage() {
     },
   });
 
+  // ---- Super Admin: Org CRUD ----
+  const [orgDialog, setOrgDialog] = useState(false);
+  const [editingOrgId, setEditingOrgId] = useState<string | null>(null);
+  const [orgForm, setOrgForm] = useState({ name: "", industry: "" });
+  const [orgSaving, setOrgSaving] = useState(false);
+
+  const openOrgDialog = (org?: any) => {
+    if (org) {
+      setEditingOrgId(org.id);
+      setOrgForm({ name: org.name, industry: org.industry ?? "" });
+    } else {
+      setEditingOrgId(null);
+      setOrgForm({ name: "", industry: "" });
+    }
+    setOrgDialog(true);
+  };
+
+  const saveOrg = async () => {
+    if (!orgForm.name.trim()) return;
+    setOrgSaving(true);
+    const payload = { name: orgForm.name.trim(), industry: orgForm.industry.trim() || null };
+    const { error } = editingOrgId
+      ? await supabase.from("organizations").update(payload).eq("id", editingOrgId)
+      : await supabase.from("organizations").insert(payload);
+    setOrgSaving(false);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: editingOrgId ? "Organization updated" : "Organization created" });
+    setOrgDialog(false);
+    qc.invalidateQueries({ queryKey: ["tenants"] });
+  };
+
+  const deleteOrg = async (id: string, name: string) => {
+    if (!confirm(`Delete organization "${name}"? This will remove all associated data.`)) return;
+    const { error } = await supabase.from("organizations").delete().eq("id", id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Organization deleted" });
+    qc.invalidateQueries({ queryKey: ["tenants"] });
+  };
+
   // ---- Departments ----
   const [deptDialog, setDeptDialog] = useState(false);
   const [deptName, setDeptName] = useState("");
@@ -241,12 +280,16 @@ export default function SettingsPage() {
                   <Button onClick={seedDemo} disabled={seeding} variant="outline">{seeding ? "Resetting…" : "Reset Demo Data"}</Button>
                 </div>
                 <div className="fieldcore-card overflow-hidden">
-                  <div className="border-b px-5 py-3"><h3 className="text-sm font-semibold text-foreground">Tenant Organizations</h3></div>
+                  <div className="flex items-center justify-between border-b px-5 py-3">
+                    <h3 className="text-sm font-semibold text-foreground">Tenant Organizations</h3>
+                    <Button size="sm" onClick={() => openOrgDialog()}><Plus className="h-4 w-4" /> Add Organization</Button>
+                  </div>
                   <table className="w-full text-sm">
                     <thead><tr className="border-b bg-muted/50">
                       <th className="px-5 py-2 text-left font-medium text-muted-foreground">Name</th>
                       <th className="px-5 py-2 text-left font-medium text-muted-foreground">Industry</th>
                       <th className="px-5 py-2 text-left font-medium text-muted-foreground">Created</th>
+                      <th className="px-5 py-2 w-24" />
                     </tr></thead>
                     <tbody className="divide-y">
                       {tenants?.map((t: any) => (
@@ -254,9 +297,13 @@ export default function SettingsPage() {
                           <td className="px-5 py-2 font-medium text-foreground">{t.name}</td>
                           <td className="px-5 py-2 text-muted-foreground">{t.industry ?? "—"}</td>
                           <td className="px-5 py-2 text-muted-foreground">{new Date(t.created_at).toLocaleDateString()}</td>
+                          <td className="px-5 py-2 flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openOrgDialog(t)}><Pencil className="h-3.5 w-3.5" /></Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteOrg(t.id, t.name)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                          </td>
                         </tr>
                       ))}
-                      {(!tenants || tenants.length === 0) && <tr><td colSpan={3} className="px-5 py-6 text-center text-muted-foreground">No tenant organizations</td></tr>}
+                      {(!tenants || tenants.length === 0) && <tr><td colSpan={4} className="px-5 py-6 text-center text-muted-foreground">No tenant organizations</td></tr>}
                     </tbody>
                   </table>
                 </div>
@@ -489,6 +536,18 @@ export default function SettingsPage() {
             <div><Label>Description</Label><Input value={unitForm.description} onChange={(e) => setUnitForm({ ...unitForm, description: e.target.value })} /></div>
           </div>
           <DialogFooter><Button onClick={saveUnit} disabled={unitSaving || !unitForm.unit_number.trim()}>{unitSaving ? "Saving..." : "Save"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Organization Dialog */}
+      <Dialog open={orgDialog} onOpenChange={setOrgDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{editingOrgId ? "Edit Organization" : "Create Organization"}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Name *</Label><Input value={orgForm.name} onChange={(e) => setOrgForm({ ...orgForm, name: e.target.value })} placeholder="e.g. Acme Corp" /></div>
+            <div><Label>Industry</Label><Input value={orgForm.industry} onChange={(e) => setOrgForm({ ...orgForm, industry: e.target.value })} placeholder="e.g. Manufacturing" /></div>
+          </div>
+          <DialogFooter><Button onClick={saveOrg} disabled={orgSaving || !orgForm.name.trim()}>{orgSaving ? "Saving..." : "Save"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
