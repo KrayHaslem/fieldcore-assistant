@@ -488,7 +488,7 @@ export default function Reports() {
 
   const { data: marginTimeData, isLoading: loadingMarginTime } = useQuery({
     queryKey: ["report-margin-time", orgId, startISO, endISO, marginGrouping],
-    enabled: selectedKey === "margins_by_timeframe" && !!orgId,
+    enabled: selectedKey === "margins_by_timeframe" && !!orgId && canAccessKey("margins_by_timeframe"),
     queryFn: async () => {
       let soQ = supabase.from("sales_orders").select("id, created_at").in("status", ["fulfilled", "invoiced", "paid", "closed"]);
       if (startISO) soQ = soQ.gte("created_at", startISO);
