@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, ChevronDown, ChevronRight, Hammer } from "lucide-react";
+import { FormAssistantPanel } from "@/components/FormAssistantPanel";
 
 interface ItemOption extends ComboBoxOption {
   sku: string | null;
