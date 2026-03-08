@@ -142,6 +142,10 @@ export default function Reports() {
 
   const canAccessReport = (report: ReportDef) =>
     roles.includes("admin") || report.accessRoles.some((r) => roles.includes(r));
+  const canAccessKey = (key: ReportKey) => {
+    const r = allReports.find((rr) => rr.key === key);
+    return r ? canAccessReport(r) : false;
+  };
 
   const selected = allReports.find((r) => r.key === selectedKey) ?? null;
   const hasAccess = selected ? canAccessReport(selected) : false;
