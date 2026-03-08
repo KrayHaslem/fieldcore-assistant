@@ -334,7 +334,7 @@ export default function Reports() {
 
   const { data: inventoryPerfData, isLoading: loadingInvPerf } = useQuery({
     queryKey: ["report-inv-perf", orgId, startISO, endISO],
-    enabled: selectedKey === "inventory_performance" && !!orgId,
+    enabled: selectedKey === "inventory_performance" && !!orgId && canAccessKey("inventory_performance"),
     queryFn: async () => {
       let q = supabase.from("inventory_movements")
         .select("item_id, quantity, created_at, inventory_items:item_id(name, item_type)")
