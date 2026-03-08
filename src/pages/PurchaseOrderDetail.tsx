@@ -295,6 +295,32 @@ export default function PurchaseOrderDetail() {
               <span className="text-muted-foreground">Created</span>
               <p className="font-medium text-foreground">{new Date(po.created_at).toLocaleDateString()}</p>
             </div>
+            {po.status === "submitted" && (
+              <>
+                <div>
+                  <span className="text-muted-foreground">Required Approval</span>
+                  <p className="font-medium text-foreground">
+                    {(po as any).required_approver_role
+                      ? `${(po as any).required_approver_role} — ${
+                          (po as any).rule_is_department_scoped
+                            ? `${(po as any).departments?.name ?? "department"} only`
+                            : "any department"
+                        }`
+                      : "None required"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Assigned Approver</span>
+                  <p className="font-medium text-foreground">
+                    {(po as any).assigned_approver_id
+                      ? assignedApproverName ?? "Loading..."
+                      : (po as any).required_approver_role
+                      ? `Any ${(po as any).required_approver_role}`
+                      : "—"}
+                  </p>
+                </div>
+              </>
+            )}
             <div>
               <span className="text-muted-foreground">Total Amount</span>
               <p className="font-medium text-foreground">${Number(po.total_amount).toLocaleString()}</p>

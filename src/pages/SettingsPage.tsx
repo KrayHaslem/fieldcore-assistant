@@ -13,7 +13,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
+import { Plus, Trash2, Pencil, FlaskConical } from "lucide-react";
 
 const ALL_ROLES = ["admin", "procurement", "sales", "finance", "employee"] as const;
 

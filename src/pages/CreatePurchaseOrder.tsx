@@ -675,8 +675,21 @@ export default function CreatePurchaseOrder() {
 
           {/* Total */}
           {total > 0 && (
-            <div className="text-right rounded-md bg-muted/50 p-4 text-lg font-semibold text-foreground">
-              Total: ${total.toFixed(2)}
+            <div className="text-right rounded-md bg-muted/50 p-4">
+              <span className="text-lg font-semibold text-foreground">
+                Total: ${total.toFixed(2)}
+              </span>
+              {approvalPreview && (
+                <p className={`text-xs mt-1 ${
+                  requiresApproval
+                    ? "text-amber-600"
+                    : "text-muted-foreground"
+                }`}>
+                  {requiresApproval
+                    ? `This order requires ${approvalPreview.required_role} approval`
+                    : "This order does not require approval"}
+                </p>
+              )}
             </div>
           )}
 
@@ -699,7 +712,11 @@ export default function CreatePurchaseOrder() {
               onClick={() => handleSubmit(true)}
               disabled={isSubmitting || !!getValidationError()}
             >
-              {isSubmitting ? "Submitting..." : "Submit for Approval"}
+              {isSubmitting
+                ? "Saving..."
+                : requiresApproval
+                ? "Submit for Approval"
+                : "Create Purchase Order"}
             </Button>
           </div>
         </div>
