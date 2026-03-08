@@ -299,7 +299,7 @@ export default function CreatePurchaseOrder() {
       if (submitForApproval) {
         const { data: ruleData } = await supabase.rpc("get_approval_rule", {
           _org_id: orgId!,
-          _department_id: department?.id ?? null,
+          _department_id: department?.id ?? '',
           _total_amount: totalAmount,
         });
         rule = ruleData?.[0];
