@@ -326,6 +326,7 @@ export type Database = {
           created_at: string
           id: string
           industry: string | null
+          is_onboarded: boolean
           name: string
           settings: Json | null
           terms_accepted_at: string | null
@@ -335,6 +336,7 @@ export type Database = {
           created_at?: string
           id?: string
           industry?: string | null
+          is_onboarded?: boolean
           name: string
           settings?: Json | null
           terms_accepted_at?: string | null
@@ -344,6 +346,7 @@ export type Database = {
           created_at?: string
           id?: string
           industry?: string | null
+          is_onboarded?: boolean
           name?: string
           settings?: Json | null
           terms_accepted_at?: string | null

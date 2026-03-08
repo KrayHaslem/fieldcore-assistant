@@ -18,6 +18,7 @@ import Assemblies from "./pages/Assemblies";
 import Reconciliation from "./pages/Reconciliation";
 import Reports from "./pages/Reports";
 import SettingsPage from "./pages/SettingsPage";
+import OrgSetupWizard from "./pages/OrgSetupWizard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ function ProtectedRoutes() {
         <Route path="/reconciliation" element={<Reconciliation />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/setup/:orgId" element={<OrgSetupWizard />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

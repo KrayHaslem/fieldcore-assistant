@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -21,6 +22,7 @@ const ALL_ROLES = ["admin", "procurement", "sales", "finance", "employee"] as co
 export default function SettingsPage() {
   const { user, profile, roles, orgId, refreshRoles } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const isSuperAdmin = roles.includes("superadmin");
   const isAdmin = roles.includes("admin") || isSuperAdmin;
@@ -86,14 +88,22 @@ export default function SettingsPage() {
     if (!orgForm.name.trim()) return;
     setOrgSaving(true);
     const payload = { name: orgForm.name.trim(), industry: orgForm.industry.trim() || null };
-    const { error } = editingOrgId
-      ? await supabase.from("organizations").update(payload).eq("id", editingOrgId)
-      : await supabase.from("organizations").insert(payload);
-    setOrgSaving(false);
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: editingOrgId ? "Organization updated" : "Organization created" });
-    setOrgDialog(false);
-    qc.invalidateQueries({ queryKey: ["tenants"] });
+    if (editingOrgId) {
+      const { error } = await supabase.from("organizations").update(payload).eq("id", editingOrgId);
+      setOrgSaving(false);
+      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+      toast({ title: "Organization updated" });
+      setOrgDialog(false);
+      qc.invalidateQueries({ queryKey: ["tenants"] });
+    } else {
+      const { data, error } = await supabase.from("organizations").insert(payload).select().single();
+      setOrgSaving(false);
+      if (error || !data) { toast({ title: "Error", description: error?.message ?? "Failed to create", variant: "destructive" }); return; }
+      toast({ title: "Organization created" });
+      setOrgDialog(false);
+      qc.invalidateQueries({ queryKey: ["tenants"] });
+      navigate(`/setup/${data.id}`);
+    }
   };
 
   const deleteOrg = async (id: string, name: string) => {
