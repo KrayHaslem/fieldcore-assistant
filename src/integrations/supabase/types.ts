@@ -900,6 +900,14 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_sales_by_salesperson: {
+        Args: { _end_date: string; _start_date: string; _user_id: string }
+        Returns: {
+          order_count: number
+          salesperson_name: string
+          total_revenue: number
+        }[]
+      }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
