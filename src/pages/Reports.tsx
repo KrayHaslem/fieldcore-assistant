@@ -568,28 +568,32 @@ export default function Reports() {
       <div className="flex p-8 gap-6 max-w-7xl">
         {/* Left — Report Selector */}
         <div className="w-64 shrink-0 space-y-6">
-          {reportCategories.map((cat) => (
-            <div key={cat.title}>
-              <div className="flex items-center gap-2 mb-2">
-                <cat.icon className="h-4 w-4 text-primary" />
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{cat.title}</h3>
+          {reportCategories.map((cat) => {
+            const accessible = cat.reports.filter(canAccessReport);
+            if (accessible.length === 0) return null;
+            return (
+              <div key={cat.title}>
+                <div className="flex items-center gap-2 mb-2">
+                  <cat.icon className="h-4 w-4 text-primary" />
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{cat.title}</h3>
+                </div>
+                <div className="space-y-1">
+                  {accessible.map((r) => (
+                    <button
+                      key={r.key}
+                      onClick={() => setSelectedKey(r.key)}
+                      className={cn(
+                        "w-full text-left px-3 py-2 text-sm rounded-md transition-colors",
+                        selectedKey === r.key ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-muted"
+                      )}
+                    >
+                      {r.name}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-1">
-                {cat.reports.map((r) => (
-                  <button
-                    key={r.key}
-                    onClick={() => setSelectedKey(r.key)}
-                    className={cn(
-                      "w-full text-left px-3 py-2 text-sm rounded-md transition-colors",
-                      selectedKey === r.key ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-muted"
-                    )}
-                  >
-                    {r.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Right — Report Display */}
