@@ -174,6 +174,15 @@ serve(async (req) => {
 
     // ===== STEP 8: PURCHASE ORDERS =====
     const poData = [
+      // Historical closed POs (pre-existing stock with full audit trail)
+      { id: PO(13), po_number: "PO-2025-H01", supplier_id: SUP.hydro, department_id: DEPT.manufacturing, status: "closed", total_amount: 8985, created_by: sarah, created_at: "2025-06-10T09:00:00Z", approved_by: sarah, approved_at: "2025-06-10T10:00:00Z", ordered_at: "2025-06-11T08:00:00Z", received_at: "2025-06-18T14:00:00Z", notes: "Initial valve and o-ring stock" },
+      { id: PO(14), po_number: "PO-2025-H02", supplier_id: SUP.premier, department_id: DEPT.manufacturing, status: "closed", total_amount: 7120, created_by: sarah, created_at: "2025-06-12T10:00:00Z", approved_by: sarah, approved_at: "2025-06-12T11:00:00Z", ordered_at: "2025-06-13T08:00:00Z", received_at: "2025-07-04T14:00:00Z", notes: "Safety valve opening stock" },
+      { id: PO(15), po_number: "PO-2025-H03", supplier_id: SUP.simper, department_id: DEPT.manufacturing, status: "closed", total_amount: 9975, created_by: james, created_at: "2025-06-15T08:00:00Z", approved_by: sarah, approved_at: "2025-06-15T14:00:00Z", ordered_at: "2025-06-16T08:00:00Z", received_at: "2025-06-26T10:00:00Z", notes: "Pump components for initial assembly runs" },
+      { id: PO(16), po_number: "PO-2025-H04", supplier_id: SUP.safety, department_id: DEPT.manufacturing, status: "closed", total_amount: 1775, created_by: maria, created_at: "2025-07-01T08:00:00Z", approved_by: sarah, approved_at: "2025-07-01T09:00:00Z", ordered_at: "2025-07-01T10:00:00Z", received_at: "2025-07-04T10:00:00Z", notes: "Initial safety supplies stock" },
+      { id: PO(17), po_number: "PO-2025-H05", supplier_id: SUP.breakroom, department_id: DEPT.office, status: "closed", total_amount: 520, created_by: sarah, created_at: "2025-07-05T09:00:00Z", approved_by: sarah, approved_at: "2025-07-05T09:30:00Z", ordered_at: "2025-07-05T10:00:00Z", received_at: "2025-07-08T11:00:00Z", notes: "Breakroom supplies setup" },
+      { id: PO(18), po_number: "PO-2025-H06", supplier_id: SUP.office, department_id: DEPT.office, status: "closed", total_amount: 420, created_by: sarah, created_at: "2025-07-05T09:00:00Z", approved_by: sarah, approved_at: "2025-07-05T09:30:00Z", ordered_at: "2025-07-05T10:00:00Z", received_at: "2025-07-08T11:00:00Z", notes: "Office supplies setup" },
+      { id: PO(19), po_number: "PO-2025-H07", supplier_id: SUP.logan, department_id: DEPT.maintenance, status: "closed", total_amount: 2376, created_by: james, created_at: "2025-07-10T08:00:00Z", approved_by: sarah, approved_at: "2025-07-10T14:00:00Z", ordered_at: "2025-07-11T08:00:00Z", received_at: "2025-07-16T10:00:00Z", notes: "Fleet maintenance supplies — initial stock" },
+      // Active POs
       { id: PO(1), po_number: "PO-2025-001", supplier_id: SUP.logan, department_id: DEPT.manufacturing, status: "closed", total_amount: 690, created_by: james, created_at: "2025-10-05T10:00:00Z", notes: "MIG wire and weld rod restock" },
       { id: PO(2), po_number: "PO-2025-002", supplier_id: SUP.swsteel, department_id: DEPT.manufacturing, status: "received", total_amount: 4350, created_by: james, created_at: "2025-10-18T14:00:00Z", notes: "Steel plates for Q1 production" },
       { id: PO(3), po_number: "PO-2025-003", supplier_id: SUP.simper, department_id: DEPT.manufacturing, status: "approved", total_amount: 6650, created_by: sarah, created_at: "2025-11-02T09:00:00Z", notes: "Pump components for March builds" },
@@ -226,6 +235,32 @@ serve(async (req) => {
       { purchase_order_id: PO(12), item_id: I(8), quantity: 8, unit_cost: 320, item_type: "manufacturing_input", quantity_received: 0, organization_id: ORG_ID },
       { purchase_order_id: PO(12), item_id: I(9), quantity: 8, unit_cost: 280, item_type: "manufacturing_input", quantity_received: 0, organization_id: ORG_ID },
       { purchase_order_id: PO(12), item_id: I(10), quantity: 8, unit_cost: 65, item_type: "manufacturing_input", quantity_received: 0, organization_id: ORG_ID },
+      // Historical PO-H01 (hydro): gate valves, check valves, o-rings
+      { purchase_order_id: PO(13), item_id: I(3), quantity: 20, unit_cost: 285, item_type: "resale", quantity_received: 20, organization_id: ORG_ID },
+      { purchase_order_id: PO(13), item_id: I(4), quantity: 15, unit_cost: 175, item_type: "resale", quantity_received: 15, organization_id: ORG_ID },
+      { purchase_order_id: PO(13), item_id: I(11), quantity: 30, unit_cost: 22, item_type: "manufacturing_input", quantity_received: 30, organization_id: ORG_ID },
+      // Historical PO-H02 (premier): safety valves
+      { purchase_order_id: PO(14), item_id: I(5), quantity: 8, unit_cost: 890, item_type: "resale", quantity_received: 8, organization_id: ORG_ID },
+      // Historical PO-H03 (simper): pump shafts, impellers, seal kits
+      { purchase_order_id: PO(15), item_id: I(8), quantity: 15, unit_cost: 320, item_type: "manufacturing_input", quantity_received: 15, organization_id: ORG_ID },
+      { purchase_order_id: PO(15), item_id: I(9), quantity: 15, unit_cost: 280, item_type: "manufacturing_input", quantity_received: 15, organization_id: ORG_ID },
+      { purchase_order_id: PO(15), item_id: I(10), quantity: 15, unit_cost: 65, item_type: "manufacturing_input", quantity_received: 15, organization_id: ORG_ID },
+      // Historical PO-H04 (safety): safety glasses, gloves, hard hats
+      { purchase_order_id: PO(16), item_id: I(20), quantity: 100, unit_cost: 8, item_type: "consumable", quantity_received: 100, organization_id: ORG_ID },
+      { purchase_order_id: PO(16), item_id: I(21), quantity: 50, unit_cost: 12, item_type: "consumable", quantity_received: 50, organization_id: ORG_ID },
+      { purchase_order_id: PO(16), item_id: I(22), quantity: 15, unit_cost: 25, item_type: "consumable", quantity_received: 15, organization_id: ORG_ID },
+      // Historical PO-H05 (breakroom): paper towels, coffee
+      { purchase_order_id: PO(17), item_id: I(23), quantity: 60, unit_cost: 4, item_type: "consumable", quantity_received: 60, organization_id: ORG_ID },
+      { purchase_order_id: PO(17), item_id: I(24), quantity: 8, unit_cost: 35, item_type: "consumable", quantity_received: 8, organization_id: ORG_ID },
+      // Historical PO-H06 (office): printer paper
+      { purchase_order_id: PO(18), item_id: I(25), quantity: 10, unit_cost: 42, item_type: "consumable", quantity_received: 10, organization_id: ORG_ID },
+      // Historical PO-H07 (logan): fleet maintenance supplies
+      { purchase_order_id: PO(19), item_id: I(14), quantity: 20, unit_cost: 32, item_type: "internal_use", quantity_received: 20, organization_id: ORG_ID },
+      { purchase_order_id: PO(19), item_id: I(15), quantity: 12, unit_cost: 48, item_type: "internal_use", quantity_received: 12, organization_id: ORG_ID },
+      { purchase_order_id: PO(19), item_id: I(16), quantity: 10, unit_cost: 28, item_type: "internal_use", quantity_received: 10, organization_id: ORG_ID },
+      { purchase_order_id: PO(19), item_id: I(17), quantity: 8, unit_cost: 65, item_type: "internal_use", quantity_received: 8, organization_id: ORG_ID },
+      { purchase_order_id: PO(19), item_id: I(18), quantity: 6, unit_cost: 18, item_type: "internal_use", quantity_received: 6, organization_id: ORG_ID },
+      { purchase_order_id: PO(19), item_id: I(19), quantity: 6, unit_cost: 42, item_type: "internal_use", quantity_received: 6, organization_id: ORG_ID },
     ];
     for (const li of poItems) await sb.from("purchase_order_items").insert(li);
 
@@ -296,29 +331,26 @@ serve(async (req) => {
       mv(I(2), "received", 2, "purchase_order", PO(7), sarah),    // Triplex pumps from PO-007
       mv(I(6), "received", 20, "purchase_order", PO(8), james),   // Steel plates from PO-008
       mv(I(12), "received", 2, "purchase_order", PO(11), james),  // Hydraulic fittings from PO-011
-      // Gate valves and check valves received (historical, pre-existing stock)
-      mv(I(3), "received", 20, "manual", null, sarah),
-      mv(I(4), "received", 15, "manual", null, sarah),
-      mv(I(5), "received", 8, "manual", null, sarah),
-      // Pump components received (for assemblies - shaft, impeller, seal kits)
-      mv(I(8), "received", 15, "manual", null, james),
-      mv(I(9), "received", 15, "manual", null, james),
-      mv(I(10), "received", 15, "manual", null, james),
-      // Consumables received
-      mv(I(20), "received", 100, "manual", null, maria),
-      mv(I(21), "received", 50, "manual", null, maria),
-      mv(I(22), "received", 15, "manual", null, maria),
-      mv(I(23), "received", 60, "manual", null, maria),
-      mv(I(24), "received", 8, "manual", null, maria),
-      mv(I(25), "received", 10, "manual", null, maria),
-      // Internal use items received
-      mv(I(14), "received", 20, "manual", null, james),
-      mv(I(15), "received", 12, "manual", null, james),
-      mv(I(16), "received", 10, "manual", null, james),
-      mv(I(17), "received", 8, "manual", null, james),
-      mv(I(18), "received", 6, "manual", null, james),
-      mv(I(19), "received", 6, "manual", null, james),
-      mv(I(11), "received", 30, "manual", null, james),   // O-rings
+      // Historical stock received from closed POs (full audit trail)
+      mv(I(3), "received", 20, "purchase_order", PO(13), sarah),   // Gate valves from PO-H01
+      mv(I(4), "received", 15, "purchase_order", PO(13), sarah),   // Check valves from PO-H01
+      mv(I(11), "received", 30, "purchase_order", PO(13), james),  // O-rings from PO-H01
+      mv(I(5), "received", 8, "purchase_order", PO(14), sarah),    // Safety valves from PO-H02
+      mv(I(8), "received", 15, "purchase_order", PO(15), james),   // Pump shafts from PO-H03
+      mv(I(9), "received", 15, "purchase_order", PO(15), james),   // Impellers from PO-H03
+      mv(I(10), "received", 15, "purchase_order", PO(15), james),  // Seal kits from PO-H03
+      mv(I(20), "received", 100, "purchase_order", PO(16), maria), // Safety glasses from PO-H04
+      mv(I(21), "received", 50, "purchase_order", PO(16), maria),  // Gloves from PO-H04
+      mv(I(22), "received", 15, "purchase_order", PO(16), maria),  // Hard hats from PO-H04
+      mv(I(23), "received", 60, "purchase_order", PO(17), maria),  // Paper towels from PO-H05
+      mv(I(24), "received", 8, "purchase_order", PO(17), maria),   // Coffee from PO-H05
+      mv(I(25), "received", 10, "purchase_order", PO(18), maria),  // Printer paper from PO-H06
+      mv(I(14), "received", 20, "purchase_order", PO(19), james),  // Engine oil from PO-H07
+      mv(I(15), "received", 12, "purchase_order", PO(19), james),  // Hydraulic fluid from PO-H07
+      mv(I(16), "received", 10, "purchase_order", PO(19), james),  // Air filters from PO-H07
+      mv(I(17), "received", 8, "purchase_order", PO(19), james),   // Brake pads from PO-H07
+      mv(I(18), "received", 6, "purchase_order", PO(19), james),   // Trans filters from PO-H07
+      mv(I(19), "received", 6, "purchase_order", PO(19), james),   // V-belts from PO-H07
 
       // Assembly production: +12 pump housings total
       mv(I(1), "assembled", 5, "assembly_record", AR(1), maria),
