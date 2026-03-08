@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -10,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ClipboardCheck } from "lucide-react";
+import { FormAssistantPanel } from "@/components/FormAssistantPanel";
 
 interface ItemOption extends ComboBoxOption {
   sku: string | null;
@@ -18,8 +20,11 @@ interface ItemOption extends ComboBoxOption {
 
 export default function Reconciliation() {
   const { user, orgId, roles } = useAuth();
+  const location = useLocation();
+  const prefill = (location.state as any)?.prefill;
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showAssistant, setShowAssistant] = useState(!!prefill);
 
   const canReconcile = roles.includes("admin") || roles.includes("procurement");
 
@@ -127,8 +132,23 @@ export default function Reconciliation() {
     },
   });
 
+  const handleAssistantIntent = (intent: Record<string, any>): string => {
+    const updates: string[] = [];
+    if (intent.item_name) {
+      supabase.from("inventory_items").select("id, name, sku, item_type")
+        .in("item_type", ["resale", "manufacturing_input", "consumable"])
+        .ilike("name", `%${intent.item_name}%`).limit(1)
+        .then(({ data }) => {
+          if (data && data[0]) setSelectedItem({ id: data[0].id, label: data[0].name, sku: data[0].sku, item_type: data[0].item_type });
+        });
+      updates.push(`Looking up item "${intent.item_name}"`);
+    }
+    return updates.length > 0 ? `I've updated the form: ${updates.join(". ")}.` : "I couldn't find specific fields to update.";
+  };
+
   return (
-    <div>
+    <div className="flex h-full">
+      <div className="flex-1 min-w-0">
       <PageHeader
         title="Inventory Reconciliation"
         description="Compare expected vs actual stock counts"
@@ -238,6 +258,15 @@ export default function Reconciliation() {
           </table>
         </div>
       </div>
+      </div>
+
+      {showAssistant && prefill && (
+        <FormAssistantPanel
+          commandText={prefill.raw || prefill.command || "AI command"}
+          onIntentReceived={handleAssistantIntent}
+          onClose={() => setShowAssistant(false)}
+        />
+      )}
     </div>
   );
 }

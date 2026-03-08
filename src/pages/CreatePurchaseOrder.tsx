@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { FormAssistantPanel } from "@/components/FormAssistantPanel";
 import { useAuth } from "@/lib/auth";
 import { PageHeader } from "@/components/PageHeader";
 import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
@@ -66,8 +67,11 @@ function emptyLineItem(): LineItem {
 
 export default function CreatePurchaseOrder() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const prefill = (location.state as any)?.prefill;
   const { orgId, user } = useAuth();
   const { toast } = useToast();
+  const [showAssistant, setShowAssistant] = useState(!!prefill);
 
   const [supplier, setSupplier] = useState<SupplierOption | null>(null);
   const [department, setDepartment] = useState<DepartmentOption | null>(null);
@@ -336,8 +340,77 @@ export default function CreatePurchaseOrder() {
 
   const total = calculateTotal();
 
+  const handleAssistantIntent = (intent: Record<string, any>): string => {
+    const updates: string[] = [];
+
+    if (intent.supplier) {
+      // Search and set supplier
+      supabase.from("suppliers").select("id, name, contact_email, contact_name")
+        .ilike("name", `%${intent.supplier}%`).limit(1)
+        .then(({ data }) => {
+          if (data && data[0]) {
+            setSupplier({ ...data[0], label: data[0].name });
+            updates.push(`Set supplier to ${data[0].name}`);
+          }
+        });
+      updates.push(`Looking up supplier "${intent.supplier}"`);
+    }
+
+    if (intent.department) {
+      supabase.from("departments").select("id, name")
+        .ilike("name", `%${intent.department}%`).limit(1)
+        .then(({ data }) => {
+          if (data && data[0]) {
+            setDepartment({ ...data[0], label: data[0].name });
+          }
+        });
+      updates.push(`Setting department to "${intent.department}"`);
+    }
+
+    if (intent.items && Array.isArray(intent.items)) {
+      for (const intentItem of intent.items) {
+        supabase.from("inventory_items").select("id, name, item_type, default_unit_cost, sku")
+          .ilike("name", `%${intentItem.name}%`).limit(1)
+          .then(({ data }) => {
+            if (data && data[0]) {
+              const match = data[0];
+              setItems((prev) => {
+                // Check if item already exists
+                const existing = prev.find((li) => li.item?.id === match.id);
+                if (existing) {
+                  return prev.map((li) =>
+                    li.item?.id === match.id
+                      ? { ...li, quantity: String(intentItem.quantity || li.quantity) }
+                      : li
+                  );
+                }
+                // Add new line or fill empty slot
+                const empty = prev.find((li) => !li.item);
+                const newLi = {
+                  id: empty?.id || String(Date.now()),
+                  item: { ...match, label: match.sku ? `${match.name} (${match.sku})` : match.name },
+                  quantity: String(intentItem.quantity || 1),
+                  unit_cost: match.default_unit_cost ? String(match.default_unit_cost) : "",
+                  item_type: (match.item_type || "resale") as any,
+                  unit: null,
+                };
+                if (empty) return prev.map((li) => (li.id === empty.id ? newLi : li));
+                return [...prev, newLi];
+              });
+            }
+          });
+        updates.push(`Adding ${intentItem.quantity || 1}× ${intentItem.name}`);
+      }
+    }
+
+    return updates.length > 0
+      ? `I've updated the form: ${updates.join(". ")}.`
+      : "I couldn't find specific fields to update from that request.";
+  };
+
   return (
-    <div>
+    <div className="flex h-full">
+      <div className="flex-1 min-w-0">
       <PageHeader
         title="New Purchase Order"
         description="Create a purchase order and submit for approval"
@@ -710,6 +783,16 @@ export default function CreatePurchaseOrder() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
+
+      {/* Assistant Panel */}
+      {showAssistant && prefill && (
+        <FormAssistantPanel
+          commandText={prefill.raw || prefill.command || "AI command"}
+          onIntentReceived={handleAssistantIntent}
+          onClose={() => setShowAssistant(false)}
+        />
+      )}
     </div>
   );
 }
