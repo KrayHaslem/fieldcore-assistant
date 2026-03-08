@@ -1,41 +1,431 @@
-import { PageHeader } from "@/components/PageHeader";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { PageHeader } from "@/components/PageHeader";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { Plus, Trash2, Pencil } from "lucide-react";
+
+const ALL_ROLES = ["admin", "procurement", "sales", "finance", "employee"] as const;
 
 export default function SettingsPage() {
-  const { profile, roles } = useAuth();
+  const { user, profile, roles, orgId } = useAuth();
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const isAdmin = roles.includes("admin");
+  const canManageSuppliers = isAdmin || roles.includes("procurement");
+  const canManageUnits = isAdmin || roles.includes("procurement");
+
+  // ---- Departments ----
+  const [deptDialog, setDeptDialog] = useState(false);
+  const [deptName, setDeptName] = useState("");
+  const [deptSaving, setDeptSaving] = useState(false);
+
+  const { data: departments } = useQuery({
+    queryKey: ["departments", orgId], enabled: !!orgId && isAdmin,
+    queryFn: async () => { const { data } = await supabase.from("departments").select("*").order("name"); return data ?? []; },
+  });
+
+  const saveDept = async () => {
+    if (!deptName.trim() || !orgId) return;
+    setDeptSaving(true);
+    const { error } = await supabase.from("departments").insert({ name: deptName.trim(), organization_id: orgId });
+    setDeptSaving(false);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Department added" }); setDeptName(""); setDeptDialog(false);
+    qc.invalidateQueries({ queryKey: ["departments"] });
+  };
+
+  const deleteDept = async (id: string, name: string) => {
+    if (!confirm(`Delete department "${name}"?`)) return;
+    const { error } = await supabase.from("departments").delete().eq("id", id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Deleted" }); qc.invalidateQueries({ queryKey: ["departments"] });
+  };
+
+  // ---- Users & Roles ----
+  const [roleDialog, setRoleDialog] = useState<string | null>(null);
+  const [checkedRoles, setCheckedRoles] = useState<string[]>([]);
+  const [roleSaving, setRoleSaving] = useState(false);
+
+  const { data: orgProfiles } = useQuery({
+    queryKey: ["org-profiles", orgId], enabled: !!orgId && isAdmin,
+    queryFn: async () => { const { data } = await supabase.from("profiles").select("*").order("full_name"); return data ?? []; },
+  });
+
+  const { data: allUserRoles } = useQuery({
+    queryKey: ["all-user-roles", orgId], enabled: !!orgId && isAdmin,
+    queryFn: async () => { const { data } = await supabase.from("user_roles").select("*"); return data ?? []; },
+  });
+
+  const getRolesFor = (userId: string) => (allUserRoles ?? []).filter((r: any) => r.user_id === userId).map((r: any) => r.role);
+
+  const openRoleDialog = (userId: string) => {
+    setRoleDialog(userId);
+    setCheckedRoles(getRolesFor(userId));
+  };
+
+  const saveRoles = async () => {
+    if (!roleDialog || !orgId) return;
+    // Prevent removing own admin
+    if (roleDialog === user?.id && !checkedRoles.includes("admin")) {
+      toast({ title: "Cannot remove your own admin role", variant: "destructive" }); return;
+    }
+    setRoleSaving(true);
+    // Delete existing
+    await supabase.from("user_roles").delete().eq("user_id", roleDialog).eq("organization_id", orgId);
+    // Insert new
+    if (checkedRoles.length > 0) {
+      await supabase.from("user_roles").insert(checkedRoles.map((r) => ({ user_id: roleDialog, role: r as any, organization_id: orgId })));
+    }
+    setRoleSaving(false);
+    toast({ title: "Roles updated" }); setRoleDialog(null);
+    qc.invalidateQueries({ queryKey: ["all-user-roles"] });
+  };
+
+  // ---- Suppliers ----
+  const [supplierDialog, setSupplierDialog] = useState(false);
+  const [editingSupplierId, setEditingSupplierId] = useState<string | null>(null);
+  const [sForm, setSForm] = useState({ name: "", contact_name: "", contact_email: "", contact_phone: "" });
+  const [sSaving, setSSaving] = useState(false);
+
+  const { data: suppliers } = useQuery({
+    queryKey: ["suppliers", orgId], enabled: !!orgId && canManageSuppliers,
+    queryFn: async () => { const { data } = await supabase.from("suppliers").select("*").order("name"); return data ?? []; },
+  });
+
+  const openSupplierDialog = (s?: any) => {
+    if (s) {
+      setEditingSupplierId(s.id);
+      setSForm({ name: s.name, contact_name: s.contact_name || "", contact_email: s.contact_email || "", contact_phone: s.contact_phone || "" });
+    } else {
+      setEditingSupplierId(null);
+      setSForm({ name: "", contact_name: "", contact_email: "", contact_phone: "" });
+    }
+    setSupplierDialog(true);
+  };
+
+  const saveSupplier = async () => {
+    if (!sForm.name.trim() || !orgId) return;
+    setSSaving(true);
+    const payload = { name: sForm.name.trim(), contact_name: sForm.contact_name || null, contact_email: sForm.contact_email || null, contact_phone: sForm.contact_phone || null, organization_id: orgId };
+    const { error } = editingSupplierId
+      ? await supabase.from("suppliers").update(payload).eq("id", editingSupplierId)
+      : await supabase.from("suppliers").insert(payload);
+    setSSaving(false);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: editingSupplierId ? "Supplier updated" : "Supplier added" });
+    setSupplierDialog(false); qc.invalidateQueries({ queryKey: ["suppliers"] });
+  };
+
+  // ---- Approval Rules ----
+  const [ruleDialog, setRuleDialog] = useState(false);
+  const [ruleForm, setRuleForm] = useState({ department_id: "", min_amount: "0", max_amount: "", required_role: "admin" as string, approver_user_id: "" });
+  const [ruleSaving, setRuleSaving] = useState(false);
+
+  const { data: approvalRules } = useQuery({
+    queryKey: ["approval-rules", orgId], enabled: !!orgId && isAdmin,
+    queryFn: async () => {
+      const { data } = await supabase.from("approval_rules").select("*, departments:department_id(name)").order("min_amount");
+      return data ?? [];
+    },
+  });
+
+  const saveRule = async () => {
+    if (!orgId) return;
+    setRuleSaving(true);
+    const { error } = await supabase.from("approval_rules").insert({
+      organization_id: orgId,
+      department_id: ruleForm.department_id || null,
+      min_amount: parseFloat(ruleForm.min_amount) || 0,
+      max_amount: ruleForm.max_amount ? parseFloat(ruleForm.max_amount) : null,
+      required_role: ruleForm.required_role as any,
+      approver_user_id: ruleForm.approver_user_id || null,
+    });
+    setRuleSaving(false);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Rule added" }); setRuleDialog(false);
+    setRuleForm({ department_id: "", min_amount: "0", max_amount: "", required_role: "admin", approver_user_id: "" });
+    qc.invalidateQueries({ queryKey: ["approval-rules"] });
+  };
+
+  const deleteRule = async (id: string) => {
+    if (!confirm("Delete this approval rule?")) return;
+    await supabase.from("approval_rules").delete().eq("id", id);
+    qc.invalidateQueries({ queryKey: ["approval-rules"] });
+    toast({ title: "Rule deleted" });
+  };
+
+  // ---- Units ----
+  const [unitDialog, setUnitDialog] = useState(false);
+  const [unitForm, setUnitForm] = useState({ unit_number: "", description: "" });
+  const [unitSaving, setUnitSaving] = useState(false);
+
+  const { data: units } = useQuery({
+    queryKey: ["units", orgId], enabled: !!orgId && canManageUnits,
+    queryFn: async () => { const { data } = await supabase.from("units").select("*").order("unit_number"); return data ?? []; },
+  });
+
+  const saveUnit = async () => {
+    if (!unitForm.unit_number.trim() || !orgId) return;
+    setUnitSaving(true);
+    const { error } = await supabase.from("units").insert({ unit_number: unitForm.unit_number.trim(), description: unitForm.description || null, organization_id: orgId });
+    setUnitSaving(false);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Unit added" }); setUnitDialog(false); setUnitForm({ unit_number: "", description: "" });
+    qc.invalidateQueries({ queryKey: ["units"] });
+  };
 
   return (
     <div>
-      <PageHeader
-        title="Settings"
-        description="Organization and account configuration"
-      />
-      <div className="p-8 space-y-6">
-        <div className="fieldcore-card p-6">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Account</h3>
+      <PageHeader title="Settings" description="Organization and account configuration" />
+      <div className="p-8 max-w-5xl">
+        <Tabs defaultValue="account">
+          <TabsList className="mb-6">
+            <TabsTrigger value="account">My Account</TabsTrigger>
+            {isAdmin && <TabsTrigger value="departments">Departments</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="users">Users & Roles</TabsTrigger>}
+            {canManageSuppliers && <TabsTrigger value="suppliers">Suppliers</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="approvals">Approval Rules</TabsTrigger>}
+            {canManageUnits && <TabsTrigger value="units">Units</TabsTrigger>}
+          </TabsList>
+
+          {/* My Account */}
+          <TabsContent value="account">
+            <div className="fieldcore-card p-6 space-y-3">
+              <h3 className="text-sm font-semibold text-foreground mb-4">Account Information</h3>
+              <div><Label className="text-xs text-muted-foreground">Name</Label><p className="text-sm text-foreground">{profile?.full_name ?? "—"}</p></div>
+              <div><Label className="text-xs text-muted-foreground">Email</Label><p className="text-sm text-foreground">{profile?.email ?? "—"}</p></div>
+              <div><Label className="text-xs text-muted-foreground">Roles</Label><div className="flex gap-1 mt-1">{roles.map((r) => <Badge key={r} variant="secondary" className="capitalize">{r}</Badge>)}</div></div>
+            </div>
+          </TabsContent>
+
+          {/* Departments */}
+          <TabsContent value="departments">
+            <div className="fieldcore-card overflow-hidden">
+              <div className="flex items-center justify-between border-b px-5 py-3">
+                <h3 className="text-sm font-semibold text-foreground">Departments</h3>
+                <Button size="sm" onClick={() => setDeptDialog(true)}><Plus className="h-4 w-4" /> Add Department</Button>
+              </div>
+              <table className="w-full text-sm">
+                <thead><tr className="border-b bg-muted/50"><th className="px-5 py-2 text-left font-medium text-muted-foreground">Name</th><th className="px-5 py-2 text-left font-medium text-muted-foreground">Created</th><th className="px-5 py-2 w-16" /></tr></thead>
+                <tbody className="divide-y">
+                  {departments?.map((d: any) => (
+                    <tr key={d.id} className="hover:bg-muted/30">
+                      <td className="px-5 py-2 text-foreground">{d.name}</td>
+                      <td className="px-5 py-2 text-muted-foreground">{new Date(d.created_at).toLocaleDateString()}</td>
+                      <td className="px-5 py-2"><Button variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => deleteDept(d.id, d.name)}><Trash2 className="h-3.5 w-3.5" /></Button></td>
+                    </tr>
+                  ))}
+                  {(!departments || departments.length === 0) && <tr><td colSpan={3} className="px-5 py-6 text-center text-muted-foreground">No departments</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
+
+          {/* Users & Roles */}
+          <TabsContent value="users">
+            <div className="fieldcore-card overflow-hidden">
+              <div className="border-b px-5 py-3"><h3 className="text-sm font-semibold text-foreground">Users & Roles</h3></div>
+              <table className="w-full text-sm">
+                <thead><tr className="border-b bg-muted/50"><th className="px-5 py-2 text-left font-medium text-muted-foreground">Name</th><th className="px-5 py-2 text-left font-medium text-muted-foreground">Email</th><th className="px-5 py-2 text-left font-medium text-muted-foreground">Roles</th><th className="px-5 py-2 w-24" /></tr></thead>
+                <tbody className="divide-y">
+                  {orgProfiles?.map((p: any) => (
+                    <tr key={p.id} className="hover:bg-muted/30">
+                      <td className="px-5 py-2 text-foreground">{p.full_name}</td>
+                      <td className="px-5 py-2 text-muted-foreground">{p.email}</td>
+                      <td className="px-5 py-2"><div className="flex gap-1 flex-wrap">{getRolesFor(p.user_id).map((r: string) => <Badge key={r} variant="outline" className="capitalize text-xs">{r}</Badge>)}</div></td>
+                      <td className="px-5 py-2"><Button variant="ghost" size="sm" onClick={() => openRoleDialog(p.user_id)}><Pencil className="h-3.5 w-3.5 mr-1" />Roles</Button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
+
+          {/* Suppliers */}
+          <TabsContent value="suppliers">
+            <div className="fieldcore-card overflow-hidden">
+              <div className="flex items-center justify-between border-b px-5 py-3">
+                <h3 className="text-sm font-semibold text-foreground">Suppliers</h3>
+                <Button size="sm" onClick={() => openSupplierDialog()}><Plus className="h-4 w-4" /> Add Supplier</Button>
+              </div>
+              <table className="w-full text-sm">
+                <thead><tr className="border-b bg-muted/50">
+                  <th className="px-5 py-2 text-left font-medium text-muted-foreground">Name</th>
+                  <th className="px-5 py-2 text-left font-medium text-muted-foreground">Contact</th>
+                  <th className="px-5 py-2 text-left font-medium text-muted-foreground">Email</th>
+                  <th className="px-5 py-2 text-left font-medium text-muted-foreground">Phone</th>
+                  <th className="px-5 py-2 text-left font-medium text-muted-foreground">Lead Time</th>
+                  <th className="px-5 py-2 w-16" />
+                </tr></thead>
+                <tbody className="divide-y">
+                  {suppliers?.map((s: any) => (
+                    <tr key={s.id} className="hover:bg-muted/30">
+                      <td className="px-5 py-2 font-medium text-foreground">{s.name}</td>
+                      <td className="px-5 py-2 text-muted-foreground">{s.contact_name ?? "—"}</td>
+                      <td className="px-5 py-2 text-muted-foreground">{s.contact_email ?? "—"}</td>
+                      <td className="px-5 py-2 text-muted-foreground">{s.contact_phone ?? "—"}</td>
+                      <td className="px-5 py-2 text-muted-foreground">{s.avg_lead_time_days ? `${s.avg_lead_time_days}d` : "—"}</td>
+                      <td className="px-5 py-2"><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openSupplierDialog(s)}><Pencil className="h-3.5 w-3.5" /></Button></td>
+                    </tr>
+                  ))}
+                  {(!suppliers || suppliers.length === 0) && <tr><td colSpan={6} className="px-5 py-6 text-center text-muted-foreground">No suppliers</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
+
+          {/* Approval Rules */}
+          <TabsContent value="approvals">
+            <div className="fieldcore-card overflow-hidden">
+              <div className="flex items-center justify-between border-b px-5 py-3">
+                <h3 className="text-sm font-semibold text-foreground">Approval Rules</h3>
+                <Button size="sm" onClick={() => setRuleDialog(true)}><Plus className="h-4 w-4" /> Add Rule</Button>
+              </div>
+              <table className="w-full text-sm">
+                <thead><tr className="border-b bg-muted/50">
+                  <th className="px-5 py-2 text-left font-medium text-muted-foreground">Department</th>
+                  <th className="px-5 py-2 text-left font-medium text-muted-foreground">Min Amount</th>
+                  <th className="px-5 py-2 text-left font-medium text-muted-foreground">Max Amount</th>
+                  <th className="px-5 py-2 text-left font-medium text-muted-foreground">Required Role</th>
+                  <th className="px-5 py-2 w-16" />
+                </tr></thead>
+                <tbody className="divide-y">
+                  {approvalRules?.map((r: any) => (
+                    <tr key={r.id} className="hover:bg-muted/30">
+                      <td className="px-5 py-2 text-foreground">{r.departments?.name ?? "All"}</td>
+                      <td className="px-5 py-2 text-foreground">${Number(r.min_amount).toLocaleString()}</td>
+                      <td className="px-5 py-2 text-foreground">{r.max_amount != null ? `$${Number(r.max_amount).toLocaleString()}` : "No limit"}</td>
+                      <td className="px-5 py-2"><Badge variant="outline" className="capitalize">{r.required_role}</Badge></td>
+                      <td className="px-5 py-2"><Button variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => deleteRule(r.id)}><Trash2 className="h-3.5 w-3.5" /></Button></td>
+                    </tr>
+                  ))}
+                  {(!approvalRules || approvalRules.length === 0) && <tr><td colSpan={5} className="px-5 py-6 text-center text-muted-foreground">No approval rules configured</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
+
+          {/* Units */}
+          <TabsContent value="units">
+            <div className="fieldcore-card overflow-hidden">
+              <div className="flex items-center justify-between border-b px-5 py-3">
+                <h3 className="text-sm font-semibold text-foreground">Units</h3>
+                <Button size="sm" onClick={() => setUnitDialog(true)}><Plus className="h-4 w-4" /> Add Unit</Button>
+              </div>
+              <table className="w-full text-sm">
+                <thead><tr className="border-b bg-muted/50"><th className="px-5 py-2 text-left font-medium text-muted-foreground">Unit Number</th><th className="px-5 py-2 text-left font-medium text-muted-foreground">Description</th></tr></thead>
+                <tbody className="divide-y">
+                  {units?.map((u: any) => (
+                    <tr key={u.id} className="hover:bg-muted/30">
+                      <td className="px-5 py-2 font-medium text-foreground">{u.unit_number}</td>
+                      <td className="px-5 py-2 text-muted-foreground">{u.description ?? "—"}</td>
+                    </tr>
+                  ))}
+                  {(!units || units.length === 0) && <tr><td colSpan={2} className="px-5 py-6 text-center text-muted-foreground">No units</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Department Dialog */}
+      <Dialog open={deptDialog} onOpenChange={setDeptDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Add Department</DialogTitle></DialogHeader>
+          <div><Label>Department Name</Label><Input value={deptName} onChange={(e) => setDeptName(e.target.value)} placeholder="e.g. Manufacturing" /></div>
+          <DialogFooter><Button onClick={saveDept} disabled={deptSaving || !deptName.trim()}>{deptSaving ? "Saving..." : "Save"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Role Edit Dialog */}
+      <Dialog open={!!roleDialog} onOpenChange={() => setRoleDialog(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Edit Roles</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            {ALL_ROLES.map((r) => (
+              <div key={r} className="flex items-center gap-2">
+                <Checkbox
+                  id={`role-${r}`}
+                  checked={checkedRoles.includes(r)}
+                  onCheckedChange={(checked) => {
+                    setCheckedRoles((prev) => checked ? [...prev, r] : prev.filter((x) => x !== r));
+                  }}
+                />
+                <label htmlFor={`role-${r}`} className="text-sm capitalize cursor-pointer">{r}</label>
+              </div>
+            ))}
+          </div>
+          <DialogFooter><Button onClick={saveRoles} disabled={roleSaving}>{roleSaving ? "Saving..." : "Save Roles"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Supplier Dialog */}
+      <Dialog open={supplierDialog} onOpenChange={setSupplierDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{editingSupplierId ? "Edit Supplier" : "Add Supplier"}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Name *</Label><Input value={sForm.name} onChange={(e) => setSForm({ ...sForm, name: e.target.value })} /></div>
+            <div><Label>Contact Name</Label><Input value={sForm.contact_name} onChange={(e) => setSForm({ ...sForm, contact_name: e.target.value })} /></div>
+            <div><Label>Email</Label><Input value={sForm.contact_email} onChange={(e) => setSForm({ ...sForm, contact_email: e.target.value })} /></div>
+            <div><Label>Phone</Label><Input value={sForm.contact_phone} onChange={(e) => setSForm({ ...sForm, contact_phone: e.target.value })} /></div>
+          </div>
+          <DialogFooter><Button onClick={saveSupplier} disabled={sSaving || !sForm.name.trim()}>{sSaving ? "Saving..." : "Save"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Approval Rule Dialog */}
+      <Dialog open={ruleDialog} onOpenChange={setRuleDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Add Approval Rule</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-muted-foreground">Name</label>
-              <p className="text-sm text-foreground">{profile?.full_name ?? "—"}</p>
+              <Label>Department (optional — leave empty for all)</Label>
+              <Select value={ruleForm.department_id} onValueChange={(v) => setRuleForm({ ...ruleForm, department_id: v })}>
+                <SelectTrigger><SelectValue placeholder="All departments" /></SelectTrigger>
+                <SelectContent>
+                  {departments?.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Min Amount</Label><Input type="number" value={ruleForm.min_amount} onChange={(e) => setRuleForm({ ...ruleForm, min_amount: e.target.value })} /></div>
+              <div><Label>Max Amount (blank = no limit)</Label><Input type="number" value={ruleForm.max_amount} onChange={(e) => setRuleForm({ ...ruleForm, max_amount: e.target.value })} /></div>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">Email</label>
-              <p className="text-sm text-foreground">{profile?.email ?? "—"}</p>
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Roles</label>
-              <p className="text-sm text-foreground capitalize">{roles.join(", ") || "—"}</p>
+              <Label>Required Role</Label>
+              <Select value={ruleForm.required_role} onValueChange={(v) => setRuleForm({ ...ruleForm, required_role: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{ALL_ROLES.map((r) => <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
           </div>
-        </div>
+          <DialogFooter><Button onClick={saveRule} disabled={ruleSaving}>{ruleSaving ? "Saving..." : "Save Rule"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-        <div className="fieldcore-card p-6">
-          <h3 className="text-sm font-semibold text-foreground mb-2">Organization Settings</h3>
-          <p className="text-sm text-muted-foreground">
-            Department management, approval rules, and inventory configuration will be available here.
-          </p>
-        </div>
-      </div>
+      {/* Unit Dialog */}
+      <Dialog open={unitDialog} onOpenChange={setUnitDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Add Unit</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Unit Number *</Label><Input value={unitForm.unit_number} onChange={(e) => setUnitForm({ ...unitForm, unit_number: e.target.value })} placeholder="e.g. TRUCK-001" /></div>
+            <div><Label>Description</Label><Input value={unitForm.description} onChange={(e) => setUnitForm({ ...unitForm, description: e.target.value })} /></div>
+          </div>
+          <DialogFooter><Button onClick={saveUnit} disabled={unitSaving || !unitForm.unit_number.trim()}>{unitSaving ? "Saving..." : "Save"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
