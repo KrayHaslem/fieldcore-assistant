@@ -364,7 +364,7 @@ export default function Reports() {
 
   const { data: recommendedStockData, isLoading: loadingRecommended } = useQuery({
     queryKey: ["report-recommended-stock", orgId],
-    enabled: selectedKey === "recommended_stock" && !!orgId,
+    enabled: selectedKey === "recommended_stock" && !!orgId && canAccessKey("recommended_stock"),
     queryFn: async () => {
       const { data: items } = await supabase
         .from("inventory_items")
