@@ -299,7 +299,7 @@ export default function CreatePurchaseOrder() {
       if (submitForApproval) {
         const { data: ruleData } = await supabase.rpc("get_approval_rule", {
           _org_id: orgId!,
-          _department_id: department?.id ?? null,
+          _department_id: department?.id ?? '00000000-0000-0000-0000-000000000000',
           _total_amount: totalAmount,
         });
         rule = ruleData?.[0];
@@ -382,7 +382,7 @@ export default function CreatePurchaseOrder() {
     queryFn: async () => {
       const { data } = await supabase.rpc("get_approval_rule", {
         _org_id: orgId!,
-        _department_id: department?.id ?? null,
+        _department_id: department?.id ?? '00000000-0000-0000-0000-000000000000',
         _total_amount: total,
       });
       return data?.[0] ?? null;
