@@ -113,7 +113,7 @@ export default function PurchaseOrderDetail() {
       : false;
     if (!hasRequiredRole) return false;
     if ((po as any).rule_is_department_scoped && po.department_id) {
-      return (profile as any)?.department_id === po.department_id;
+      return profile?.department_id === po.department_id;
     }
     return true;
   }, [po, user, roles, profile]);
