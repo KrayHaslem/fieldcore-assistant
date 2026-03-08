@@ -97,6 +97,36 @@ export default function Dashboard() {
     },
   });
 
+  // Open reconciliations (non-zero variance, recent)
+  const { data: openReconciliations } = useQuery({
+    queryKey: ["open-reconciliations", orgId],
+    enabled: !!orgId && (roles.includes("admin") || roles.includes("procurement")),
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("reconciliations")
+        .select("id, created_at, variance, inventory_items:item_id(name)")
+        .neq("variance", 0)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      return data ?? [];
+    },
+  });
+
+  // Unfulfilled sales orders (quote or order status)
+  const { data: unfulfilledSalesOrders } = useQuery({
+    queryKey: ["unfulfilled-sales-orders", orgId],
+    enabled: !!orgId && (roles.includes("admin") || roles.includes("sales")),
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("sales_orders")
+        .select("id, so_number, customer_name, total_amount, status, created_at")
+        .in("status", ["quote", "order"])
+        .order("created_at", { ascending: false })
+        .limit(5);
+      return data ?? [];
+    },
+  });
+
   // Stats
   const { data: stats } = useQuery({
     queryKey: ["dashboard-stats", orgId],
@@ -339,6 +369,65 @@ export default function Dashboard() {
                       <div className="text-right">
                         <p className="text-sm font-medium text-destructive">{item.current_stock} on hand</p>
                         <p className="text-xs text-muted-foreground">Reorder at {item.reorder_point}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Open Reconciliations */}
+            {(roles.includes("admin") || roles.includes("procurement")) && openReconciliations && openReconciliations.length > 0 && (
+              <div className="fieldcore-card">
+                <div className="border-b px-5 py-3 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-accent" />
+                  <h3 className="text-sm font-semibold text-foreground">Open Reconciliations</h3>
+                </div>
+                <div className="divide-y">
+                  {openReconciliations.map((r: any) => (
+                    <div
+                      key={r.id}
+                      className="flex items-center justify-between px-5 py-3 hover:bg-muted/50 cursor-pointer transition-colors"
+                      onClick={() => navigate("/reconciliation")}
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{r.inventory_items?.name ?? "Unknown item"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(r.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <p className={`text-sm font-medium ${r.variance < 0 ? "text-destructive" : "text-foreground"}`}>
+                        Variance: {r.variance > 0 ? "+" : ""}{r.variance}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Unfulfilled Sales Orders */}
+            {(roles.includes("admin") || roles.includes("sales")) && unfulfilledSalesOrders && unfulfilledSalesOrders.length > 0 && (
+              <div className="fieldcore-card">
+                <div className="border-b px-5 py-3 flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-semibold text-foreground">Unfulfilled Sales Orders</h3>
+                </div>
+                <div className="divide-y">
+                  {unfulfilledSalesOrders.map((so: any) => (
+                    <div
+                      key={so.id}
+                      className="flex items-center justify-between px-5 py-3 hover:bg-muted/50 cursor-pointer transition-colors"
+                      onClick={() => navigate(`/sales/${so.id}`)}
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{so.so_number}</p>
+                        <p className="text-xs text-muted-foreground">{so.customer_name}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-foreground">
+                          ${Number(so.total_amount).toLocaleString()}
+                        </span>
+                        <StatusBadge status={so.status} />
                       </div>
                     </div>
                   ))}
