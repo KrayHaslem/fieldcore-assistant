@@ -538,6 +538,18 @@ export default function SettingsPage() {
           <DialogFooter><Button onClick={saveUnit} disabled={unitSaving || !unitForm.unit_number.trim()}>{unitSaving ? "Saving..." : "Save"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Organization Dialog */}
+      <Dialog open={orgDialog} onOpenChange={setOrgDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{editingOrgId ? "Edit Organization" : "Create Organization"}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Name *</Label><Input value={orgForm.name} onChange={(e) => setOrgForm({ ...orgForm, name: e.target.value })} placeholder="e.g. Acme Corp" /></div>
+            <div><Label>Industry</Label><Input value={orgForm.industry} onChange={(e) => setOrgForm({ ...orgForm, industry: e.target.value })} placeholder="e.g. Manufacturing" /></div>
+          </div>
+          <DialogFooter><Button onClick={saveOrg} disabled={orgSaving || !orgForm.name.trim()}>{orgSaving ? "Saving..." : "Save"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
