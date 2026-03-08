@@ -18,7 +18,7 @@ import { Plus, Trash2, Pencil } from "lucide-react";
 const ALL_ROLES = ["admin", "procurement", "sales", "finance", "employee"] as const;
 
 export default function SettingsPage() {
-  const { user, profile, roles, orgId } = useAuth();
+  const { user, profile, roles, orgId, refreshRoles } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
   const isSuperAdmin = roles.includes("superadmin");
