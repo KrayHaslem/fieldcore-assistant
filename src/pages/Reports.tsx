@@ -289,7 +289,7 @@ export default function Reports() {
 
   const { data: quarterlySpendData, isLoading: loadingQtrSpend } = useQuery({
     queryKey: ["report-quarterly-spend", orgId, startISO, endISO],
-    enabled: selectedKey === "quarterly_spending" && !!orgId,
+    enabled: selectedKey === "quarterly_spending" && !!orgId && canAccessKey("quarterly_spending"),
     queryFn: async () => {
       let q = supabase.from("purchase_orders").select("total_amount, created_at").neq("status", "draft");
       if (startISO) q = q.gte("created_at", startISO);
