@@ -123,6 +123,22 @@ export default function Reports() {
   const [marginGrouping, setMarginGrouping] = useState<"weekly" | "monthly" | "quarterly">("monthly");
   const [expandedAssemblyIds, setExpandedAssemblyIds] = useState<Set<string>>(new Set());
 
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.startDate) {
+      setStartDate(new Date(state.startDate));
+    }
+    if (state?.endDate) {
+      setEndDate(new Date(state.endDate));
+    }
+    if (state?.prefill?.report_name) {
+      const match = allReports.find((r) =>
+        r.name.toLowerCase().includes(state.prefill.report_name.toLowerCase())
+      );
+      if (match) setSelectedKey(match.key);
+    }
+  }, []);
+
   const selected = allReports.find((r) => r.key === selectedKey) ?? null;
 
   const quickSelect = (start: Date, end: Date) => { setStartDate(start); setEndDate(end); };
