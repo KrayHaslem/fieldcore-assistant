@@ -235,6 +235,32 @@ serve(async (req) => {
       { purchase_order_id: PO(12), item_id: I(8), quantity: 8, unit_cost: 320, item_type: "manufacturing_input", quantity_received: 0, organization_id: ORG_ID },
       { purchase_order_id: PO(12), item_id: I(9), quantity: 8, unit_cost: 280, item_type: "manufacturing_input", quantity_received: 0, organization_id: ORG_ID },
       { purchase_order_id: PO(12), item_id: I(10), quantity: 8, unit_cost: 65, item_type: "manufacturing_input", quantity_received: 0, organization_id: ORG_ID },
+      // Historical PO-H01 (hydro): gate valves, check valves, o-rings
+      { purchase_order_id: PO(13), item_id: I(3), quantity: 20, unit_cost: 285, item_type: "resale", quantity_received: 20, organization_id: ORG_ID },
+      { purchase_order_id: PO(13), item_id: I(4), quantity: 15, unit_cost: 175, item_type: "resale", quantity_received: 15, organization_id: ORG_ID },
+      { purchase_order_id: PO(13), item_id: I(11), quantity: 30, unit_cost: 22, item_type: "manufacturing_input", quantity_received: 30, organization_id: ORG_ID },
+      // Historical PO-H02 (premier): safety valves
+      { purchase_order_id: PO(14), item_id: I(5), quantity: 8, unit_cost: 890, item_type: "resale", quantity_received: 8, organization_id: ORG_ID },
+      // Historical PO-H03 (simper): pump shafts, impellers, seal kits
+      { purchase_order_id: PO(15), item_id: I(8), quantity: 15, unit_cost: 320, item_type: "manufacturing_input", quantity_received: 15, organization_id: ORG_ID },
+      { purchase_order_id: PO(15), item_id: I(9), quantity: 15, unit_cost: 280, item_type: "manufacturing_input", quantity_received: 15, organization_id: ORG_ID },
+      { purchase_order_id: PO(15), item_id: I(10), quantity: 15, unit_cost: 65, item_type: "manufacturing_input", quantity_received: 15, organization_id: ORG_ID },
+      // Historical PO-H04 (safety): safety glasses, gloves, hard hats
+      { purchase_order_id: PO(16), item_id: I(20), quantity: 100, unit_cost: 8, item_type: "consumable", quantity_received: 100, organization_id: ORG_ID },
+      { purchase_order_id: PO(16), item_id: I(21), quantity: 50, unit_cost: 12, item_type: "consumable", quantity_received: 50, organization_id: ORG_ID },
+      { purchase_order_id: PO(16), item_id: I(22), quantity: 15, unit_cost: 25, item_type: "consumable", quantity_received: 15, organization_id: ORG_ID },
+      // Historical PO-H05 (breakroom): paper towels, coffee
+      { purchase_order_id: PO(17), item_id: I(23), quantity: 60, unit_cost: 4, item_type: "consumable", quantity_received: 60, organization_id: ORG_ID },
+      { purchase_order_id: PO(17), item_id: I(24), quantity: 8, unit_cost: 35, item_type: "consumable", quantity_received: 8, organization_id: ORG_ID },
+      // Historical PO-H06 (office): printer paper
+      { purchase_order_id: PO(18), item_id: I(25), quantity: 10, unit_cost: 42, item_type: "consumable", quantity_received: 10, organization_id: ORG_ID },
+      // Historical PO-H07 (logan): fleet maintenance supplies
+      { purchase_order_id: PO(19), item_id: I(14), quantity: 20, unit_cost: 32, item_type: "internal_use", quantity_received: 20, organization_id: ORG_ID },
+      { purchase_order_id: PO(19), item_id: I(15), quantity: 12, unit_cost: 48, item_type: "internal_use", quantity_received: 12, organization_id: ORG_ID },
+      { purchase_order_id: PO(19), item_id: I(16), quantity: 10, unit_cost: 28, item_type: "internal_use", quantity_received: 10, organization_id: ORG_ID },
+      { purchase_order_id: PO(19), item_id: I(17), quantity: 8, unit_cost: 65, item_type: "internal_use", quantity_received: 8, organization_id: ORG_ID },
+      { purchase_order_id: PO(19), item_id: I(18), quantity: 6, unit_cost: 18, item_type: "internal_use", quantity_received: 6, organization_id: ORG_ID },
+      { purchase_order_id: PO(19), item_id: I(19), quantity: 6, unit_cost: 42, item_type: "internal_use", quantity_received: 6, organization_id: ORG_ID },
     ];
     for (const li of poItems) await sb.from("purchase_order_items").insert(li);
 
