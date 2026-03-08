@@ -103,7 +103,7 @@ export default function Reports() {
     queryFn: async () => {
       const { data } = await supabase.from("purchase_orders")
         .select("po_number, status, total_amount, created_at, suppliers!purchase_orders_supplier_id_fkey(name), departments!purchase_orders_department_id_fkey(name)")
-        .not("status", "in", '("closed","draft")')
+        .not("status", "in", "(closed,draft)")
         .order("status").order("created_at", { ascending: false });
       return data ?? [];
     },
