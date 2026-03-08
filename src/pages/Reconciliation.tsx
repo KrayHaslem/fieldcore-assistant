@@ -258,6 +258,7 @@ export default function Reconciliation() {
           </table>
         </div>
       </div>
+      </div>
 
       {showAssistant && prefill && (
         <FormAssistantPanel

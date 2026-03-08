@@ -389,6 +389,7 @@ export default function Assemblies() {
           </table>
         </div>
       </div>
+      </div>
 
       {showAssistant && prefill && (
         <FormAssistantPanel
