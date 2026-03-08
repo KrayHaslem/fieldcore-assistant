@@ -439,7 +439,7 @@ export default function Reports() {
 
   const { data: marginItemData, isLoading: loadingMarginItem } = useQuery({
     queryKey: ["report-margin-item", orgId, startISO, endISO],
-    enabled: selectedKey === "margin_by_item" && !!orgId,
+    enabled: selectedKey === "margin_by_item" && !!orgId && canAccessKey("margin_by_item"),
     queryFn: async () => {
       let soQ = supabase.from("sales_orders").select("id").in("status", ["fulfilled", "invoiced", "paid", "closed"]);
       if (startISO) soQ = soQ.gte("created_at", startISO);
