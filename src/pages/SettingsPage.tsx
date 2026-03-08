@@ -26,24 +26,32 @@ export default function SettingsPage() {
   const canManageSuppliers = isAdmin || roles.includes("procurement");
   const canManageUnits = isAdmin || roles.includes("procurement");
 
+  // ---- Confirm dialog state ----
+  const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(null);
+
   // ---- Super Admin: Seed Demo ----
   const [seeding, setSeeding] = useState(false);
 
   const seedDemo = async () => {
-    if (!confirm("This will clear all existing Innovex demo data and reseed from scratch. Continue?")) return;
-    setSeeding(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("seed-demo");
-      if (error) throw error;
-      const counts = data?.counts;
-      const desc = counts
-        ? `Created ${counts.users} users, ${counts.inventory_items} items, ${counts.purchase_orders} POs, ${counts.sales_orders} SOs, ${counts.assembly_records} assemblies`
-        : "Success";
-      toast({ title: "Demo data reset complete", description: desc });
-    } catch (e: any) {
-      toast({ title: "Seed failed", description: e.message, variant: "destructive" });
-    }
-    setSeeding(false);
+    setConfirmAction({
+      message: "This will clear all existing Innovex demo data and reseed from scratch. Continue?",
+      onConfirm: async () => {
+        setConfirmAction(null);
+        setSeeding(true);
+        try {
+          const { data, error } = await supabase.functions.invoke("seed-demo");
+          if (error) throw error;
+          const counts = data?.counts;
+          const desc = counts
+            ? `Created ${counts.users} users, ${counts.inventory_items} items, ${counts.purchase_orders} POs, ${counts.sales_orders} SOs, ${counts.assembly_records} assemblies`
+            : "Success";
+          toast({ title: "Demo data reset complete", description: desc });
+        } catch (e: any) {
+          toast({ title: "Seed failed", description: e.message, variant: "destructive" });
+        }
+        setSeeding(false);
+      },
+    });
   };
 
   // ---- Super Admin: Tenant List ----
