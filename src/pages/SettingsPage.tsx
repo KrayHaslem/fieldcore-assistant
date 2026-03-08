@@ -30,12 +30,16 @@ export default function SettingsPage() {
   const [seeding, setSeeding] = useState(false);
 
   const seedDemo = async () => {
-    if (!confirm("This will seed demo data for the Innovex organization. Continue?")) return;
+    if (!confirm("This will clear all existing Innovex demo data and reseed from scratch. Continue?")) return;
     setSeeding(true);
     try {
       const { data, error } = await supabase.functions.invoke("seed-demo");
       if (error) throw error;
-      toast({ title: "Demo data seeded", description: data?.message || "Success" });
+      const counts = data?.counts;
+      const desc = counts
+        ? `Created ${counts.users} users, ${counts.inventory_items} items, ${counts.purchase_orders} POs, ${counts.sales_orders} SOs, ${counts.assembly_records} assemblies`
+        : "Success";
+      toast({ title: "Demo data reset complete", description: desc });
     } catch (e: any) {
       toast({ title: "Seed failed", description: e.message, variant: "destructive" });
     }
@@ -233,8 +237,8 @@ export default function SettingsPage() {
               <div className="space-y-6">
                 <div className="fieldcore-card p-6">
                   <h3 className="text-sm font-semibold text-foreground mb-4">Demo Data</h3>
-                  <p className="text-sm text-muted-foreground mb-3">Seed the Innovex demo organization with realistic sample data (users, inventory, POs, SOs, etc.).</p>
-                  <Button onClick={seedDemo} disabled={seeding} variant="outline">{seeding ? "Seeding…" : "Seed Demo Data"}</Button>
+                  <p className="text-sm text-muted-foreground mb-3">Clear and reseed the Innovex demo organization with fresh sample data (users, inventory, POs, SOs, assemblies, reconciliations).</p>
+                  <Button onClick={seedDemo} disabled={seeding} variant="outline">{seeding ? "Resetting…" : "Reset Demo Data"}</Button>
                 </div>
                 <div className="fieldcore-card overflow-hidden">
                   <div className="border-b px-5 py-3"><h3 className="text-sm font-semibold text-foreground">Tenant Organizations</h3></div>
