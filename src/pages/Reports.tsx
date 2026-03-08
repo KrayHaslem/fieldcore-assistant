@@ -313,7 +313,7 @@ export default function Reports() {
 
   const { data: purchaseHistoryData, isLoading: loadingPurchaseHistory } = useQuery({
     queryKey: ["report-purchase-history-item", orgId, selectedItemId, startISO, endISO],
-    enabled: selectedKey === "purchase_history_item" && !!orgId && !!selectedItemId,
+    enabled: selectedKey === "purchase_history_item" && !!orgId && !!selectedItemId && canAccessKey("purchase_history_item"),
     queryFn: async () => {
       const { data } = await supabase
         .from("purchase_order_items")
