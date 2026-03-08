@@ -43,7 +43,7 @@ const statusFlow: Record<string, { next: POStatus; label: string; icon: typeof S
 export default function PurchaseOrderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, roles } = useAuth();
+  const { user, roles, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isUpdating, setIsUpdating] = useState(false);
