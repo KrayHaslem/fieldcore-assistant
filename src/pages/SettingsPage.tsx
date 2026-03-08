@@ -13,7 +13,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
+import { Plus, Trash2, Pencil, FlaskConical } from "lucide-react";
 
 const ALL_ROLES = ["admin", "procurement", "sales", "finance", "employee"] as const;
 
@@ -143,6 +144,7 @@ export default function SettingsPage() {
   // ---- Users & Roles ----
   const [roleDialog, setRoleDialog] = useState<string | null>(null);
   const [checkedRoles, setCheckedRoles] = useState<string[]>([]);
+  const [editingUserDept, setEditingUserDept] = useState<ComboBoxOption | null>(null);
   const [roleSaving, setRoleSaving] = useState(false);
 
   const { data: orgProfiles } = useQuery({
@@ -160,11 +162,26 @@ export default function SettingsPage() {
   const openRoleDialog = (userId: string) => {
     setRoleDialog(userId);
     setCheckedRoles(getRolesFor(userId));
+    const prof = orgProfiles?.find((p: any) => p.user_id === userId);
+    if (prof?.department_id) {
+      const dept = departments?.find((d: any) => d.id === prof.department_id);
+      setEditingUserDept(dept ? { id: dept.id, label: dept.name } : null);
+    } else {
+      setEditingUserDept(null);
+    }
+  };
+
+  const searchDepartmentsForUser = async (q: string): Promise<ComboBoxOption[]> => {
+    const { data } = await supabase
+      .from("departments")
+      .select("id, name")
+      .ilike("name", `%${q}%`)
+      .limit(20);
+    return (data ?? []).map((d) => ({ id: d.id, label: d.name }));
   };
 
   const saveRoles = async () => {
     if (!roleDialog || !orgId) return;
-    // Prevent removing own admin
     if (roleDialog === user?.id && !checkedRoles.includes("admin")) {
       toast({ title: "Cannot remove your own admin role", variant: "destructive" }); return;
     }
@@ -174,11 +191,14 @@ export default function SettingsPage() {
       _organization_id: orgId,
       _new_roles: checkedRoles as any,
     });
+    await supabase
+      .from("profiles")
+      .update({ department_id: editingUserDept?.id ?? null })
+      .eq("user_id", roleDialog);
     if (error) {
       toast({ title: "Failed to update roles", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Roles updated" });
-      // Refresh auth context if editing own roles
       if (roleDialog === user?.id) {
         await refreshRoles();
       }
@@ -186,6 +206,7 @@ export default function SettingsPage() {
     setRoleSaving(false);
     setRoleDialog(null);
     qc.invalidateQueries({ queryKey: ["all-user-roles"] });
+    qc.invalidateQueries({ queryKey: ["org-profiles"] });
   };
 
   // ---- Suppliers ----
@@ -227,6 +248,11 @@ export default function SettingsPage() {
   const [ruleDialog, setRuleDialog] = useState(false);
   const [ruleForm, setRuleForm] = useState({ department_id: "", min_amount: "0", max_amount: "", required_role: "admin" as string, approver_user_id: "" });
   const [ruleSaving, setRuleSaving] = useState(false);
+  const [testRuleDialog, setTestRuleDialog] = useState(false);
+  const [testAmount, setTestAmount] = useState("");
+  const [testDeptId, setTestDeptId] = useState("");
+  const [testResult, setTestResult] = useState<any>(null);
+  const [testLoading, setTestLoading] = useState(false);
 
   const { data: approvalRules } = useQuery({
     queryKey: ["approval-rules", orgId], enabled: !!orgId && isAdmin,
@@ -235,6 +261,18 @@ export default function SettingsPage() {
       return data ?? [];
     },
   });
+
+  const runTestRule = async () => {
+    if (!orgId) return;
+    setTestLoading(true);
+    const { data } = await supabase.rpc("get_approval_rule", {
+      _org_id: orgId,
+      _department_id: testDeptId || null,
+      _total_amount: parseFloat(testAmount) || 0,
+    });
+    setTestResult(data?.[0] ?? null);
+    setTestLoading(false);
+  };
 
   const saveRule = async () => {
     if (!orgId) return;
@@ -457,6 +495,14 @@ export default function SettingsPage() {
                 </tbody>
               </table>
             </div>
+            <div className="mt-4 px-5 pb-4 flex items-start justify-between gap-4">
+              <p className="text-xs text-muted-foreground max-w-xl">
+                Rules are matched by amount and department. Department-specific rules take priority over org-wide rules. If no rule matches a PO's amount, the order is auto-approved. If no rules are configured at all, all orders are created without approval. Admins can always approve any order.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => setTestRuleDialog(true)}>
+                <FlaskConical className="h-4 w-4" /> Test Rule
+              </Button>
+            </div>
           </TabsContent>
 
           {/* Units */}
@@ -495,7 +541,7 @@ export default function SettingsPage() {
       {/* Role Edit Dialog */}
       <Dialog open={!!roleDialog} onOpenChange={() => setRoleDialog(null)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Edit Roles</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Edit User</DialogTitle></DialogHeader>
           <div className="space-y-3">
             {ALL_ROLES.map((r) => (
               <div key={r} className="flex items-center gap-2">
@@ -509,8 +555,26 @@ export default function SettingsPage() {
                 <label htmlFor={`role-${r}`} className="text-sm capitalize cursor-pointer">{r}</label>
               </div>
             ))}
+            <div className="space-y-2 pt-2">
+              <Label>Department</Label>
+              <ComboBox
+                value={editingUserDept}
+                onChange={setEditingUserDept}
+                onSearch={searchDepartmentsForUser}
+                placeholder="Assign to department (optional)..."
+              />
+              {editingUserDept && (
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground hover:text-destructive"
+                  onClick={() => setEditingUserDept(null)}
+                >
+                  Clear department assignment
+                </button>
+              )}
+            </div>
           </div>
-          <DialogFooter><Button onClick={saveRoles} disabled={roleSaving}>{roleSaving ? "Saving..." : "Save Roles"}</Button></DialogFooter>
+          <DialogFooter><Button onClick={saveRoles} disabled={roleSaving}>{roleSaving ? "Saving..." : "Save"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -579,6 +643,43 @@ export default function SettingsPage() {
             <div><Label>Industry</Label><Input value={orgForm.industry} onChange={(e) => setOrgForm({ ...orgForm, industry: e.target.value })} placeholder="e.g. Manufacturing" /></div>
           </div>
           <DialogFooter><Button onClick={saveOrg} disabled={orgSaving || !orgForm.name.trim()}>{orgSaving ? "Saving..." : "Save"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Test Rule Dialog */}
+      <Dialog open={testRuleDialog} onOpenChange={(open) => { setTestRuleDialog(open); if (!open) setTestResult(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Test Approval Rule</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Amount ($)</Label>
+              <Input type="number" value={testAmount} onChange={(e) => setTestAmount(e.target.value)} placeholder="e.g. 5000" />
+            </div>
+            <div>
+              <Label>Department (optional)</Label>
+              <Select value={testDeptId} onValueChange={setTestDeptId}>
+                <SelectTrigger><SelectValue placeholder="Any department" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None (org-wide)</SelectItem>
+                  {departments?.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={runTestRule} disabled={testLoading || !testAmount} className="w-full">
+              {testLoading ? "Testing..." : "Test"}
+            </Button>
+            {testResult && (
+              <div className="rounded-md border p-3 text-sm">
+                {testResult.auto_approve ? (
+                  <p className="text-muted-foreground">✅ Auto-approved (no matching rule)</p>
+                ) : (
+                  <p className="text-foreground">
+                    🔒 Requires <span className="font-medium capitalize">{testResult.required_role}</span> approval — {testResult.rule_is_department_scoped ? "department only" : "org-wide"}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

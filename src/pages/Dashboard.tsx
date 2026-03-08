@@ -28,15 +28,24 @@ export default function Dashboard() {
   const [command, setCommand] = useState("");
   const [isParsingCommand, setIsParsingCommand] = useState(false);
 
-  // Pending POs awaiting YOUR approval (you are an approver)
+  // Pending POs awaiting YOUR approval via RPC
+  const { data: approvalQueueIds } = useQuery({
+    queryKey: ["awaiting-your-approval-ids", orgId, user?.id],
+    enabled: !!orgId && !!user && (roles.includes("admin") || roles.includes("procurement") || roles.includes("finance")),
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_my_approval_queue", { _user_id: user!.id });
+      return (data ?? []).map((po: any) => po.id);
+    },
+  });
+
   const { data: awaitingYourApproval } = useQuery({
-    queryKey: ["awaiting-your-approval", orgId, user?.id],
-    enabled: !!orgId && (roles.includes("admin") || roles.includes("procurement") || roles.includes("finance")),
+    queryKey: ["awaiting-your-approval", approvalQueueIds],
+    enabled: !!approvalQueueIds && approvalQueueIds.length > 0,
     queryFn: async () => {
       const { data } = await supabase
         .from("purchase_orders")
-        .select("id, po_number, supplier_id, status, total_amount, created_at, suppliers(name)")
-        .eq("status", "submitted")
+        .select("id, po_number, status, total_amount, created_at, suppliers(name)")
+        .in("id", approvalQueueIds!)
         .order("created_at", { ascending: false })
         .limit(10);
       return data ?? [];

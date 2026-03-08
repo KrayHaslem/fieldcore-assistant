@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,7 +43,7 @@ const statusFlow: Record<string, { next: POStatus; label: string; icon: typeof S
 export default function PurchaseOrderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, roles } = useAuth();
+  const { user, roles, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isUpdating, setIsUpdating] = useState(false);
@@ -89,7 +89,35 @@ export default function PurchaseOrderDetail() {
     },
   });
 
-  const canApprove = roles.includes("admin") || roles.includes("procurement") || roles.includes("finance");
+  const { data: assignedApproverName } = useQuery({
+    queryKey: ["approver-profile", po?.assigned_approver_id],
+    enabled: !!po?.assigned_approver_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", po!.assigned_approver_id!)
+        .single();
+      return data?.full_name ?? null;
+    },
+  });
+
+  const canApprove = useMemo(() => {
+    if (!po || !user) return false;
+    if (roles.includes("admin")) return true;
+    if ((po as any).assigned_approver_id) {
+      return (po as any).assigned_approver_id === user.id;
+    }
+    const hasRequiredRole = (po as any).required_approver_role
+      ? roles.includes((po as any).required_approver_role)
+      : false;
+    if (!hasRequiredRole) return false;
+    if ((po as any).rule_is_department_scoped && po.department_id) {
+      return (profile as any)?.department_id === po.department_id;
+    }
+    return true;
+  }, [po, user, roles, profile]);
+
   const isCreator = user?.id === po?.created_by;
 
   const handleStatusChange = async (newStatus: POStatus) => {
@@ -267,6 +295,32 @@ export default function PurchaseOrderDetail() {
               <span className="text-muted-foreground">Created</span>
               <p className="font-medium text-foreground">{new Date(po.created_at).toLocaleDateString()}</p>
             </div>
+            {po.status === "submitted" && (
+              <>
+                <div>
+                  <span className="text-muted-foreground">Required Approval</span>
+                  <p className="font-medium text-foreground">
+                    {(po as any).required_approver_role
+                      ? `${(po as any).required_approver_role} — ${
+                          (po as any).rule_is_department_scoped
+                            ? `${(po as any).departments?.name ?? "department"} only`
+                            : "any department"
+                        }`
+                      : "None required"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Assigned Approver</span>
+                  <p className="font-medium text-foreground">
+                    {(po as any).assigned_approver_id
+                      ? assignedApproverName ?? "Loading..."
+                      : (po as any).required_approver_role
+                      ? `Any ${(po as any).required_approver_role}`
+                      : "—"}
+                  </p>
+                </div>
+              </>
+            )}
             <div>
               <span className="text-muted-foreground">Total Amount</span>
               <p className="font-medium text-foreground">${Number(po.total_amount).toLocaleString()}</p>
