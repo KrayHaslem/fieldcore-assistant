@@ -851,9 +851,24 @@ export type Database = {
         }
         Returns: boolean
       }
+      list_all_organizations: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          industry: string
+          name: string
+        }[]
+      }
     }
     Enums: {
-      app_role: "admin" | "procurement" | "sales" | "finance" | "employee"
+      app_role:
+        | "admin"
+        | "procurement"
+        | "sales"
+        | "finance"
+        | "employee"
+        | "superadmin"
       inventory_type:
         | "resale"
         | "manufacturing_input"
@@ -1014,7 +1029,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "procurement", "sales", "finance", "employee"],
+      app_role: [
+        "admin",
+        "procurement",
+        "sales",
+        "finance",
+        "employee",
+        "superadmin",
+      ],
       inventory_type: [
         "resale",
         "manufacturing_input",
