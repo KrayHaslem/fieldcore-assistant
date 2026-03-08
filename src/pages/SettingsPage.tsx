@@ -21,9 +21,36 @@ export default function SettingsPage() {
   const { user, profile, roles, orgId } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
-  const isAdmin = roles.includes("admin");
+  const isSuperAdmin = roles.includes("superadmin");
+  const isAdmin = roles.includes("admin") || isSuperAdmin;
   const canManageSuppliers = isAdmin || roles.includes("procurement");
   const canManageUnits = isAdmin || roles.includes("procurement");
+
+  // ---- Super Admin: Seed Demo ----
+  const [seeding, setSeeding] = useState(false);
+
+  const seedDemo = async () => {
+    if (!confirm("This will seed demo data for the Innovex organization. Continue?")) return;
+    setSeeding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("seed-demo");
+      if (error) throw error;
+      toast({ title: "Demo data seeded", description: data?.message || "Success" });
+    } catch (e: any) {
+      toast({ title: "Seed failed", description: e.message, variant: "destructive" });
+    }
+    setSeeding(false);
+  };
+
+  // ---- Super Admin: Tenant List ----
+  const { data: tenants } = useQuery({
+    queryKey: ["tenants"], enabled: isSuperAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("list_all_organizations");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   // ---- Departments ----
   const [deptDialog, setDeptDialog] = useState(false);
