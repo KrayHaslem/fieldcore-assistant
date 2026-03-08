@@ -132,8 +132,23 @@ export default function Reconciliation() {
     },
   });
 
+  const handleAssistantIntent = (intent: Record<string, any>): string => {
+    const updates: string[] = [];
+    if (intent.item_name) {
+      supabase.from("inventory_items").select("id, name, sku, item_type")
+        .in("item_type", ["resale", "manufacturing_input", "consumable"])
+        .ilike("name", `%${intent.item_name}%`).limit(1)
+        .then(({ data }) => {
+          if (data && data[0]) setSelectedItem({ id: data[0].id, label: data[0].name, sku: data[0].sku, item_type: data[0].item_type });
+        });
+      updates.push(`Looking up item "${intent.item_name}"`);
+    }
+    return updates.length > 0 ? `I've updated the form: ${updates.join(". ")}.` : "I couldn't find specific fields to update.";
+  };
+
   return (
-    <div>
+    <div className="flex h-full">
+      <div className="flex-1 min-w-0">
       <PageHeader
         title="Inventory Reconciliation"
         description="Compare expected vs actual stock counts"
