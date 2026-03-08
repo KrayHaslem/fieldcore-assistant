@@ -40,6 +40,7 @@ function ProtectedRoutes() {
       <Route element={<AppLayout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/purchase-orders" element={<PurchaseOrders />} />
+        <Route path="/purchase-orders/new" element={<CreatePurchaseOrder />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/sales" element={<SalesOrders />} />
         <Route path="/assemblies" element={<Assemblies />} />
