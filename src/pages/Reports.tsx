@@ -188,7 +188,7 @@ export default function Reports() {
 
   const { data: pendingData, isLoading: loadingPending } = useQuery({
     queryKey: ["report-pending", orgId],
-    enabled: selectedKey === "pending_approvals" && !!orgId,
+    enabled: selectedKey === "pending_approvals" && !!orgId && canAccessKey("pending_approvals"),
     queryFn: async () => {
       const { data } = await supabase.from("purchase_orders")
         .select("po_number, total_amount, created_at, suppliers!purchase_orders_supplier_id_fkey(name), departments!purchase_orders_department_id_fkey(name)")
