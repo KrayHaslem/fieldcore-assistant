@@ -67,7 +67,7 @@ function DatePicker({ date, onChange, label }: { date: Date | undefined; onChang
 }
 
 export default function Reports() {
-  const { orgId } = useAuth();
+  const { orgId, user, roles } = useAuth();
   const [selectedKey, setSelectedKey] = useState<ReportKey | null>(null);
   const [startDate, setStartDate] = useState<Date | undefined>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date | undefined>(endOfMonth(new Date()));
