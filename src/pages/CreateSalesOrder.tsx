@@ -147,8 +147,31 @@ export default function CreateSalesOrder() {
     }
   };
 
+  const handleAssistantIntent = (intent: Record<string, any>): string => {
+    const updates: string[] = [];
+    if (intent.customer) { setCustomerName(intent.customer); updates.push(`Set customer to "${intent.customer}"`); }
+    if (intent.items && Array.isArray(intent.items)) {
+      for (const ii of intent.items) {
+        supabase.from("inventory_items").select("id, name, sku").eq("item_type", "resale").ilike("name", `%${ii.name}%`).limit(1)
+          .then(({ data: items }) => {
+            if (items && items[0]) {
+              const m = items[0];
+              setLines((prev) => {
+                const empty = prev.find((l) => !l.item);
+                const nl = { key: ++rowKey, item: { id: m.id, label: m.name, sku: m.sku, onHand: 0 }, quantity: String(ii.quantity || 1), unitPrice: "" };
+                if (empty) return prev.map((l) => (l.key === empty.key ? nl : l));
+                return [...prev, nl];
+              });
+            }
+          });
+        updates.push(`Adding ${ii.quantity || 1}× ${ii.name}`);
+      }
+    }
+    return updates.length > 0 ? `I've updated the form: ${updates.join(". ")}.` : "I couldn't find specific fields to update.";
+  };
+
   return (
-    <div>
+    <div className="flex h-full">
       <PageHeader
         title="New Sales Order"
         description="Create a quote or sales order"
