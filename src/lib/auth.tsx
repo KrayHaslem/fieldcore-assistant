@@ -83,6 +83,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const refreshRoles = async () => {
+    if (!user) return;
+    const { data: rolesData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
+    setRoles(rolesData?.map((r: UserRole) => r.role) ?? []);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -93,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         orgId: profile?.organization_id ?? null,
         loading,
         signOut,
+        refreshRoles,
       }}
     >
       {children}
