@@ -521,7 +521,7 @@ export default function SettingsPage() {
       {/* Role Edit Dialog */}
       <Dialog open={!!roleDialog} onOpenChange={() => setRoleDialog(null)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Edit Roles</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Edit User</DialogTitle></DialogHeader>
           <div className="space-y-3">
             {ALL_ROLES.map((r) => (
               <div key={r} className="flex items-center gap-2">
@@ -533,25 +533,6 @@ export default function SettingsPage() {
                   }}
                 />
                 <label htmlFor={`role-${r}`} className="text-sm capitalize cursor-pointer">{r}</label>
-              </div>
-            ))}
-          </div>
-          <DialogFooter><Button onClick={saveRoles} disabled={roleSaving}>{roleSaving ? "Saving..." : "Save Roles"}</Button></DialogFooter>
-        </DialogContent>
-        {/* Department assignment */}
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Edit User</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            {ALL_ROLES.map((r) => (
-              <div key={r} className="flex items-center gap-2">
-                <Checkbox
-                  id={`role2-${r}`}
-                  checked={checkedRoles.includes(r)}
-                  onCheckedChange={(checked) => {
-                    setCheckedRoles((prev) => checked ? [...prev, r] : prev.filter((x) => x !== r));
-                  }}
-                />
-                <label htmlFor={`role2-${r}`} className="text-sm capitalize cursor-pointer">{r}</label>
               </div>
             ))}
             <div className="space-y-2 pt-2">
@@ -574,6 +555,7 @@ export default function SettingsPage() {
             </div>
           </div>
           <DialogFooter><Button onClick={saveRoles} disabled={roleSaving}>{roleSaving ? "Saving..." : "Save"}</Button></DialogFooter>
+        </DialogContent>
       </Dialog>
 
       {/* Supplier Dialog */}
