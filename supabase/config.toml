@@ -2,3 +2,6 @@ project_id = "fwvlroxtuktcvvizncfa"
 
 [functions.seed-demo]
 verify_jwt = false
+
+[functions.parse-command]
+verify_jwt = false
