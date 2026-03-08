@@ -202,8 +202,22 @@ export default function Assemblies() {
     </div>
   );
 
+  const handleAssistantIntent = (intent: Record<string, any>): string => {
+    const updates: string[] = [];
+    if (intent.item_name) {
+      supabase.from("inventory_items").select("id, name, sku").eq("item_type", "resale").ilike("name", `%${intent.item_name}%`).limit(1)
+        .then(({ data }) => {
+          if (data && data[0]) setFinishedItem({ id: data[0].id, label: data[0].name, sku: data[0].sku });
+        });
+      updates.push(`Setting finished item to "${intent.item_name}"`);
+    }
+    if (intent.quantity) { setQtyProduced(String(intent.quantity)); updates.push(`Set quantity to ${intent.quantity}`); }
+    return updates.length > 0 ? `I've updated the form: ${updates.join(". ")}.` : "I couldn't find specific fields to update.";
+  };
+
   return (
-    <div>
+    <div className="flex h-full">
+      <div className="flex-1 min-w-0">
       <PageHeader
         title="Assembly Records"
         description="Track manufacturing and finished goods production"
