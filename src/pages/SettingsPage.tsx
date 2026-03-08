@@ -218,6 +218,7 @@ export default function SettingsPage() {
       <div className="p-8 max-w-5xl">
         <Tabs defaultValue="account">
           <TabsList className="mb-6">
+            {isSuperAdmin && <TabsTrigger value="platform">Platform</TabsTrigger>}
             <TabsTrigger value="account">My Account</TabsTrigger>
             {isAdmin && <TabsTrigger value="departments">Departments</TabsTrigger>}
             {isAdmin && <TabsTrigger value="users">Users & Roles</TabsTrigger>}
@@ -225,6 +226,39 @@ export default function SettingsPage() {
             {isAdmin && <TabsTrigger value="approvals">Approval Rules</TabsTrigger>}
             {canManageUnits && <TabsTrigger value="units">Units</TabsTrigger>}
           </TabsList>
+
+          {/* Platform (superadmin only) */}
+          {isSuperAdmin && (
+            <TabsContent value="platform">
+              <div className="space-y-6">
+                <div className="fieldcore-card p-6">
+                  <h3 className="text-sm font-semibold text-foreground mb-4">Demo Data</h3>
+                  <p className="text-sm text-muted-foreground mb-3">Seed the Innovex demo organization with realistic sample data (users, inventory, POs, SOs, etc.).</p>
+                  <Button onClick={seedDemo} disabled={seeding} variant="outline">{seeding ? "Seeding…" : "Seed Demo Data"}</Button>
+                </div>
+                <div className="fieldcore-card overflow-hidden">
+                  <div className="border-b px-5 py-3"><h3 className="text-sm font-semibold text-foreground">Tenant Organizations</h3></div>
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b bg-muted/50">
+                      <th className="px-5 py-2 text-left font-medium text-muted-foreground">Name</th>
+                      <th className="px-5 py-2 text-left font-medium text-muted-foreground">Industry</th>
+                      <th className="px-5 py-2 text-left font-medium text-muted-foreground">Created</th>
+                    </tr></thead>
+                    <tbody className="divide-y">
+                      {tenants?.map((t: any) => (
+                        <tr key={t.id} className="hover:bg-muted/30">
+                          <td className="px-5 py-2 font-medium text-foreground">{t.name}</td>
+                          <td className="px-5 py-2 text-muted-foreground">{t.industry ?? "—"}</td>
+                          <td className="px-5 py-2 text-muted-foreground">{new Date(t.created_at).toLocaleDateString()}</td>
+                        </tr>
+                      ))}
+                      {(!tenants || tenants.length === 0) && <tr><td colSpan={3} className="px-5 py-6 text-center text-muted-foreground">No tenant organizations</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </TabsContent>
+          )}
 
           {/* My Account */}
           <TabsContent value="account">
