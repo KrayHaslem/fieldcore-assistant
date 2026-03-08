@@ -646,6 +646,43 @@ export default function SettingsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Test Rule Dialog */}
+      <Dialog open={testRuleDialog} onOpenChange={(open) => { setTestRuleDialog(open); if (!open) setTestResult(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Test Approval Rule</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Amount ($)</Label>
+              <Input type="number" value={testAmount} onChange={(e) => setTestAmount(e.target.value)} placeholder="e.g. 5000" />
+            </div>
+            <div>
+              <Label>Department (optional)</Label>
+              <Select value={testDeptId} onValueChange={setTestDeptId}>
+                <SelectTrigger><SelectValue placeholder="Any department" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None (org-wide)</SelectItem>
+                  {departments?.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={runTestRule} disabled={testLoading || !testAmount} className="w-full">
+              {testLoading ? "Testing..." : "Test"}
+            </Button>
+            {testResult && (
+              <div className="rounded-md border p-3 text-sm">
+                {testResult.auto_approve ? (
+                  <p className="text-muted-foreground">✅ Auto-approved (no matching rule)</p>
+                ) : (
+                  <p className="text-foreground">
+                    🔒 Requires <span className="font-medium capitalize">{testResult.required_role}</span> approval — {testResult.rule_is_department_scoped ? "department only" : "org-wide"}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Confirm Dialog */}
       <Dialog open={!!confirmAction} onOpenChange={(open) => { if (!open) setConfirmAction(null); }}>
         <DialogContent className="max-w-sm">
