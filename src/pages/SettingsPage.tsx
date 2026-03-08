@@ -172,7 +172,7 @@ export default function SettingsPage() {
     const { error } = await supabase.rpc("update_user_roles", {
       _target_user_id: roleDialog,
       _organization_id: orgId,
-      _new_roles: checkedRoles,
+      _new_roles: checkedRoles as any,
     });
     if (error) {
       toast({ title: "Failed to update roles", description: error.message, variant: "destructive" });
