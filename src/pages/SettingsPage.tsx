@@ -458,6 +458,14 @@ export default function SettingsPage() {
                 </tbody>
               </table>
             </div>
+            <div className="mt-4 px-5 pb-4 flex items-start justify-between gap-4">
+              <p className="text-xs text-muted-foreground max-w-xl">
+                Rules are matched by amount and department. Department-specific rules take priority over org-wide rules. If no rule matches a PO's amount, the order is auto-approved. If no rules are configured at all, all orders are created without approval. Admins can always approve any order.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => setTestRuleDialog(true)}>
+                <FlaskConical className="h-4 w-4" /> Test Rule
+              </Button>
+            </div>
           </TabsContent>
 
           {/* Units */}
