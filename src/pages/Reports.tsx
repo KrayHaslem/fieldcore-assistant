@@ -391,7 +391,7 @@ export default function Reports() {
 
   const { data: inventoryLossData, isLoading: loadingLoss } = useQuery({
     queryKey: ["report-inv-loss", orgId, startISO, endISO],
-    enabled: selectedKey === "inventory_loss" && !!orgId,
+    enabled: selectedKey === "inventory_loss" && !!orgId && canAccessKey("inventory_loss"),
     queryFn: async () => {
       let q = supabase.from("reconciliations")
         .select("item_id, variance, inventory_items:item_id(name, default_unit_cost)")
