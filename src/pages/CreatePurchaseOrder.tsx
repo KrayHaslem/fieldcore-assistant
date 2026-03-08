@@ -424,9 +424,24 @@ export default function CreatePurchaseOrder() {
       for (const intentItem of intent.items) {
         supabase.from("inventory_items").select("id, name, item_type, default_unit_cost, sku")
           .ilike("name", `%${intentItem.name}%`).limit(1)
-          .then(({ data }) => {
+          .then(async ({ data }) => {
             if (data && data[0]) {
               const match = data[0];
+
+              // Look up most recent unit cost from past purchase orders
+              const { data: priceHistory } = await supabase
+                .from("purchase_order_items")
+                .select("unit_cost, purchase_orders!inner(created_at)")
+                .eq("item_id", match.id)
+                .order("created_at", { ascending: false, referencedTable: "purchase_orders" })
+                .limit(1);
+
+              const historicalCost = priceHistory?.[0]?.unit_cost
+                ? String(priceHistory[0].unit_cost)
+                : match.default_unit_cost
+                ? String(match.default_unit_cost)
+                : "";
+
               setItems((prev) => {
                 // Check if item already exists
                 const existing = prev.find((li) => li.item?.id === match.id);
@@ -443,7 +458,7 @@ export default function CreatePurchaseOrder() {
                   id: empty?.id || String(Date.now()),
                   item: { ...match, label: match.sku ? `${match.name} (${match.sku})` : match.name },
                   quantity: String(intentItem.quantity || 1),
-                  unit_cost: match.default_unit_cost ? String(match.default_unit_cost) : "",
+                  unit_cost: historicalCost,
                   item_type: (match.item_type || "resale") as any,
                   unit: null,
                 };
