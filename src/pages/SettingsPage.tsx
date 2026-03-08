@@ -96,11 +96,16 @@ export default function SettingsPage() {
   };
 
   const deleteOrg = async (id: string, name: string) => {
-    if (!confirm(`Delete organization "${name}"? This will remove all associated data.`)) return;
-    const { error } = await supabase.from("organizations").delete().eq("id", id);
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Organization deleted" });
-    qc.invalidateQueries({ queryKey: ["tenants"] });
+    setConfirmAction({
+      message: `Delete organization "${name}"? This will remove all associated data.`,
+      onConfirm: async () => {
+        setConfirmAction(null);
+        const { error } = await supabase.from("organizations").delete().eq("id", id);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+        toast({ title: "Organization deleted" });
+        qc.invalidateQueries({ queryKey: ["tenants"] });
+      },
+    });
   };
 
   // ---- Departments ----
