@@ -56,6 +56,45 @@ export default function SettingsPage() {
     },
   });
 
+  // ---- Super Admin: Org CRUD ----
+  const [orgDialog, setOrgDialog] = useState(false);
+  const [editingOrgId, setEditingOrgId] = useState<string | null>(null);
+  const [orgForm, setOrgForm] = useState({ name: "", industry: "" });
+  const [orgSaving, setOrgSaving] = useState(false);
+
+  const openOrgDialog = (org?: any) => {
+    if (org) {
+      setEditingOrgId(org.id);
+      setOrgForm({ name: org.name, industry: org.industry ?? "" });
+    } else {
+      setEditingOrgId(null);
+      setOrgForm({ name: "", industry: "" });
+    }
+    setOrgDialog(true);
+  };
+
+  const saveOrg = async () => {
+    if (!orgForm.name.trim()) return;
+    setOrgSaving(true);
+    const payload = { name: orgForm.name.trim(), industry: orgForm.industry.trim() || null };
+    const { error } = editingOrgId
+      ? await supabase.from("organizations").update(payload).eq("id", editingOrgId)
+      : await supabase.from("organizations").insert(payload);
+    setOrgSaving(false);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: editingOrgId ? "Organization updated" : "Organization created" });
+    setOrgDialog(false);
+    qc.invalidateQueries({ queryKey: ["tenants"] });
+  };
+
+  const deleteOrg = async (id: string, name: string) => {
+    if (!confirm(`Delete organization "${name}"? This will remove all associated data.`)) return;
+    const { error } = await supabase.from("organizations").delete().eq("id", id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Organization deleted" });
+    qc.invalidateQueries({ queryKey: ["tenants"] });
+  };
+
   // ---- Departments ----
   const [deptDialog, setDeptDialog] = useState(false);
   const [deptName, setDeptName] = useState("");
