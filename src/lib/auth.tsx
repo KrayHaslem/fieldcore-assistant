@@ -8,6 +8,7 @@ type Profile = {
   organization_id: string;
   full_name: string;
   email: string;
+  department_id: string | null;
 };
 
 type UserRole = {
