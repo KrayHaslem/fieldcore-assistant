@@ -216,7 +216,7 @@ export default function SettingsPage() {
     <div>
       <PageHeader title="Settings" description="Organization and account configuration" />
       <div className="p-8 max-w-5xl">
-        <Tabs defaultValue="account">
+        <Tabs defaultValue={isSuperAdmin ? "platform" : "account"}>
           <TabsList className="mb-6">
             {isSuperAdmin && <TabsTrigger value="platform">Platform</TabsTrigger>}
             <TabsTrigger value="account">My Account</TabsTrigger>
