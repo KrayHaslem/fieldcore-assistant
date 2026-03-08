@@ -47,6 +47,8 @@ function ProtectedRoutes() {
         <Route path="/purchase-orders/:id" element={<PurchaseOrderDetail />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/sales" element={<SalesOrders />} />
+        <Route path="/sales/new" element={<CreateSalesOrder />} />
+        <Route path="/sales/:id" element={<SalesOrderDetail />} />
         <Route path="/assemblies" element={<Assemblies />} />
         <Route path="/reconciliation" element={<Reconciliation />} />
         <Route path="/reports" element={<Reports />} />
