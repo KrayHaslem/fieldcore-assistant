@@ -8,6 +8,7 @@ import { AppLayout } from "@/components/AppLayout";
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
 import PurchaseOrders from "./pages/PurchaseOrders";
+import CreatePurchaseOrder from "./pages/CreatePurchaseOrder";
 import Inventory from "./pages/Inventory";
 import SalesOrders from "./pages/SalesOrders";
 import Assemblies from "./pages/Assemblies";
