@@ -26,24 +26,32 @@ export default function SettingsPage() {
   const canManageSuppliers = isAdmin || roles.includes("procurement");
   const canManageUnits = isAdmin || roles.includes("procurement");
 
+  // ---- Confirm dialog state ----
+  const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(null);
+
   // ---- Super Admin: Seed Demo ----
   const [seeding, setSeeding] = useState(false);
 
   const seedDemo = async () => {
-    if (!confirm("This will clear all existing Innovex demo data and reseed from scratch. Continue?")) return;
-    setSeeding(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("seed-demo");
-      if (error) throw error;
-      const counts = data?.counts;
-      const desc = counts
-        ? `Created ${counts.users} users, ${counts.inventory_items} items, ${counts.purchase_orders} POs, ${counts.sales_orders} SOs, ${counts.assembly_records} assemblies`
-        : "Success";
-      toast({ title: "Demo data reset complete", description: desc });
-    } catch (e: any) {
-      toast({ title: "Seed failed", description: e.message, variant: "destructive" });
-    }
-    setSeeding(false);
+    setConfirmAction({
+      message: "This will clear all existing Innovex demo data and reseed from scratch. Continue?",
+      onConfirm: async () => {
+        setConfirmAction(null);
+        setSeeding(true);
+        try {
+          const { data, error } = await supabase.functions.invoke("seed-demo");
+          if (error) throw error;
+          const counts = data?.counts;
+          const desc = counts
+            ? `Created ${counts.users} users, ${counts.inventory_items} items, ${counts.purchase_orders} POs, ${counts.sales_orders} SOs, ${counts.assembly_records} assemblies`
+            : "Success";
+          toast({ title: "Demo data reset complete", description: desc });
+        } catch (e: any) {
+          toast({ title: "Seed failed", description: e.message, variant: "destructive" });
+        }
+        setSeeding(false);
+      },
+    });
   };
 
   // ---- Super Admin: Tenant List ----
@@ -88,11 +96,16 @@ export default function SettingsPage() {
   };
 
   const deleteOrg = async (id: string, name: string) => {
-    if (!confirm(`Delete organization "${name}"? This will remove all associated data.`)) return;
-    const { error } = await supabase.from("organizations").delete().eq("id", id);
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Organization deleted" });
-    qc.invalidateQueries({ queryKey: ["tenants"] });
+    setConfirmAction({
+      message: `Delete organization "${name}"? This will remove all associated data.`,
+      onConfirm: async () => {
+        setConfirmAction(null);
+        const { error } = await supabase.from("organizations").delete().eq("id", id);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+        toast({ title: "Organization deleted" });
+        qc.invalidateQueries({ queryKey: ["tenants"] });
+      },
+    });
   };
 
   // ---- Departments ----
@@ -116,10 +129,15 @@ export default function SettingsPage() {
   };
 
   const deleteDept = async (id: string, name: string) => {
-    if (!confirm(`Delete department "${name}"?`)) return;
-    const { error } = await supabase.from("departments").delete().eq("id", id);
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Deleted" }); qc.invalidateQueries({ queryKey: ["departments"] });
+    setConfirmAction({
+      message: `Delete department "${name}"?`,
+      onConfirm: async () => {
+        setConfirmAction(null);
+        const { error } = await supabase.from("departments").delete().eq("id", id);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+        toast({ title: "Deleted" }); qc.invalidateQueries({ queryKey: ["departments"] });
+      },
+    });
   };
 
   // ---- Users & Roles ----
@@ -229,10 +247,15 @@ export default function SettingsPage() {
   };
 
   const deleteRule = async (id: string) => {
-    if (!confirm("Delete this approval rule?")) return;
-    await supabase.from("approval_rules").delete().eq("id", id);
-    qc.invalidateQueries({ queryKey: ["approval-rules"] });
-    toast({ title: "Rule deleted" });
+    setConfirmAction({
+      message: "Delete this approval rule?",
+      onConfirm: async () => {
+        setConfirmAction(null);
+        await supabase.from("approval_rules").delete().eq("id", id);
+        qc.invalidateQueries({ queryKey: ["approval-rules"] });
+        toast({ title: "Rule deleted" });
+      },
+    });
   };
 
   // ---- Units ----
@@ -548,6 +571,18 @@ export default function SettingsPage() {
             <div><Label>Industry</Label><Input value={orgForm.industry} onChange={(e) => setOrgForm({ ...orgForm, industry: e.target.value })} placeholder="e.g. Manufacturing" /></div>
           </div>
           <DialogFooter><Button onClick={saveOrg} disabled={orgSaving || !orgForm.name.trim()}>{orgSaving ? "Saving..." : "Save"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm Dialog */}
+      <Dialog open={!!confirmAction} onOpenChange={(open) => { if (!open) setConfirmAction(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Confirm</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">{confirmAction?.message}</p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setConfirmAction(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => confirmAction?.onConfirm()}>Confirm</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
