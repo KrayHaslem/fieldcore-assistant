@@ -37,6 +37,7 @@ interface ReportDef {
   name: string;
   description: string;
   hasDateRange: boolean;
+  accessRoles: string[];
 }
 
 const reportCategories: { title: string; icon: typeof ShoppingCart; reports: ReportDef[] }[] = [
