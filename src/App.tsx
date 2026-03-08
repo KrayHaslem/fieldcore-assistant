@@ -54,6 +54,7 @@ function ProtectedRoutes() {
         <Route path="/reconciliation" element={<Reconciliation />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/setup/:orgId" element={<OrgSetupWizard />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
