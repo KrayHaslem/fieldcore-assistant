@@ -783,6 +783,16 @@ export default function CreatePurchaseOrder() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
+
+      {/* Assistant Panel */}
+      {showAssistant && prefill && (
+        <FormAssistantPanel
+          commandText={prefill.raw || prefill.command || "AI command"}
+          onIntentReceived={handleAssistantIntent}
+          onClose={() => setShowAssistant(false)}
+        />
+      )}
     </div>
   );
 }
