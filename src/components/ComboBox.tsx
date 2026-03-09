@@ -229,7 +229,7 @@ export function ComboBox<T extends ComboBoxOption>({
               onClick={() => onCreateNew?.(inputValue.trim())}
               onMouseEnter={() => setHighlightedIndex(options.length)}
             >
-              + {createLabel}: "{inputValue.trim()}"
+              + {createLabel}{inputValue.trim() ? `: "${inputValue.trim()}"` : ""}
             </button>
           )}
         </div>
