@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -17,11 +17,13 @@ import { useToast } from "@/hooks/use-toast";
 import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
 import { Plus, Trash2, Pencil, FlaskConical, RotateCcw, AlertTriangle, Copy } from "lucide-react";
 import { ReportSqlAssistant } from "@/components/ReportSqlAssistant";
+import { BomSettingsTab } from "@/components/BomSettingsTab";
 
 const ALL_ROLES = ["admin", "procurement", "sales", "finance", "employee"] as const;
 
 export default function SettingsPage() {
   const { user, profile, roles, orgId, refreshRoles } = useAuth();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -461,7 +463,7 @@ export default function SettingsPage() {
     <div>
       <PageHeader title="Settings" description="Organization and account configuration" />
       <div className="p-8 max-w-5xl">
-        <Tabs defaultValue={isSuperAdmin ? "platform" : "account"}>
+        <Tabs defaultValue={searchParams.get("tab") || (isSuperAdmin ? "platform" : "account")}>
           <TabsList className="mb-6">
             {isSuperAdmin && <TabsTrigger value="platform">Platform</TabsTrigger>}
             <TabsTrigger value="account">My Account</TabsTrigger>
@@ -470,6 +472,7 @@ export default function SettingsPage() {
             {canManageSuppliers && <TabsTrigger value="suppliers">Suppliers</TabsTrigger>}
             {isAdmin && <TabsTrigger value="approvals">Approval Rules</TabsTrigger>}
             {canManageUnits && <TabsTrigger value="units">Units</TabsTrigger>}
+            {(isAdmin || roles.includes("procurement")) && <TabsTrigger value="bom">Bill of Materials</TabsTrigger>}
             {isAdmin && <TabsTrigger value="report-templates">Report Templates</TabsTrigger>}
           </TabsList>
 
@@ -660,6 +663,13 @@ export default function SettingsPage() {
               </table>
             </div>
           </TabsContent>
+
+          {/* Bill of Materials */}
+          {(isAdmin || roles.includes("procurement")) && (
+            <TabsContent value="bom">
+              <BomSettingsTab />
+            </TabsContent>
+          )}
 
           {/* Report Templates (admin only) */}
           {isAdmin && (
