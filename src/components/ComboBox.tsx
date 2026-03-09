@@ -150,9 +150,13 @@ export function ComboBox<T extends ComboBoxOption>({
     doSearch(inputValue);
   };
 
-  const showCreate = allowCreate && inputValue.trim() && !options.some(
+  // Show create option if allowCreate is enabled and:
+  // - There's search text that doesn't match an exact option, OR
+  // - The dropdown is open (so user can always see "Add new" option)
+  const hasExactMatch = options.some(
     (o) => o.label.toLowerCase() === inputValue.trim().toLowerCase()
   );
+  const showCreate = allowCreate && !hasExactMatch;
 
   return (
     <div ref={containerRef} className="relative">
