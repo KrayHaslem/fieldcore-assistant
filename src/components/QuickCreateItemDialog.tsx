@@ -56,7 +56,7 @@ export function QuickCreateItemDialog({
   const qc = useQueryClient();
   const [name, setName] = useState(defaultName);
   const [sku, setSku] = useState("");
-  const [itemType, setItemType] = useState(fixedItemType ?? "resale");
+  const [itemType, setItemType] = useState<string>(fixedItemType ?? "resale");
   const [defaultCost, setDefaultCost] = useState("");
   const [saving, setSaving] = useState(false);
 
