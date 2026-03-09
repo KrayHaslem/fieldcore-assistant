@@ -110,6 +110,46 @@ export default function Reports() {
   const [marginGrouping, setMarginGrouping] = useState<"weekly" | "monthly" | "quarterly">("monthly");
   const [expandedAssemblyIds, setExpandedAssemblyIds] = useState<Set<string>>(new Set());
 
+  // Fetch report templates from database
+  const { data: templatesData } = useQuery({
+    queryKey: ["report-templates"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("report_templates")
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Build reportDef array from templates
+  const allReports: ReportDef[] = useMemo(() => {
+    if (!templatesData) return [];
+    return templatesData.map((t) => ({
+      key: REPORT_KEY_MAP[t.name] ?? ("unknown" as ReportKey),
+      name: t.name,
+      description: t.description ?? "",
+      hasDateRange: t.supports_date_range ?? true,
+      accessRoles: t.access_level === "admin" ? ["admin"] :
+                   t.access_level === "finance" ? ["admin", "finance"] :
+                   t.access_level === "sales" ? ["admin", "finance", "sales"] :
+                   t.access_level === "procurement" ? ["admin", "finance", "procurement"] :
+                   ["admin", t.access_level],
+    })).filter((r) => r.key !== "unknown");
+  }, [templatesData]);
+
+  // Build categories from LOCAL_CATEGORIES with DB-sourced reports
+  const reportCategories = useMemo(() => {
+    return LOCAL_CATEGORIES.map((cat) => ({
+      title: cat.title,
+      icon: cat.icon,
+      reports: cat.reports
+        .map((name) => allReports.find((r) => r.name === name))
+        .filter((r): r is ReportDef => !!r),
+    }));
+  }, [allReports]);
+
   useEffect(() => {
     const state = location.state as any;
     if (state?.startDate) {
@@ -118,13 +158,13 @@ export default function Reports() {
     if (state?.endDate) {
       setEndDate(new Date(state.endDate));
     }
-    if (state?.prefill?.report_name) {
+    if (state?.prefill?.report_name && allReports.length > 0) {
       const match = allReports.find((r) =>
         r.name.toLowerCase().includes(state.prefill.report_name.toLowerCase())
       );
       if (match) setSelectedKey(match.key);
     }
-  }, []);
+  }, [allReports]);
 
   const canAccessReport = (report: ReportDef) =>
     roles.includes("admin") || report.accessRoles.some((r) => roles.includes(r));
