@@ -336,7 +336,7 @@ export default function PurchaseOrderDetail() {
     <div>
       <PageHeader
         title={po.po_number}
-        description={`Purchase order details`}
+        description="Order details"
         actions={
           <Button variant="outline" size="sm" onClick={() => navigate("/purchase-orders")}>
             <ArrowLeft className="h-4 w-4" />
