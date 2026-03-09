@@ -191,7 +191,9 @@ export function ComboBox<T extends ComboBoxOption>({
             <div className="px-3 py-2 text-sm text-muted-foreground">Searching...</div>
           )}
           {!isLoading && options.length === 0 && !showCreate && (
-            <div className="px-3 py-2 text-sm text-muted-foreground">No results found</div>
+            <div className="px-3 py-2 text-sm text-muted-foreground">
+              {inputValue.trim() ? `No results for "${inputValue.trim()}"` : "No results found"}
+            </div>
           )}
           {options.map((option, index) => (
             <button
