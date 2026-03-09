@@ -124,6 +124,8 @@ export default function OrgSetupWizard() {
 
       if (error) throw error;
 
+      setChatMessages([]);
+      setAiPrefilled(false);
       applyAiPrefill(data);
       setStep(2);
     } catch (err: any) {
