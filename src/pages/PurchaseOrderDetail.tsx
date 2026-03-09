@@ -26,7 +26,7 @@ import {
   Lock,
 } from "lucide-react";
 
-type POStatus = "draft" | "submitted" | "approved" | "ordered" | "received" | "closed";
+type POStatus = "draft" | "submitted" | "approved" | "ordered" | "partially_received" | "received" | "closed";
 
 const statusFlow: Record<string, { next: POStatus; label: string; icon: typeof Send }[]> = {
   draft: [{ next: "submitted", label: "Submit for Approval", icon: Send }],
@@ -36,6 +36,7 @@ const statusFlow: Record<string, { next: POStatus; label: string; icon: typeof S
   ],
   approved: [{ next: "ordered", label: "Mark as Ordered", icon: Truck }],
   ordered: [{ next: "received", label: "Mark as Received", icon: PackageCheck }],
+  partially_received: [{ next: "received", label: "Receive More Items", icon: PackageCheck }],
   received: [{ next: "closed", label: "Close PO", icon: Lock }],
   closed: [],
 };
