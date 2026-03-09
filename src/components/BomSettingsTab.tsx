@@ -230,6 +230,21 @@ export function BomSettingsTab() {
           </div>
         </div>
       )}
+
+      <QuickCreateItemDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        defaultName={createDialogName}
+        fixedItemType={createDialogType}
+        onCreated={(item: CreatedItem) => {
+          const option: ItemOption = { id: item.id, label: item.name, sku: item.sku };
+          if (createDialogTarget === "finished") {
+            setSelectedItem(option);
+          } else {
+            setAddComponent(option);
+          }
+        }}
+      />
     </div>
   );
 }
