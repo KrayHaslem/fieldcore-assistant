@@ -492,21 +492,19 @@ export default function Reports() {
   });
 
   const { data: quarterlyRevData, isLoading: loadingQtrRev } = useQuery({
-    queryKey: ["report-quarterly-rev", orgId, startISO, endISO],
-    enabled: selectedKey === "quarterly_revenue" && !!orgId && canAccessKey("quarterly_revenue"),
+    queryKey: ["report-quarterly-rev", orgId, user?.id, startISO, endISO],
+    enabled: selectedKey === "quarterly_revenue" && !!orgId && !!user && canAccessKey("quarterly_revenue"),
     queryFn: async () => {
-      let q = supabase.from("sales_orders").select("total_amount, created_at").in("status", ["fulfilled", "invoiced", "paid", "closed"]);
-      if (startISO) q = q.gte("created_at", startISO);
-      if (endISO) q = q.lte("created_at", endISO);
-      const { data } = await q;
-      const map: Record<string, number> = {};
-      (data ?? []).forEach((so: any) => {
-        const d = new Date(so.created_at);
-        const qtr = Math.floor(d.getMonth() / 3) + 1;
-        const key = `Q${qtr} ${d.getFullYear()}`;
-        map[key] = (map[key] || 0) + Number(so.total_amount || 0);
+      const { data, error } = await supabase.rpc("get_quarterly_revenue", {
+        _user_id: user!.id,
+        _start_date: startISO!,
+        _end_date: endISO!,
       });
-      return Object.entries(map).map(([quarter, total]) => ({ quarter, total }));
+      if (error) throw error;
+      return (data ?? []).map((r: any) => ({
+        quarter: r.quarter,
+        total: Number(r.total),
+      }));
     },
   });
 
