@@ -80,6 +80,56 @@ export default function CreateSalesOrder() {
     }
     setIsSaving(true);
     try {
+      // Look up cost_per_unit for each item from recent received movements
+      const itemIds = validLines.map((l) => l.item!.id);
+      
+      // Get avg unit_cost from most recent 5 received movements per item
+      const { data: movements } = await supabase
+        .from("inventory_movements")
+        .select("item_id, source_id")
+        .eq("movement_type", "received")
+        .in("item_id", itemIds)
+        .order("created_at", { ascending: false });
+      
+      // Get the PO item costs for received movements
+      const sourceIds = [...new Set((movements ?? []).map((m) => m.source_id).filter(Boolean))];
+      const { data: poItems } = sourceIds.length > 0
+        ? await supabase.from("purchase_order_items").select("id, item_id, unit_cost").in("id", sourceIds)
+        : { data: [] };
+      
+      // Build cost map: get avg of up to 5 most recent received costs per item
+      const costMap: Record<string, number> = {};
+      const itemMovementCosts: Record<string, number[]> = {};
+      
+      (movements ?? []).forEach((m) => {
+        const poItem = (poItems ?? []).find((p) => p.id === m.source_id && p.item_id === m.item_id);
+        if (poItem && poItem.unit_cost != null) {
+          if (!itemMovementCosts[m.item_id]) itemMovementCosts[m.item_id] = [];
+          if (itemMovementCosts[m.item_id].length < 5) {
+            itemMovementCosts[m.item_id].push(Number(poItem.unit_cost));
+          }
+        }
+      });
+      
+      for (const itemId of itemIds) {
+        const costs = itemMovementCosts[itemId];
+        if (costs && costs.length > 0) {
+          costMap[itemId] = costs.reduce((s, c) => s + c, 0) / costs.length;
+        }
+      }
+      
+      // Fallback to default_unit_cost for items without received movements
+      const missingCostItems = itemIds.filter((id) => costMap[id] === undefined);
+      if (missingCostItems.length > 0) {
+        const { data: invItems } = await supabase
+          .from("inventory_items")
+          .select("id, default_unit_cost")
+          .in("id", missingCostItems);
+        (invItems ?? []).forEach((i) => {
+          costMap[i.id] = Number(i.default_unit_cost ?? 0);
+        });
+      }
+
       const soNumber = generateSoNumber();
       const { data: so, error: soErr } = await supabase.from("sales_orders").insert({
         organization_id: orgId!, so_number: soNumber, customer_name: customerName.trim(),
@@ -87,7 +137,14 @@ export default function CreateSalesOrder() {
       }).select("id").single();
       if (soErr) throw soErr;
       const { error: liErr } = await supabase.from("sales_order_items").insert(
-        validLines.map((l) => ({ sales_order_id: so.id, organization_id: orgId!, item_id: l.item!.id, quantity: parseInt(l.quantity, 10), unit_price: parseFloat(l.unitPrice) }))
+        validLines.map((l) => ({
+          sales_order_id: so.id,
+          organization_id: orgId!,
+          item_id: l.item!.id,
+          quantity: parseInt(l.quantity, 10),
+          unit_price: parseFloat(l.unitPrice),
+          cost_per_unit: costMap[l.item!.id] ?? 0,
+        }))
       );
       if (liErr) throw liErr;
       toast({ title: "Sales Order Created", description: `${soNumber} saved as ${status}.` });

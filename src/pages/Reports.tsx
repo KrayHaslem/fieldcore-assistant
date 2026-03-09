@@ -473,15 +473,15 @@ export default function Reports() {
       const soIds = sos.map((s) => s.id);
       const { data: lines } = await supabase
         .from("sales_order_items")
-        .select("item_id, quantity, unit_price, inventory_items:item_id(name, default_unit_cost)")
+        .select("item_id, quantity, unit_price, cost_per_unit, inventory_items:item_id(name)")
         .in("sales_order_id", soIds);
       const map: Record<string, any> = {};
       (lines ?? []).forEach((li: any) => {
         const id = li.item_id;
-        if (!map[id]) map[id] = { name: li.inventory_items?.name ?? "—", cogs_unit: Number(li.inventory_items?.default_unit_cost || 0), units: 0, revenue: 0, cogs: 0 };
+        if (!map[id]) map[id] = { name: li.inventory_items?.name ?? "—", units: 0, revenue: 0, cogs: 0 };
         map[id].units += li.quantity;
         map[id].revenue += li.quantity * Number(li.unit_price);
-        map[id].cogs += li.quantity * map[id].cogs_unit;
+        map[id].cogs += li.quantity * Number(li.cost_per_unit || 0);
       });
       return Object.values(map).map((i: any) => ({
         ...i,

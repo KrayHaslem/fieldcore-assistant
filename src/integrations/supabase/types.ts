@@ -661,6 +661,7 @@ export type Database = {
       }
       sales_order_items: {
         Row: {
+          cost_per_unit: number
           created_at: string
           id: string
           item_id: string
@@ -670,6 +671,7 @@ export type Database = {
           unit_price: number
         }
         Insert: {
+          cost_per_unit?: number
           created_at?: string
           id?: string
           item_id: string
@@ -679,6 +681,7 @@ export type Database = {
           unit_price: number
         }
         Update: {
+          cost_per_unit?: number
           created_at?: string
           id?: string
           item_id?: string
