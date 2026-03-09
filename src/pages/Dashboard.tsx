@@ -15,7 +15,9 @@ import {
   Loader2,
   FileText,
   AlertCircle,
+  RotateCcw,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -209,6 +211,30 @@ export default function Dashboard() {
     } finally {
       setIsParsingCommand(false);
     }
+  };
+
+  const getCommandDestination = (cmd: any): (() => void) | null => {
+    const intentType = cmd.intent_type;
+    const data = cmd.intent_data as Record<string, any> | null;
+    if (!data || intentType === "unknown") return null;
+
+    if (intentType === "create_purchase_order") return () => navigate("/purchase-orders/new", { state: { prefill: data } });
+    if (intentType === "create_sales_order") return () => navigate("/sales", { state: { prefill: data } });
+    if (intentType === "show_report") return () => navigate("/reports", { state: { prefill: data, startDate: data.date_range?.start ?? null, endDate: data.date_range?.end ?? null } });
+    if (intentType === "reconcile_item") return () => navigate("/reconciliation", { state: { prefill: data } });
+    if (intentType === "record_assembly") return () => navigate("/assemblies", { state: { prefill: data } });
+    if (intentType === "navigate") {
+      const dest = data.destination?.toLowerCase();
+      if (dest?.includes("purchase")) return () => navigate("/purchase-orders");
+      if (dest?.includes("inventor")) return () => navigate("/inventory");
+      if (dest?.includes("sales")) return () => navigate("/sales");
+      if (dest?.includes("assembl")) return () => navigate("/assemblies");
+      if (dest?.includes("reconcil")) return () => navigate("/reconciliation");
+      if (dest?.includes("report")) return () => navigate("/reports");
+      if (dest?.includes("setting")) return () => navigate("/settings");
+      return null;
+    }
+    return null;
   };
 
   return (
@@ -428,22 +454,47 @@ export default function Dashboard() {
                   No commands yet. Try the command input above!
                 </p>
               )}
-              {commandHistory?.map((cmd: any) => (
-                <div key={cmd.id} className="flex items-center justify-between px-5 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-foreground">{cmd.command_text}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <Clock className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(cmd.created_at).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                  {cmd.intent_type && (
-                    <span className="status-badge status-submitted ml-3 whitespace-nowrap">{cmd.intent_type}</span>
-                  )}
-                </div>
-              ))}
+              {commandHistory?.map((cmd: any) => {
+                const goTo = getCommandDestination(cmd);
+                const isClickable = !!goTo;
+                return (
+                  <TooltipProvider key={cmd.id} delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={`group flex items-center justify-between px-5 py-3 transition-colors ${
+                            isClickable ? "cursor-pointer hover:bg-muted/50" : ""
+                          }`}
+                          onClick={goTo ?? undefined}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm text-foreground">{cmd.command_text}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Clock className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(cmd.created_at).toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 ml-3">
+                            {cmd.intent_type && (
+                              <span className="status-badge status-submitted whitespace-nowrap">{cmd.intent_type}</span>
+                            )}
+                            {isClickable && (
+                              <RotateCcw className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                            )}
+                          </div>
+                        </div>
+                      </TooltipTrigger>
+                      {isClickable && (
+                        <TooltipContent side="left">
+                          <p>Re-open with prefill</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+                );
+              })}
             </div>
           </div>
         </div>
