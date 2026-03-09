@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -71,13 +72,98 @@ Always return valid JSON only. No markdown, no explanation. If you cannot determ
     const content = aiResult.choices?.[0]?.message?.content ?? "";
 
     // Try to parse the JSON from the response
-    let parsed;
+    let parsed: Record<string, any>;
     try {
-      // Strip markdown code fences if present
       const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
       parsed = JSON.parse(cleaned);
     } catch {
       parsed = { intent: "unknown", raw: command, ai_response: content };
+    }
+
+    // --- Enrich with real data from DB ---
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const sb = createClient(supabaseUrl, serviceRoleKey);
+
+    try {
+      if (parsed.intent === "create_purchase_order") {
+        // Enrich supplier match
+        if (parsed.supplier && typeof parsed.supplier === "string") {
+          const { data: suppliers } = await sb
+            .from("suppliers")
+            .select("id, name, avg_lead_time_days")
+            .ilike("name", `%${parsed.supplier}%`)
+            .limit(1);
+          if (suppliers && suppliers.length > 0) {
+            parsed.supplier_match = {
+              id: suppliers[0].id,
+              name: suppliers[0].name,
+              avg_lead_time_days: suppliers[0].avg_lead_time_days,
+            };
+          }
+        }
+
+        // Enrich item matches
+        if (parsed.items && Array.isArray(parsed.items)) {
+          const itemMatches: any[] = [];
+          for (const item of parsed.items) {
+            if (!item.name) continue;
+            const { data: items } = await sb
+              .from("inventory_items")
+              .select("id, name, sku, avg_unit_cost, default_unit_cost")
+              .ilike("name", `%${item.name}%`)
+              .limit(1);
+            if (items && items.length > 0) {
+              itemMatches.push({
+                parsed_name: item.name,
+                id: items[0].id,
+                name: items[0].name,
+                sku: items[0].sku,
+                avg_unit_cost: items[0].avg_unit_cost,
+                default_unit_cost: items[0].default_unit_cost,
+              });
+            }
+          }
+          if (itemMatches.length > 0) {
+            parsed.item_matches = itemMatches;
+          }
+        }
+      }
+
+      if (parsed.intent === "create_sales_order") {
+        if (parsed.items && Array.isArray(parsed.items)) {
+          const itemMatches: any[] = [];
+          for (const item of parsed.items) {
+            if (!item.name) continue;
+            const { data: items } = await sb
+              .from("inventory_items")
+              .select("id, name")
+              .eq("item_type", "resale")
+              .ilike("name", `%${item.name}%`)
+              .limit(1);
+            if (items && items.length > 0) {
+              const matchedId = items[0].id;
+              // Get on-hand quantity
+              const { data: movements } = await sb
+                .from("inventory_movements")
+                .select("quantity")
+                .eq("item_id", matchedId);
+              const onHand = (movements ?? []).reduce((s: number, m: any) => s + m.quantity, 0);
+              itemMatches.push({
+                parsed_name: item.name,
+                id: matchedId,
+                name: items[0].name,
+                on_hand: onHand,
+              });
+            }
+          }
+          if (itemMatches.length > 0) {
+            parsed.item_matches = itemMatches;
+          }
+        }
+      }
+    } catch (enrichErr) {
+      console.error("Enrichment error (non-fatal):", enrichErr);
     }
 
     return new Response(JSON.stringify(parsed), {
