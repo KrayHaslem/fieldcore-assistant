@@ -582,6 +582,7 @@ export default function Assemblies() {
                           {!expandedComponents || expandedComponents.length === 0 ? (
                             <p className="text-sm text-muted-foreground italic">No components recorded</p>
                           ) : (
+                            <>
                             <table className="w-full text-sm">
                               <thead>
                                 <tr className="text-left">
@@ -600,6 +601,42 @@ export default function Assemblies() {
                                 ))}
                               </tbody>
                             </table>
+                            <div className="mt-3 pt-3 border-t border-border/50">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={async () => {
+                                  if (!orgId) return;
+                                  // Check if BOM already exists for this finished item
+                                  const { data: existing } = await supabase
+                                    .from("bill_of_materials")
+                                    .select("id")
+                                    .eq("finished_item_id", r.finished_item_id)
+                                    .limit(1);
+                                  if (existing && existing.length > 0) {
+                                    toast({ title: "BOM already exists", description: "A bill of materials is already defined for this item. Edit it on the BOM tab.", variant: "destructive" });
+                                    return;
+                                  }
+                                  // Create BOM entries from assembly components
+                                  const bomEntries = expandedComponents.map((c: any) => ({
+                                    organization_id: orgId,
+                                    finished_item_id: r.finished_item_id,
+                                    component_item_id: c.component_item_id,
+                                    quantity_per_unit: c.quantity_consumed / r.quantity_produced,
+                                  }));
+                                  const { error } = await supabase.from("bill_of_materials").insert(bomEntries as any);
+                                  if (error) {
+                                    toast({ title: "Error", description: error.message, variant: "destructive" });
+                                  } else {
+                                    toast({ title: "BOM Created", description: `Bill of materials saved for ${r.inventory_items?.name ?? "this item"} with ${expandedComponents.length} component(s).` });
+                                    queryClient.invalidateQueries({ queryKey: ["bom"] });
+                                  }
+                                }}
+                              >
+                                <Plus className="h-4 w-4" /> Save as BOM
+                              </Button>
+                            </div>
+                            </>
                           )}
                         </td>
                       </tr>
