@@ -107,7 +107,20 @@ export default function PurchaseOrderDetail() {
     },
   });
 
-  const canApprove = useMemo(() => {
+  const { data: rejectedByProfile } = useQuery({
+    queryKey: ["rejected-by-profile", (po as any)?.rejected_by],
+    enabled: !!(po as any)?.rejected_by,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", (po as any).rejected_by)
+        .single();
+      return data?.full_name ?? null;
+    },
+  });
+
+
     if (!po || !user) return false;
     if (roles.includes("admin")) return true;
     if ((po as any).assigned_approver_id) {
