@@ -89,6 +89,17 @@ export default function PurchaseOrders() {
                   <td className="px-5 py-3 font-medium text-foreground">
                     ${Number(po.total_amount).toLocaleString()}
                   </td>
+                  <td className="px-5 py-3 text-muted-foreground">
+                    {(po as any).po_groups?.po_number ? (
+                      <Link
+                        to={`/po-groups/${(po as any).po_group_id}`}
+                        className="text-primary hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {(po as any).po_groups.po_number}
+                      </Link>
+                    ) : "—"}
+                  </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2">
                       <StatusBadge status={po.status} />
