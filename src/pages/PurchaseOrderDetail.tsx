@@ -319,8 +319,8 @@ export default function PurchaseOrderDetail() {
   if (!po) {
     return (
       <div className="p-8 text-center text-muted-foreground">
-        Purchase Ofound.
- Otton variant="link" onClick={() => navigate("/purchase-orders")}>Back to list</Button>
+        Order not found.
+        <Button variant="link" onClick={() => navigate("/purchase-orders")}>Back to list</Button>
       </div>
     );
   }

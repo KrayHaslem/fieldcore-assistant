@@ -41,7 +41,7 @@ interface ReportDef {
 }
 
 const LOCAL_CATEGORIES = [
-  { title: "Purchasing", icon: ShoppingCart, reports: ["Spending by Supplier", "Monthly Purchase Totals", "Quarterly Spending", "Open Orders", "Pending Approvals", "Purchase History by Item"] },
+  { title: "Purchasing", icon: ShoppingCart, reports: ["Spending by Supplier", "Monthly Purchase Totals", "Quarterly Spending", "Open Orders", Orders", "Pending Approvals", "Purchase History by Item"] },
   { title: "Inventory", icon: Package, reports: ["Inventory Valuation", "Reconciliation History", "Inventory Performance by Item", "Recommended Stock Levels", "Inventory Loss Summary", "Assembly History"] },
   { title: "Sales", icon: DollarSign, reports: ["Sales by Item", "Margin by Item", "Quarterly Revenue", "Sales by Salesperson", "Margins by Timeframe"] }
 ];
@@ -49,8 +49,7 @@ const LOCAL_CATEGORIES = [
 const REPORT_KEY_MAP: Record<string, ReportKey> = {
   "Spending by Supplier": "spending_supplier",
   "Monthly Purchase Totals": "monthly_purchase_totals",
-  "Quarterly Spending": "quarterly_spending",
-  "Open Purchase "open_pos",
+  "Quarterly Spending": "quarterly_spending",Orders": Purchase "open_pos",
   "Pending Approvals": "pending_approvals",
   "Purchase History by Item": "purchase_history_item",
   "Inventory Valuation": "inventory_valuation",
