@@ -147,43 +147,6 @@ export function BomSettingsTab() {
 
   return (
     <div className="space-y-6">
-      {/* Existing BOMs summary */}
-      <div className="fieldcore-card">
-        <div className="border-b px-5 py-3">
-          <h3 className="text-sm font-semibold text-foreground">Existing Bills of Materials</h3>
-        </div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b bg-muted/50 text-left">
-              <th className="px-5 py-2 font-medium text-muted-foreground">Finished Good</th>
-              <th className="px-5 py-2 font-medium text-muted-foreground">SKU</th>
-              <th className="px-5 py-2 font-medium text-muted-foreground">Components</th>
-              <th className="px-5 py-2 w-12" />
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {bomsLoading && (
-              <tr><td colSpan={4} className="px-5 py-6 text-center text-muted-foreground">Loading...</td></tr>
-            )}
-            {!bomsLoading && (!allBoms || allBoms.length === 0) && (
-              <tr><td colSpan={4} className="px-5 py-6 text-center text-muted-foreground">No bills of materials defined yet</td></tr>
-            )}
-            {allBoms?.map((bom) => (
-              <tr
-                key={bom.id}
-                className="hover:bg-muted/30 transition-colors cursor-pointer"
-                onClick={() => setSelectedItem({ id: bom.id, label: bom.name, sku: bom.sku })}
-              >
-                <td className="px-5 py-2 font-medium text-foreground">{bom.name}</td>
-                <td className="px-5 py-2 text-muted-foreground">{bom.sku ?? "—"}</td>
-                <td className="px-5 py-2 text-muted-foreground">{bom.count} component{bom.count !== 1 ? "s" : ""}</td>
-                <td className="px-5 py-2 text-muted-foreground"><ChevronRight className="h-4 w-4" /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
       {/* Select finished item */}
       <div className="fieldcore-card p-6 space-y-4">
         <div className="flex items-center justify-between">
@@ -311,6 +274,43 @@ export function BomSettingsTab() {
           </div>
         </div>
       )}
+
+      {/* Existing BOMs summary */}
+      <div className="fieldcore-card">
+        <div className="border-b px-5 py-3">
+          <h3 className="text-sm font-semibold text-foreground">Existing Bills of Materials</h3>
+        </div>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-muted/50 text-left">
+              <th className="px-5 py-2 font-medium text-muted-foreground">Finished Good</th>
+              <th className="px-5 py-2 font-medium text-muted-foreground">SKU</th>
+              <th className="px-5 py-2 font-medium text-muted-foreground">Components</th>
+              <th className="px-5 py-2 w-12" />
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {bomsLoading && (
+              <tr><td colSpan={4} className="px-5 py-6 text-center text-muted-foreground">Loading...</td></tr>
+            )}
+            {!bomsLoading && (!allBoms || allBoms.length === 0) && (
+              <tr><td colSpan={4} className="px-5 py-6 text-center text-muted-foreground">No bills of materials defined yet</td></tr>
+            )}
+            {allBoms?.map((bom) => (
+              <tr
+                key={bom.id}
+                className="hover:bg-muted/30 transition-colors cursor-pointer"
+                onClick={() => setSelectedItem({ id: bom.id, label: bom.name, sku: bom.sku })}
+              >
+                <td className="px-5 py-2 font-medium text-foreground">{bom.name}</td>
+                <td className="px-5 py-2 text-muted-foreground">{bom.sku ?? "—"}</td>
+                <td className="px-5 py-2 text-muted-foreground">{bom.count} component{bom.count !== 1 ? "s" : ""}</td>
+                <td className="px-5 py-2 text-muted-foreground"><ChevronRight className="h-4 w-4" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <QuickCreateItemDialog
         open={createDialogOpen}
