@@ -12,7 +12,6 @@ import CreatePurchaseOrder from "./pages/CreatePurchaseOrder";
 import PurchaseOrderDetail from "./pages/PurchaseOrderDetail";
 import POGroups from "./pages/POGroups";
 import POGroupDetail from "./pages/POGroupDetail";
-import PurchaseOrderDetail from "./pages/PurchaseOrderDetail";
 import CreateSalesOrder from "./pages/CreateSalesOrder";
 import SalesOrderDetail from "./pages/SalesOrderDetail";
 import Inventory from "./pages/Inventory";
