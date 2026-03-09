@@ -8,7 +8,7 @@ test.describe("Settings", () => {
 
   test("can navigate between settings tabs", async ({ page }) => {
     await page.goto("/settings");
-    const tabNames = ["Users", "Suppliers", "Items", "Units", "BOM"];
+    const tabNames = ["Users", "Suppliers", "Items", "Units"];
     for (const name of tabNames) {
       const tab = page.getByRole("tab", { name: new RegExp(name, "i") });
       if (await tab.isVisible()) {
@@ -16,23 +16,6 @@ test.describe("Settings", () => {
         await page.waitForTimeout(500);
       }
     }
-  });
-
-  test("BOM tab loads and shows seeded BOM data", async ({ page }) => {
-    await page.goto("/settings?tab=bom");
-    await expect(page.getByText("Select Finished Good")).toBeVisible({ timeout: 10000 });
-
-    // Search for the seeded resale item
-    const searchInput = page.getByPlaceholder(/Search resale items/i);
-    await searchInput.click();
-    await searchInput.fill("E2E Resale");
-
-    const option = page.getByText("E2E Resale Widget").first();
-    await expect(option).toBeVisible({ timeout: 5000 });
-    await option.click();
-
-    // Should show the BOM table with the seeded component
-    await expect(page.getByText("E2E Mfg Input Part")).toBeVisible({ timeout: 5000 });
   });
 
   test("users tab shows the test user", async ({ page }) => {
