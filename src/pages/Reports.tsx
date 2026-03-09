@@ -41,7 +41,7 @@ interface ReportDef {
 }
 
 const LOCAL_CATEGORIES = [
-  { title: "Purchasing", icon: ShoppingCart, reports: ["Spending by Supplier", "Monthly Purchase Totals", "Quarterly Spending", "Open Purchase Orders", "Pending Approvals", "Purchase History by Item"] },
+  { title: "Purchasing", icon: ShoppingCart, reports: ["Spending by Supplier", "Monthly Purchase Totals", "Quarterly Spending", "Open Orders", "Pending Approvals", "Purchase History by Item"] },
   { title: "Inventory", icon: Package, reports: ["Inventory Valuation", "Reconciliation History", "Inventory Performance by Item", "Recommended Stock Levels", "Inventory Loss Summary", "Assembly History"] },
   { title: "Sales", icon: DollarSign, reports: ["Sales by Item", "Margin by Item", "Quarterly Revenue", "Sales by Salesperson", "Margins by Timeframe"] }
 ];
