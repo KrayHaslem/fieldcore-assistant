@@ -41,4 +41,20 @@ test.describe("Assemblies", () => {
     await page.goto("/assemblies");
     await expect(page.getByText("Components")).toBeVisible();
   });
+
+  test("BOM tab loads and shows seeded BOM data", async ({ page }) => {
+    await page.goto("/assemblies");
+    await page.getByRole("tab", { name: /Bill of Materials/i }).click();
+    await expect(page.getByText("Select Finished Good")).toBeVisible({ timeout: 10000 });
+
+    const searchInput = page.getByPlaceholder(/Search resale items/i);
+    await searchInput.click();
+    await searchInput.fill("E2E Resale");
+
+    const option = page.getByText("E2E Resale Widget").first();
+    await expect(option).toBeVisible({ timeout: 5000 });
+    await option.click();
+
+    await expect(page.getByText("E2E Mfg Input Part")).toBeVisible({ timeout: 5000 });
+  });
 });
