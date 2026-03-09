@@ -25,6 +25,12 @@ export function BomSettingsTab() {
   const [addNotes, setAddNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Quick-create dialog state
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createDialogName, setCreateDialogName] = useState("");
+  const [createDialogType, setCreateDialogType] = useState<"resale" | "manufacturing_input">("resale");
+  const [createDialogTarget, setCreateDialogTarget] = useState<"finished" | "component">("finished");
+
   // Search finished goods (resale items)
   const searchFinished = useCallback(async (query: string): Promise<ItemOption[]> => {
     const { data } = await supabase
