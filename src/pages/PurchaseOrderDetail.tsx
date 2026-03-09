@@ -199,7 +199,7 @@ export default function PurchaseOrderDetail() {
         .eq("id", id!);
       if (error) throw error;
 
-      toast({ title: "Order Rejected", description: "Od to draft." });
+      toast({ title: "Order Rejected", description: "Oraft." });
       setShowRejectModal(false);
       queryClient.invalidateQueries({ queryKey: ["purchase-order", id] });
       queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
@@ -256,7 +256,7 @@ export default function PurchaseOrderDetail() {
               created_by: user!.id,
               organization_id: orgId,
               notes: `Received from PO ${ppo_num}`,
-            });
+         });
             if (error) throw error;
             movementsCreated++;
           }
@@ -320,7 +320,7 @@ export default function PurchaseOrderDetail() {
     return (
       <div className="p-8 text-center text-muted-foreground">
         Purchase Ofound.
-        <Button variant="link" onClick={() => navigate("/purchase-orders")}>Back to list</Button>
+ Otton variant="link" onClick={() => navigate("/purchase-orders")}>Back to list</Button>
       </div>
     );
   }
@@ -596,7 +596,7 @@ export default function PurchaseOrderDetail() {
       <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Reject Purchase Order</DialogTitle>
+            <DialogTitle>Reject Purchase Order</Di>
           </DialogHeader>
           <div className="space-y-3">
             <Label className="text-sm text-muted-foreground">Rejection reason (optional)</Label>
