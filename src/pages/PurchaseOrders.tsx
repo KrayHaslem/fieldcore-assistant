@@ -57,6 +57,7 @@ export default function PurchaseOrders() {
                 <th className="px-5 py-3 font-medium text-muted-foreground">Supplier</th>
                 <th className="px-5 py-3 font-medium text-muted-foreground">Created By</th>
                 <th className="px-5 py-3 font-medium text-muted-foreground">Amount</th>
+                <th className="px-5 py-3 font-medium text-muted-foreground">PO Group</th>
                 <th className="px-5 py-3 font-medium text-muted-foreground">Status</th>
                 <th className="px-5 py-3 font-medium text-muted-foreground">Date</th>
               </tr>
