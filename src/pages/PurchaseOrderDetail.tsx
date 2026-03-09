@@ -596,7 +596,7 @@ export default function PurchaseOrderDetail() {
       <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Reject Purchase Order</Di>
+            <DialogTitle>Reject Order</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <Label className="text-sm text-muted-foreground">Rejection reason (optional)</Label>
