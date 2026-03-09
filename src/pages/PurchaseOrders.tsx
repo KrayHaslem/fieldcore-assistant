@@ -23,7 +23,7 @@ export default function PurchaseOrders() {
     queryFn: async () => {
       let q = supabase
         .from("purchase_orders")
-        .select("*, suppliers(name), profiles!purchase_orders_created_by_fkey(full_name)");
+        .select("*, suppliers(name), profiles!purchase_orders_created_by_fkey(full_name), has_shortfall");
 
       if (isEmployeeOnly) {
         q = q.eq("created_by", user!.id);
