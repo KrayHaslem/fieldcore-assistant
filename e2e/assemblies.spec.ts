@@ -1,10 +1,11 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Assemblies", () => {
-  test("assemblies page loads", async ({ page }) => {
+  test("assemblies page loads with tabs", async ({ page }) => {
     await page.goto("/assemblies");
-    await expect(page.getByText("Track manufacturing")).toBeVisible();
-    await expect(page.getByText("Record New Assembly")).toBeVisible();
+    await expect(page.getByText("Assemblies & BOM")).toBeVisible();
+    await expect(page.getByRole("tab", { name: /Record Assembly/i })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /Bill of Materials/i })).toBeVisible();
   });
 
   test("assembly form shows finished goods selector", async ({ page }) => {
