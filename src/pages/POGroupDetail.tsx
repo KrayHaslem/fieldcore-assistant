@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Plus, Minus, Save } from "lucide-react";
 
-const GROUPABLE_STATUSES = ["approved", "ordered", "partially_received", "received", "closed"];
+const GROUPABLE_STATUSES = ["approved", "ordered", "partially_received", "received", "closed"] as const;
 
 export default function POGroupDetail() {
   const { id } = useParams<{ id: string }>();
