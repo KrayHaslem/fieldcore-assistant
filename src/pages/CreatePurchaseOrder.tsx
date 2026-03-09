@@ -787,7 +787,7 @@ export default function CreatePurchaseOrder() {
                 ? "Saving..."
                 : requiresApproval
                 ? "Submit for Approval"
-                : "Create Purchase Order"}
+                : "Create Order"}
             </Button>
           </div>
         </div>
