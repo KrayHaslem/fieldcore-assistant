@@ -121,8 +121,24 @@ export function BomSettingsTab() {
     <div className="space-y-6">
       {/* Select finished item */}
       <div className="fieldcore-card p-6 space-y-4">
-        <h3 className="text-sm font-semibold text-foreground">Select Finished Good</h3>
-        <p className="text-xs text-muted-foreground">Choose a resale item to manage its bill of materials (recipe).</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Select Finished Good</h3>
+            <p className="text-xs text-muted-foreground">Choose a resale item to manage its bill of materials (recipe).</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setCreateDialogName("");
+              setCreateDialogType("resale");
+              setCreateDialogTarget("finished");
+              setCreateDialogOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" /> Add New Item
+          </Button>
+        </div>
         <div className="max-w-md">
           <ComboBox<ItemOption>
             value={selectedItem}
