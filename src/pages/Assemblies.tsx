@@ -377,9 +377,23 @@ export default function Assemblies() {
         {/* SECTION 1 — New Assembly */}
         {canCreate && (
           <div className="fieldcore-card p-6 space-y-5">
-            <div className="flex items-center gap-2 mb-1">
-              <Hammer className="h-5 w-5 text-primary" />
-              <h3 className="text-sm font-semibold text-foreground">Record New Assembly</h3>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <Hammer className="h-5 w-5 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">Record New Assembly</h3>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setCreateDialogName("");
+                  setCreateDialogType("resale");
+                  setCreateDialogTarget("finished");
+                  setCreateDialogOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4" /> Add New Item
+              </Button>
             </div>
 
             <div className="space-y-4">
