@@ -12,12 +12,14 @@ interface ChatMessage {
 interface FormAssistantPanelProps {
   /** The original command text */
   commandText: string;
+  /** Description of the current form for AI context */
+  formContext: string;
   /** Called with parsed intent data so the parent can update form fields. Return a human-readable summary of what changed. */
   onIntentReceived: (intent: Record<string, any>) => string;
   onClose: () => void;
 }
 
-export function FormAssistantPanel({ commandText, onIntentReceived, onClose }: FormAssistantPanelProps) {
+export function FormAssistantPanel({ commandText, formContext, onIntentReceived, onClose }: FormAssistantPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -32,24 +34,34 @@ export function FormAssistantPanel({ commandText, onIntentReceived, onClose }: F
     if (!text || sending) return;
 
     const userMsg: ChatMessage = { role: "user", content: text };
-    setMessages((prev) => [...prev, userMsg]);
+    const updatedMessages = [...messages, userMsg];
+    setMessages(updatedMessages);
     setInput("");
     setSending(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("parse-command", {
-        body: { command: text },
+      const { data, error } = await supabase.functions.invoke("form-assistant", {
+        body: {
+          messages: updatedMessages,
+          formContext,
+          commandText,
+        },
       });
 
       if (error) throw error;
 
-      // Let parent handle the intent and get back a summary
-      const summary = onIntentReceived(data);
-      const assistantMsg: ChatMessage = {
-        role: "assistant",
-        content: summary || "I've processed your request. Please check the form fields.",
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
+      const reply = data?.reply || "I've processed your request.";
+      let assistantContent = reply;
+
+      // If intent was extracted, let parent handle it and append summary
+      if (data?.intent) {
+        const summary = onIntentReceived(data.intent);
+        if (summary) {
+          assistantContent = `${reply}\n\n📋 ${summary}`;
+        }
+      }
+
+      setMessages((prev) => [...prev, { role: "assistant", content: assistantContent }]);
     } catch (err: any) {
       setMessages((prev) => [
         ...prev,
@@ -81,7 +93,7 @@ export function FormAssistantPanel({ commandText, onIntentReceived, onClose }: F
 
       {/* Prompt */}
       <div className="px-4 py-2 border-b bg-muted/30">
-        <p className="text-xs text-muted-foreground">Can I help further? Enter any additional information:</p>
+        <p className="text-xs text-muted-foreground">Ask questions about the form or provide additional details:</p>
       </div>
 
       {/* Chat history */}
@@ -90,7 +102,7 @@ export function FormAssistantPanel({ commandText, onIntentReceived, onClose }: F
           <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             {msg.role === "assistant" && <Bot className="h-4 w-4 mt-1 text-primary shrink-0" />}
             <div
-              className={`rounded-lg px-3 py-2 text-sm max-w-[85%] ${
+              className={`rounded-lg px-3 py-2 text-sm max-w-[85%] whitespace-pre-wrap ${
                 msg.role === "user"
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-foreground"
@@ -118,7 +130,7 @@ export function FormAssistantPanel({ commandText, onIntentReceived, onClose }: F
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a follow-up..."
+            placeholder="Ask a question or give instructions..."
             className="text-sm"
             disabled={sending}
           />
