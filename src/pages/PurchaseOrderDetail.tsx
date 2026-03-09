@@ -168,21 +168,41 @@ export default function PurchaseOrderDetail() {
       const orgId = po!.organization_id;
       let itemsReceived = 0;
       let movementsCreated = 0;
+      const shortfalls: { name: string; ordered: number; received: number }[] = [];
 
       for (const li of lineItems ?? []) {
-        const qtyReceived = parseInt(receivingItems[li.id] || "0", 10);
+        const qtyThisShipment = parseInt(receivingItems[li.id] || "0", 10);
+        const previouslyReceived = li.quantity_received ?? 0;
+        const newTotalReceived = previouslyReceived + qtyThisShipment;
+
+        // Build update payload
+        const itemUpdate: any = { quantity_received: newTotalReceived };
+        
+        // Check for shortfall
+        if (newTotalReceived < li.quantity) {
+          const shortfall = li.quantity - newTotalReceived;
+          itemUpdate.shortfall_notes = `Ordered ${li.quantity}, received ${newTotalReceived}. Shortfall: ${shortfall}.`;
+          shortfalls.push({
+            name: li.inventory_items?.name ?? "Unknown Item",
+            ordered: li.quantity,
+            received: newTotalReceived,
+          });
+        } else {
+          itemUpdate.shortfall_notes = null;
+        }
+
         await supabase
           .from("purchase_order_items")
-          .update({ quantity_received: qtyReceived })
+          .update(itemUpdate)
           .eq("id", li.id);
 
-        if (qtyReceived > 0) {
+        if (qtyThisShipment > 0) {
           itemsReceived++;
           if (li.item_type !== "internal_use") {
             const { error } = await supabase.from("inventory_movements").insert({
               item_id: li.item_id,
               movement_type: "received" as const,
-              quantity: qtyReceived,
+              quantity: qtyThisShipment,
               source_type: "purchase_order" as const,
               source_id: po!.id,
               created_by: user!.id,
@@ -195,15 +215,39 @@ export default function PurchaseOrderDetail() {
         }
       }
 
+      // Determine if fully received or partially received
+      const hasShortfall = shortfalls.length > 0;
+      const newStatus: POStatus = hasShortfall ? "partially_received" : "received";
+      
+      const poUpdate: any = { 
+        status: newStatus, 
+        has_shortfall: hasShortfall,
+      };
+      if (newStatus === "received") {
+        poUpdate.received_at = new Date().toISOString();
+      }
+
       const { error } = await supabase
         .from("purchase_orders")
-        .update({ status: "received" as const, received_at: new Date().toISOString() })
+        .update(poUpdate)
         .eq("id", id!);
       if (error) throw error;
 
+      // Show shortfall warning if applicable
+      if (hasShortfall) {
+        const shortfallList = shortfalls
+          .map((s) => `${s.name} (ordered ${s.ordered}, received ${s.received})`)
+          .join(", ");
+        toast({
+          title: `Shortfall on ${shortfalls.length} item(s)`,
+          description: shortfallList,
+          variant: "destructive",
+        });
+      }
+
       toast({
-        title: "Items Received",
-        description: `${itemsReceived} item(s) received, ${movementsCreated} inventory movement(s) created.`,
+        title: newStatus === "received" ? "Items Fully Received" : "Items Partially Received",
+        description: `${itemsReceived} item(s) received this shipment, ${movementsCreated} inventory movement(s) created.`,
       });
       setShowReceiveModal(false);
       queryClient.invalidateQueries({ queryKey: ["purchase-order", id] });
