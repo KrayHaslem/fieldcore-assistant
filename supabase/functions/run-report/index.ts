@@ -186,11 +186,13 @@ serve(async (req) => {
       .replace(/:start_date/g, `'${safeStartDate}'`)
       .replace(/:end_date/g, `'${safeEndDate}'`);
 
-    // Wrap in a read-only transaction with timeout and row limit
+    // Wrap in an explicit transaction with read-only mode and timeout
     const wrappedSql = `
+      BEGIN;
       SET LOCAL statement_timeout = '${QUERY_TIMEOUT_SECONDS}s';
       SET LOCAL default_transaction_read_only = on;
       SELECT * FROM (${execSql}) AS _report_result LIMIT ${MAX_ROWS + 1};
+      COMMIT;
     `;
 
     const sql = postgres(dbUrl, { max: 1, idle_timeout: 5 });
@@ -207,6 +209,7 @@ serve(async (req) => {
       await sql.end();
       return jsonResp({ columns, rows, truncated, row_count: rows.length });
     } catch (sqlError: any) {
+      try { await sql.unsafe("ROLLBACK"); } catch {}
       try { await sql.end(); } catch {}
       const msg = sqlError.message || "Unknown query error";
       // Don't leak internal details — sanitize
