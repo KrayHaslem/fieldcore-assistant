@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths, subQuarters, subYears } from "date-fns";
-import { CalendarIcon, ShoppingCart, Package, DollarSign, BarChart3, ChevronDown, ChevronRight } from "lucide-react";
+import { CalendarIcon, ShoppingCart, Package, DollarSign, BarChart3, ChevronDown, ChevronRight, Wrench } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
@@ -99,10 +99,21 @@ function DatePicker({ date, onChange, label }: { date: Date | undefined; onChang
   );
 }
 
+// Custom report template type
+interface CustomTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  chart_type: string;
+  access_level: string;
+  supports_date_range: boolean | null;
+}
+
 export default function Reports() {
   const { orgId, user, roles } = useAuth();
   const location = useLocation();
   const [selectedKey, setSelectedKey] = useState<ReportKey | null>(null);
+  const [selectedCustomId, setSelectedCustomId] = useState<string | null>(null);
   const [startDate, setStartDate] = useState<Date | undefined>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date | undefined>(endOfMonth(new Date()));
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -126,13 +137,11 @@ export default function Reports() {
   // Build reportDef array from templates, preferring org overrides
   const allReports: ReportDef[] = useMemo(() => {
     if (!templatesData) return [];
-    // Build a set of system template IDs that have been overridden by org templates
     const overriddenSystemIds = new Set(
       templatesData
         .filter((t) => t.organization_id && (t as any).source_template_id)
         .map((t) => (t as any).source_template_id as string)
     );
-    // Filter out system templates that have an org override
     const effectiveTemplates = templatesData.filter(
       (t) => !(t.organization_id === null && overriddenSystemIds.has(t.id))
     );
@@ -150,6 +159,21 @@ export default function Reports() {
                      ["admin", t.access_level],
       }));
   }, [templatesData]);
+
+  // Custom org templates (not matching any system report key)
+  const customTemplates: CustomTemplate[] = useMemo(() => {
+    if (!templatesData || !orgId) return [];
+    return templatesData
+      .filter((t) => t.organization_id === orgId && REPORT_KEY_MAP[t.name] === undefined)
+      .map((t) => ({
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        chart_type: t.chart_type,
+        access_level: t.access_level,
+        supports_date_range: t.supports_date_range,
+      }));
+  }, [templatesData, orgId]);
 
   // Build categories from LOCAL_CATEGORIES with DB-sourced reports
   const reportCategories = useMemo(() => {
@@ -187,13 +211,34 @@ export default function Reports() {
 
   const selected = allReports.find((r) => r.key === selectedKey) ?? null;
   const hasAccess = selected ? canAccessReport(selected) : false;
+  const selectedCustom = customTemplates.find((t) => t.id === selectedCustomId) ?? null;
 
   const quickSelect = (start: Date, end: Date) => { setStartDate(start); setEndDate(end); };
   const now = new Date();
 
-  // ---- Queries ----
+  // ---- Custom Report Execution ----
   const startISO = startDate?.toISOString();
   const endISO = endDate?.toISOString();
+
+  const { data: customReportData, isLoading: loadingCustom, error: customError } = useQuery({
+    queryKey: ["custom-report", selectedCustomId, startISO, endISO],
+    enabled: !!selectedCustomId && !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("run-report", {
+        body: {
+          template_id: selectedCustomId,
+          start_date: startISO,
+          end_date: endISO,
+          user_id: user!.id,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data as { columns: string[]; rows: Record<string, any>[] };
+    },
+  });
+
+  // ---- Inline queries (unchanged) ----
 
   const { data: spendingData, isLoading: loadingSpending } = useQuery({
     queryKey: ["report-spending-supplier", orgId, startISO, endISO],
@@ -299,8 +344,6 @@ export default function Reports() {
       return data ?? [];
     },
   });
-
-  // --- NEW QUERIES ---
 
   const { data: monthlyPurchaseData, isLoading: loadingMonthly } = useQuery({
     queryKey: ["report-monthly-purchase", orgId, startISO, endISO],
@@ -533,6 +576,7 @@ export default function Reports() {
   const isSalesOnly = roles.includes("sales") && !roles.includes("admin") && !roles.includes("finance");
 
   const isLoading =
+    selectedCustomId ? loadingCustom :
     selectedKey === "spending_supplier" ? loadingSpending
     : selectedKey === "monthly_purchase_totals" ? loadingMonthly
     : selectedKey === "quarterly_spending" ? loadingQtrSpend
@@ -560,13 +604,21 @@ export default function Reports() {
     });
   };
 
-  // Prep inventory_performance chart data (top 8)
   const perfChartItems = useMemo(() => {
     if (!inventoryPerfData) return { dates: [] as string[], items: [] as { name: string; points: { date: string; qty: number }[] }[] };
     const sorted = [...inventoryPerfData].sort((a, b) => b.totalVolume - a.totalVolume).slice(0, 8);
     const allDates = Array.from(new Set(sorted.flatMap((i) => i.points.map((p) => p.date))));
     return { dates: allDates, items: sorted };
   }, [inventoryPerfData]);
+
+  // Helper to detect numeric columns for charting
+  const getNumericColumns = (columns: string[], rows: Record<string, any>[]) => {
+    if (rows.length === 0) return [];
+    return columns.filter((col) => {
+      const val = rows[0][col];
+      return typeof val === "number" || (typeof val === "string" && !isNaN(Number(val)) && val.trim() !== "");
+    });
+  };
 
   return (
     <div>
@@ -587,10 +639,10 @@ export default function Reports() {
                   {accessible.map((r) => (
                     <button
                       key={r.key}
-                      onClick={() => setSelectedKey(r.key)}
+                      onClick={() => { setSelectedKey(r.key); setSelectedCustomId(null); }}
                       className={cn(
                         "w-full text-left px-3 py-2 text-sm rounded-md transition-colors",
-                        selectedKey === r.key ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-muted"
+                        selectedKey === r.key && !selectedCustomId ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-muted"
                       )}
                     >
                       {r.name}
@@ -600,11 +652,137 @@ export default function Reports() {
               </div>
             );
           })}
+
+          {/* Custom Reports section */}
+          {customTemplates.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Wrench className="h-4 w-4 text-primary" />
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Custom Reports</h3>
+              </div>
+              <div className="space-y-1">
+                {customTemplates.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => { setSelectedCustomId(t.id); setSelectedKey(null); }}
+                    className={cn(
+                      "w-full text-left px-3 py-2 text-sm rounded-md transition-colors flex items-center gap-2",
+                      selectedCustomId === t.id ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-muted"
+                    )}
+                  >
+                    <Wrench className="h-3 w-3 flex-shrink-0 opacity-50" />
+                    {t.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right — Report Display */}
         <div className="flex-1 min-w-0">
-          {!selected ? (
+          {/* Custom report view */}
+          {selectedCustomId && selectedCustom ? (
+            <div className="space-y-4">
+              <div className="fieldcore-card p-4">
+                <h2 className="text-lg font-semibold text-foreground">{selectedCustom.name}</h2>
+                {selectedCustom.description && <p className="text-sm text-muted-foreground">{selectedCustom.description}</p>}
+                {selectedCustom.supports_date_range && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <DatePicker date={startDate} onChange={setStartDate} label="Start date" />
+                    <span className="text-muted-foreground text-xs">to</span>
+                    <DatePicker date={endDate} onChange={setEndDate} label="End date" />
+                    <div className="flex gap-1 ml-2 flex-wrap">
+                      <Button variant="ghost" size="sm" onClick={() => quickSelect(startOfMonth(now), endOfMonth(now))}>This Month</Button>
+                      <Button variant="ghost" size="sm" onClick={() => quickSelect(startOfMonth(subMonths(now, 1)), endOfMonth(subMonths(now, 1)))}>Last Month</Button>
+                      <Button variant="ghost" size="sm" onClick={() => quickSelect(startOfQuarter(now), endOfQuarter(now))}>This Quarter</Button>
+                      <Button variant="ghost" size="sm" onClick={() => quickSelect(startOfYear(now), endOfYear(now))}>This Year</Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {loadingCustom ? (
+                <div className="fieldcore-card p-12 text-center">
+                  <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                </div>
+              ) : customError ? (
+                <div className="fieldcore-card p-8 text-center">
+                  <p className="text-sm text-destructive font-medium">{(customError as Error).message}</p>
+                  {(customError as Error).message?.includes("no query configured") && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      This report has no query configured yet. Edit it in Settings → Report Templates to add a SQL query.
+                    </p>
+                  )}
+                </div>
+              ) : customReportData ? (
+                <div className="fieldcore-card overflow-hidden">
+                  {customReportData.rows.length === 0 ? <NoData /> : (
+                    <div>
+                      {/* Chart rendering for bar/line */}
+                      {(selectedCustom.chart_type === "bar" || selectedCustom.chart_type === "line") && customReportData.rows.length > 0 && (() => {
+                        const numCols = getNumericColumns(customReportData.columns, customReportData.rows);
+                        const labelCol = customReportData.columns.find((c) => !numCols.includes(c)) || customReportData.columns[0];
+                        if (numCols.length === 0) return null;
+                        const ChartComp = selectedCustom.chart_type === "bar" ? BarChart : LineChart;
+                        return (
+                          <div className="p-4">
+                            <div className="h-64">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <ChartComp data={customReportData.rows.map((r) => {
+                                  const row: any = { ...r };
+                                  numCols.forEach((c) => { row[c] = Number(row[c]); });
+                                  return row;
+                                })}>
+                                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                                  <XAxis dataKey={labelCol} tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                                  <YAxis tick={{ fontSize: 12 }} />
+                                  <Tooltip />
+                                  <Legend />
+                                  {numCols.map((col, idx) =>
+                                    selectedCustom.chart_type === "bar" ? (
+                                      <Bar key={col} dataKey={col} fill={CHART_COLORS[idx % CHART_COLORS.length]} radius={[4, 4, 0, 0]} />
+                                    ) : (
+                                      <Line key={col} type="monotone" dataKey={col} stroke={CHART_COLORS[idx % CHART_COLORS.length]} strokeWidth={2} dot={false} />
+                                    )
+                                  )}
+                                </ChartComp>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      {/* Table rendering */}
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/50">
+                            {customReportData.columns.map((col) => (
+                              <th key={col} className="px-4 py-2 text-left font-medium text-muted-foreground">{col.replace(/_/g, " ")}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {customReportData.rows.map((row, i) => (
+                            <tr key={i}>
+                              {customReportData.columns.map((col) => {
+                                const val = row[col];
+                                const isNum = typeof val === "number" || (typeof val === "string" && !isNaN(Number(val)) && val.trim() !== "");
+                                return (
+                                  <td key={col} className={cn("px-4 py-2 text-foreground", isNum && "text-right")}>
+                                    {isNum ? Number(val).toLocaleString() : String(val ?? "—")}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          ) : !selected ? (
             <div className="fieldcore-card p-12 text-center text-muted-foreground">
               <BarChart3 className="mx-auto h-10 w-10 mb-3 opacity-40" />
               <p>Select a report from the left panel</p>
@@ -621,7 +799,6 @@ export default function Reports() {
                 <h2 className="text-lg font-semibold text-foreground">{selected.name}</h2>
                 <p className="text-sm text-muted-foreground">{selected.description}</p>
 
-                {/* Item selector for purchase_history_item */}
                 {selectedKey === "purchase_history_item" && (
                   <div className="mt-3 max-w-sm">
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Select Item</label>
@@ -634,7 +811,6 @@ export default function Reports() {
                   </div>
                 )}
 
-                {/* Margin grouping toggle for margins_by_timeframe */}
                 {selectedKey === "margins_by_timeframe" && (
                   <div className="mt-3 flex items-center gap-1">
                     <span className="text-xs font-medium text-muted-foreground mr-2">Group by:</span>
