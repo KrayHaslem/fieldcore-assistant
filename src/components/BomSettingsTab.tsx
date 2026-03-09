@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2 } from "lucide-react";
+import { QuickCreateItemDialog, type CreatedItem } from "@/components/QuickCreateItemDialog";
 
 interface ItemOption extends ComboBoxOption {
   sku: string | null;
