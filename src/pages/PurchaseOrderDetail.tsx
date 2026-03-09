@@ -199,7 +199,7 @@ export default function PurchaseOrderDetail() {
         .eq("id", id!);
       if (error) throw error;
 
-      toast({ title: "PO Rejected", description: "Purchase order returned to draft." });
+      toast({ title: "Order Rejected", description: "Order returned to draft." });
       setShowRejectModal(false);
       queryClient.invalidateQueries({ queryKey: ["purchase-order", id] });
       queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
