@@ -261,7 +261,7 @@ export default function CreatePurchaseOrder() {
     const y = now.getFullYear().toString().slice(-2);
     const m = String(now.getMonth() + 1).padStart(2, "0");
     const rand = Math.floor(Math.random() * 9000 + 1000);
-    return `ord-${y}${m}-${rand}`;
+    return `ordd-${y}${m}-${rand}`;
   };
 
   // Validation
@@ -360,7 +360,7 @@ export default function CreatePurchaseOrder() {
         toast({ title: "Draft Saved", description: `${poNumber} saved as draft.` });
         navigate("/purchase-orders");
       } else if (autoApprove) {
-        toast({ title: "Purchase Order Created", description: `${poNumber} approved automatically.` });
+        toast({ title:  Order Created", description: `${poNumber} approved automatically.` });
         navigate(`/purchase-orders/${po.id}`);
       } else {
         toast({ title: "Submitted for Approval", description: `${poNumber} requires ${rule?.required_role} approval.` });
