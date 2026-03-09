@@ -346,11 +346,18 @@ export default function Assemblies() {
     <div className="flex h-full">
       <div className="flex-1 min-w-0">
       <PageHeader
-        title="Assembly Records"
-        description="Track manufacturing and finished goods production"
+        title="Assemblies & BOM"
+        description="Record production assemblies and manage bills of materials"
       />
 
       <div className="p-8 max-w-5xl space-y-8">
+        <Tabs defaultValue="record" className="w-full">
+          <TabsList>
+            <TabsTrigger value="record">Record Assembly</TabsTrigger>
+            <TabsTrigger value="bom">Bill of Materials</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="record" className="space-y-8 mt-6">
         {/* SECTION 1 — New Assembly */}
         {canCreate && (
           <div className="fieldcore-card p-6 space-y-5">
