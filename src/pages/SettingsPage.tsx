@@ -471,7 +471,7 @@ export default function SettingsPage() {
             {canManageSuppliers && <TabsTrigger value="suppliers">Suppliers</TabsTrigger>}
             {isAdmin && <TabsTrigger value="approvals">Approval Rules</TabsTrigger>}
             {canManageUnits && <TabsTrigger value="units">Units</TabsTrigger>}
-            {(isAdmin || roles.includes("procurement")) && <TabsTrigger value="bom">Bill of Materials</TabsTrigger>}
+            
             {isAdmin && <TabsTrigger value="report-templates">Report Templates</TabsTrigger>}
           </TabsList>
 
