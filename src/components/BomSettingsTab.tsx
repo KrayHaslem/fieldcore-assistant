@@ -160,7 +160,7 @@ export function BomSettingsTab() {
 
       {/* BOM detail */}
       {selectedItem && (
-        <div className="fieldcore-card overflow-hidden">
+        <div className="fieldcore-card">
           <div className="border-b px-5 py-3">
             <h3 className="text-sm font-semibold text-foreground">
               BOM for {selectedItem.label}
