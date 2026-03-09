@@ -659,6 +659,182 @@ export default function SettingsPage() {
               </table>
             </div>
           </TabsContent>
+
+          {/* Report Templates (admin only) */}
+          {isAdmin && (
+            <TabsContent value="report-templates">
+              <div className="space-y-6">
+                {/* System Templates */}
+                <div className="fieldcore-card overflow-hidden">
+                  <div className="border-b px-5 py-3">
+                    <h3 className="text-sm font-semibold text-foreground">System Templates</h3>
+                    <p className="text-xs text-muted-foreground mt-1">Read-only base templates. Customize to create org-specific overrides.</p>
+                  </div>
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b bg-muted/50">
+                      <th className="px-5 py-2 text-left font-medium text-muted-foreground">Name</th>
+                      <th className="px-5 py-2 text-left font-medium text-muted-foreground">Chart</th>
+                      <th className="px-5 py-2 text-left font-medium text-muted-foreground">Access</th>
+                      <th className="px-5 py-2 w-40" />
+                    </tr></thead>
+                    <tbody className="divide-y">
+                      {systemTemplates?.map((st: any) => {
+                        const override = orgOverrideMap.get(st.id);
+                        return (
+                          <tr key={st.id} className="hover:bg-muted/30">
+                            <td className="px-5 py-2">
+                              <p className="font-medium text-foreground">{st.name}</p>
+                              {st.description && <p className="text-xs text-muted-foreground">{st.description}</p>}
+                            </td>
+                            <td className="px-5 py-2 text-muted-foreground capitalize">{st.chart_type}</td>
+                            <td className="px-5 py-2"><Badge variant="outline" className="capitalize">{st.access_level}</Badge></td>
+                            <td className="px-5 py-2 text-right">
+                              {override ? (
+                                <Badge className="bg-primary/10 text-primary border-primary/20">Customized</Badge>
+                              ) : (
+                                <Button size="sm" variant="outline" disabled={rtSaving} onClick={() => customizeSystemTemplate(st)}>
+                                  <Copy className="h-3.5 w-3.5" /> Customize
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {(!systemTemplates || systemTemplates.length === 0) && (
+                        <tr><td colSpan={4} className="px-5 py-6 text-center text-muted-foreground">No system templates</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Org Templates */}
+                <div className="fieldcore-card overflow-hidden">
+                  <div className="flex items-center justify-between border-b px-5 py-3">
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">Organization Templates</h3>
+                      <p className="text-xs text-muted-foreground mt-1">Custom or overridden templates for your org.</p>
+                    </div>
+                    <Button size="sm" onClick={() => setRtNewOpen(!rtNewOpen)}><Plus className="h-4 w-4" /> Add Custom Template</Button>
+                  </div>
+                  <div className="divide-y">
+                    {orgTemplates?.map((t: any) => {
+                      const isEditing = rtEditId === t.id;
+                      const sysName = t.source_template_id ? systemTemplates?.find((s: any) => s.id === t.source_template_id)?.name : null;
+                      return (
+                        <div key={t.id} className="px-5 py-3">
+                          {!isEditing ? (
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                <p className="font-medium text-foreground">{t.name}</p>
+                                {t.description && <p className="text-xs text-muted-foreground">{t.description}</p>}
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge variant="outline" className="capitalize text-xs">{t.chart_type}</Badge>
+                                  <Badge variant="outline" className="capitalize text-xs">{t.access_level}</Badge>
+                                  {sysName && <span className="text-xs text-muted-foreground">Override of: {sysName}</span>}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setRtEditId(t.id); setRtEditForm({ name: t.name, description: t.description ?? "", access_level: t.access_level, chart_type: t.chart_type, sql_query: t.sql_query, supports_date_range: t.supports_date_range ?? true, supports_quarterly: t.supports_quarterly ?? false }); }}><Pencil className="h-3.5 w-3.5" /></Button>
+                                {t.source_template_id && (
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Reset to default" onClick={() => resetToDefault(t)} disabled={rtSaving}><RotateCcw className="h-3.5 w-3.5" /></Button>
+                                )}
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteOrgTemplate(t)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div><Label>Name *</Label><Input value={rtEditForm.name} onChange={(e) => setRtEditForm({ ...rtEditForm, name: e.target.value })} /></div>
+                                <div><Label>Description</Label><Input value={rtEditForm.description} onChange={(e) => setRtEditForm({ ...rtEditForm, description: e.target.value })} /></div>
+                                <div>
+                                  <Label>Access Level</Label>
+                                  <Select value={rtEditForm.access_level} onValueChange={(v) => setRtEditForm({ ...rtEditForm, access_level: v })}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>{ALL_ROLES.map((r) => <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>)}</SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <Label>Chart Type</Label>
+                                  <Select value={rtEditForm.chart_type} onValueChange={(v) => setRtEditForm({ ...rtEditForm, chart_type: v })}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="table">Table</SelectItem>
+                                      <SelectItem value="bar">Bar Chart</SelectItem>
+                                      <SelectItem value="line">Line Chart</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <div className="flex gap-4">
+                                <div className="flex items-center gap-2"><Checkbox checked={rtEditForm.supports_date_range} onCheckedChange={(v) => setRtEditForm({ ...rtEditForm, supports_date_range: !!v })} /><Label>Date Range</Label></div>
+                                <div className="flex items-center gap-2"><Checkbox checked={rtEditForm.supports_quarterly} onCheckedChange={(v) => setRtEditForm({ ...rtEditForm, supports_quarterly: !!v })} /><Label>Quarterly</Label></div>
+                              </div>
+                              <div>
+                                <Label>SQL Query *</Label>
+                                <Textarea value={rtEditForm.sql_query} onChange={(e) => setRtEditForm({ ...rtEditForm, sql_query: e.target.value })} rows={4} className="font-mono text-xs" />
+                              </div>
+                              <div className="flex gap-2">
+                                <Button size="sm" onClick={saveRtEdit} disabled={rtSaving || !rtEditForm.name?.trim() || !rtEditForm.sql_query?.trim()}>{rtSaving ? "Saving..." : "Save"}</Button>
+                                <Button size="sm" variant="outline" onClick={() => setRtEditId(null)}>Cancel</Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {(!orgTemplates || orgTemplates.length === 0) && (
+                      <div className="px-5 py-6 text-center text-muted-foreground text-sm">No org templates — customize a system template or create a custom one.</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* New Custom Template Form */}
+                {rtNewOpen && (
+                  <div className="fieldcore-card p-6 space-y-4">
+                    <h3 className="text-sm font-semibold text-foreground">New Custom Template</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><Label>Name *</Label><Input value={rtNewForm.name} onChange={(e) => setRtNewForm({ ...rtNewForm, name: e.target.value })} placeholder="e.g. Custom Spending Report" /></div>
+                      <div><Label>Description</Label><Input value={rtNewForm.description} onChange={(e) => setRtNewForm({ ...rtNewForm, description: e.target.value })} /></div>
+                      <div>
+                        <Label>Access Level</Label>
+                        <Select value={rtNewForm.access_level} onValueChange={(v) => setRtNewForm({ ...rtNewForm, access_level: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>{ALL_ROLES.map((r) => <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Chart Type</Label>
+                        <Select value={rtNewForm.chart_type} onValueChange={(v) => setRtNewForm({ ...rtNewForm, chart_type: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="table">Table</SelectItem>
+                            <SelectItem value="bar">Bar Chart</SelectItem>
+                            <SelectItem value="line">Line Chart</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="flex items-center gap-2"><Checkbox checked={rtNewForm.supports_date_range} onCheckedChange={(v) => setRtNewForm({ ...rtNewForm, supports_date_range: !!v })} /><Label>Date Range</Label></div>
+                      <div className="flex items-center gap-2"><Checkbox checked={rtNewForm.supports_quarterly} onCheckedChange={(v) => setRtNewForm({ ...rtNewForm, supports_quarterly: !!v })} /><Label>Quarterly</Label></div>
+                    </div>
+                    <div>
+                      <Label>SQL Query *</Label>
+                      <div className="flex items-start gap-2 rounded-md border border-warning/50 bg-warning/10 px-3 py-2 mb-2 text-xs text-warning-foreground">
+                        <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-warning" />
+                        Custom SQL is executed against your organization's data. Queries are automatically scoped via RLS. Use :start_date, :end_date, and :org_id as parameter placeholders.
+                      </div>
+                      <Textarea value={rtNewForm.sql_query} onChange={(e) => setRtNewForm({ ...rtNewForm, sql_query: e.target.value })} rows={5} className="font-mono text-xs" placeholder="SELECT ..." />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={saveNewTemplate} disabled={rtSaving || !rtNewForm.name.trim() || !rtNewForm.sql_query.trim()}>{rtSaving ? "Creating..." : "Create Template"}</Button>
+                      <Button variant="outline" onClick={() => setRtNewOpen(false)}>Cancel</Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
