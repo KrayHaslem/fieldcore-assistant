@@ -259,24 +259,20 @@ export default function Reports() {
   });
 
   const { data: salesItemData, isLoading: loadingSales } = useQuery({
-    queryKey: ["report-sales-item", orgId, startISO, endISO],
-    enabled: selectedKey === "sales_by_item" && !!orgId && canAccessKey("sales_by_item"),
+    queryKey: ["report-sales-item", orgId, user?.id, startISO, endISO],
+    enabled: selectedKey === "sales_by_item" && !!orgId && !!user && canAccessKey("sales_by_item"),
     queryFn: async () => {
-      let soQ = supabase.from("sales_orders").select("id").in("status", ["fulfilled", "invoiced", "paid", "closed"]);
-      if (startISO) soQ = soQ.gte("created_at", startISO);
-      if (endISO) soQ = soQ.lte("created_at", endISO);
-      const { data: sos } = await soQ;
-      if (!sos || sos.length === 0) return [];
-      const soIds = sos.map((s) => s.id);
-      const { data: items } = await supabase.from("sales_order_items").select("item_id, quantity, unit_price, inventory_items:item_id(name)").in("sales_order_id", soIds);
-      const map: Record<string, { name: string; units: number; revenue: number }> = {};
-      (items ?? []).forEach((li: any) => {
-        const name = li.inventory_items?.name ?? "Unknown";
-        if (!map[li.item_id]) map[li.item_id] = { name, units: 0, revenue: 0 };
-        map[li.item_id].units += li.quantity;
-        map[li.item_id].revenue += li.quantity * Number(li.unit_price);
+      const { data, error } = await supabase.rpc("get_sales_by_item", {
+        _user_id: user!.id,
+        _start_date: startISO!,
+        _end_date: endISO!,
       });
-      return Object.values(map).sort((a, b) => b.revenue - a.revenue);
+      if (error) throw error;
+      return (data ?? []).map((r: any) => ({
+        name: r.item_name,
+        units: Number(r.units_sold),
+        revenue: Number(r.revenue),
+      }));
     },
   });
 
