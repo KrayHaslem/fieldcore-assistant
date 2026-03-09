@@ -9,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, ChevronDown, ChevronRight, Hammer, RefreshCw, AlertTriangle } from "lucide-react";
 import { FormAssistantPanel } from "@/components/FormAssistantPanel";
+import { BomSettingsTab } from "@/components/BomSettingsTab";
 
 interface ItemOption extends ComboBoxOption {
   sku: string | null;
@@ -344,11 +346,18 @@ export default function Assemblies() {
     <div className="flex h-full">
       <div className="flex-1 min-w-0">
       <PageHeader
-        title="Assembly Records"
-        description="Track manufacturing and finished goods production"
+        title="Assemblies & BOM"
+        description="Record production assemblies and manage bills of materials"
       />
 
       <div className="p-8 max-w-5xl space-y-8">
+        <Tabs defaultValue="record" className="w-full">
+          <TabsList>
+            <TabsTrigger value="record">Record Assembly</TabsTrigger>
+            <TabsTrigger value="bom">Bill of Materials</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="record" className="space-y-8 mt-6">
         {/* SECTION 1 — New Assembly */}
         {canCreate && (
           <div className="fieldcore-card p-6 space-y-5">
@@ -398,7 +407,10 @@ export default function Assemblies() {
                   {!bomLoaded && finishedItem && bomData.length === 0 && (
                     <p className="text-xs text-muted-foreground">
                       No BOM defined for this item.{" "}
-                      <Link to="/settings?tab=bom" className="text-primary underline">Set up a Bill of Materials</Link>
+                      <button type="button" className="text-primary underline" onClick={() => {
+                        const bomTab = document.querySelector('[data-state="inactive"][value="bom"]') as HTMLElement;
+                        bomTab?.click();
+                      }}>Set up a Bill of Materials</button>
                     </p>
                   )}
 
@@ -552,6 +564,12 @@ export default function Assemblies() {
             </tbody>
           </table>
         </div>
+          </TabsContent>
+
+          <TabsContent value="bom" className="mt-6">
+            <BomSettingsTab />
+          </TabsContent>
+        </Tabs>
       </div>
       </div>
 

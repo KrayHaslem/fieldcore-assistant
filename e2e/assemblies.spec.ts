@@ -1,10 +1,11 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Assemblies", () => {
-  test("assemblies page loads", async ({ page }) => {
+  test("assemblies page loads with tabs", async ({ page }) => {
     await page.goto("/assemblies");
-    await expect(page.getByText("Track manufacturing")).toBeVisible();
-    await expect(page.getByText("Record New Assembly")).toBeVisible();
+    await expect(page.getByText("Assemblies & BOM")).toBeVisible();
+    await expect(page.getByRole("tab", { name: /Record Assembly/i })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /Bill of Materials/i })).toBeVisible();
   });
 
   test("assembly form shows finished goods selector", async ({ page }) => {
@@ -39,5 +40,21 @@ test.describe("Assemblies", () => {
   test("history table shows component count column", async ({ page }) => {
     await page.goto("/assemblies");
     await expect(page.getByText("Components")).toBeVisible();
+  });
+
+  test("BOM tab loads and shows seeded BOM data", async ({ page }) => {
+    await page.goto("/assemblies");
+    await page.getByRole("tab", { name: /Bill of Materials/i }).click();
+    await expect(page.getByText("Select Finished Good")).toBeVisible({ timeout: 10000 });
+
+    const searchInput = page.getByPlaceholder(/Search resale items/i);
+    await searchInput.click();
+    await searchInput.fill("E2E Resale");
+
+    const option = page.getByText("E2E Resale Widget").first();
+    await expect(option).toBeVisible({ timeout: 5000 });
+    await option.click();
+
+    await expect(page.getByText("E2E Mfg Input Part")).toBeVisible({ timeout: 5000 });
   });
 });

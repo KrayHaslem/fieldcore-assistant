@@ -17,7 +17,6 @@ import { useToast } from "@/hooks/use-toast";
 import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
 import { Plus, Trash2, Pencil, FlaskConical, RotateCcw, AlertTriangle, Copy } from "lucide-react";
 import { ReportSqlAssistant } from "@/components/ReportSqlAssistant";
-import { BomSettingsTab } from "@/components/BomSettingsTab";
 
 const ALL_ROLES = ["admin", "procurement", "sales", "finance", "employee"] as const;
 
@@ -472,7 +471,7 @@ export default function SettingsPage() {
             {canManageSuppliers && <TabsTrigger value="suppliers">Suppliers</TabsTrigger>}
             {isAdmin && <TabsTrigger value="approvals">Approval Rules</TabsTrigger>}
             {canManageUnits && <TabsTrigger value="units">Units</TabsTrigger>}
-            {(isAdmin || roles.includes("procurement")) && <TabsTrigger value="bom">Bill of Materials</TabsTrigger>}
+            
             {isAdmin && <TabsTrigger value="report-templates">Report Templates</TabsTrigger>}
           </TabsList>
 
@@ -664,12 +663,7 @@ export default function SettingsPage() {
             </div>
           </TabsContent>
 
-          {/* Bill of Materials */}
-          {(isAdmin || roles.includes("procurement")) && (
-            <TabsContent value="bom">
-              <BomSettingsTab />
-            </TabsContent>
-          )}
+          
 
           {/* Report Templates (admin only) */}
           {isAdmin && (
