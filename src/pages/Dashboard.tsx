@@ -73,27 +73,8 @@ export default function Dashboard() {
     queryKey: ["low-stock", orgId],
     enabled: !!orgId,
     queryFn: async () => {
-      const { data: items } = await supabase
-        .from("inventory_items")
-        .select("id, name, sku, reorder_point")
-        .not("reorder_point", "is", null)
-        .in("item_type", ["resale", "manufacturing_input"]);
-
-      if (!items || items.length === 0) return [];
-
-      // Get current stock via movements
-      const alerts = [];
-      for (const item of items) {
-        const { data: movements } = await supabase
-          .from("inventory_movements")
-          .select("quantity")
-          .eq("item_id", item.id);
-        const stock = movements?.reduce((sum, m) => sum + m.quantity, 0) ?? 0;
-        if (stock <= (item.reorder_point ?? 0)) {
-          alerts.push({ ...item, current_stock: stock });
-        }
-      }
-      return alerts;
+      const { data } = await supabase.rpc("get_low_stock_items", { _org_id: orgId! });
+      return data ?? [];
     },
   });
 

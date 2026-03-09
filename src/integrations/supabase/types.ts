@@ -895,6 +895,16 @@ export type Database = {
           rule_is_department_scoped: boolean
         }[]
       }
+      get_low_stock_items: {
+        Args: { _org_id: string }
+        Returns: {
+          current_stock: number
+          id: string
+          name: string
+          reorder_point: number
+          sku: string
+        }[]
+      }
       get_margins_by_timeframe: {
         Args: {
           _end_date: string
