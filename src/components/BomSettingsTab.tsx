@@ -53,6 +53,34 @@ export function BomSettingsTab() {
     return (data ?? []).map((i) => ({ id: i.id, label: i.name, sku: i.sku }));
   }, []);
 
+  // Fetch all existing BOMs grouped by finished item
+  const { data: allBoms, isLoading: bomsLoading } = useQuery({
+    queryKey: ["bom-summary", orgId],
+    enabled: !!orgId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("bill_of_materials")
+        .select("finished_item_id, inventory_items!bill_of_materials_finished_item_id_fkey(name, sku)")
+        .order("created_at");
+      // Group by finished item
+      const map = new Map<string, { name: string; sku: string | null; count: number }>();
+      for (const row of data ?? []) {
+        const existing = map.get(row.finished_item_id);
+        const item = row.inventory_items as any;
+        if (existing) {
+          existing.count++;
+        } else {
+          map.set(row.finished_item_id, {
+            name: item?.name ?? "Unknown",
+            sku: item?.sku ?? null,
+            count: 1,
+          });
+        }
+      }
+      return Array.from(map.entries()).map(([id, info]) => ({ id, ...info }));
+    },
+  });
+
   // Fetch BOM for selected item
   const { data: bomEntries, isLoading } = useQuery({
     queryKey: ["bom", orgId, selectedItem?.id],
