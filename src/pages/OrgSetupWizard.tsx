@@ -9,7 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
-import { Bot, Send, Loader2 } from "lucide-react";
+import { Bot, Send, Loader2, Sparkles } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 const TOTAL_STEPS = 6;
 
@@ -23,6 +25,14 @@ const PURCHASE_TYPES = [
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+}
+
+interface Recommendations {
+  suggested_departments?: string[];
+  approval_rules?: { min_amount: number; max_amount: number | null; required_role: string }[];
+  inventory_types_to_enable?: string[];
+  suggested_roles?: string[];
+  notes?: string;
 }
 
 export default function OrgSetupWizard() {
@@ -61,9 +71,25 @@ export default function OrgSetupWizard() {
   const [chatSending, setChatSending] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
+  // Recommendations state
+  const [recommendations, setRecommendations] = useState<Recommendations | null>(null);
+
   useEffect(() => {
     chatScrollRef.current?.scrollTo({ top: chatScrollRef.current.scrollHeight, behavior: "smooth" });
   }, [chatMessages]);
+
+  /** Collect all current answers into an object for the edge function. */
+  const collectAnswers = () => ({
+    industry,
+    purchase_types: purchaseTypes,
+    requires_approval: requiresApproval,
+    approval_threshold: approvalThreshold,
+    approval_role: approvalRole,
+    has_departments: hasDepartments,
+    department_names: departmentNames,
+    tracks_inventory: tracksInventory,
+    has_sales_team: hasSalesTeam,
+  });
 
   const applyAiPrefill = (data: Record<string, any>): string => {
     const updated: string[] = [];
@@ -118,15 +144,30 @@ export default function OrgSetupWizard() {
     setAiError("");
 
     try {
-      const { data, error } = await supabase.functions.invoke("parse-command", {
-        body: { command: aiInput.trim() },
+      const userMessages: ChatMessage[] = [{ role: "user", content: aiInput.trim() }];
+      const { data, error } = await supabase.functions.invoke("setup-assistant", {
+        body: { messages: userMessages, currentStep: 1, answers: collectAnswers() },
       });
 
       if (error) throw error;
 
       setChatMessages([]);
+      setRecommendations(null);
       setAiPrefilled(false);
-      applyAiPrefill(data);
+
+      // The reply is conversational; if recommendations exist, show them
+      if (data.recommendations) {
+        setRecommendations(data.recommendations);
+        applyRecommendations(data.recommendations);
+      }
+
+      // Add the exchange to chat history
+      setChatMessages([
+        { role: "user", content: aiInput.trim() },
+        { role: "assistant", content: data.reply || "Setup analysis complete." },
+      ]);
+
+      setAiPrefilled(true);
       setStep(2);
     } catch (err: any) {
       setAiError(err.message || "Failed to analyze. Please try again.");
@@ -140,19 +181,30 @@ export default function OrgSetupWizard() {
     if (!text || chatSending) return;
 
     const userMsg: ChatMessage = { role: "user", content: text };
-    setChatMessages((prev) => [...prev, userMsg]);
+    const updatedMessages = [...chatMessages, userMsg];
+    setChatMessages(updatedMessages);
     setChatInput("");
     setChatSending(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("parse-command", {
-        body: { command: text },
+      const { data, error } = await supabase.functions.invoke("setup-assistant", {
+        body: {
+          messages: updatedMessages,
+          currentStep: step,
+          answers: collectAnswers(),
+        },
       });
 
       if (error) throw error;
 
-      const summary = applyAiPrefill(data);
-      setChatMessages((prev) => [...prev, { role: "assistant", content: summary }]);
+      setChatMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: data.reply || "I'm here to help with your setup." },
+      ]);
+
+      if (data.recommendations) {
+        setRecommendations(data.recommendations);
+      }
     } catch (err: any) {
       setChatMessages((prev) => [
         ...prev,
@@ -161,6 +213,33 @@ export default function OrgSetupWizard() {
     } finally {
       setChatSending(false);
     }
+  };
+
+  /** Apply recommendations to wizard fields without finishing setup. */
+  const applyRecommendations = (recs: Recommendations) => {
+    if (recs.suggested_departments && recs.suggested_departments.length > 0) {
+      setHasDepartments(true);
+      setDepartmentNames(recs.suggested_departments.join(", "));
+    }
+    if (recs.approval_rules && recs.approval_rules.length > 0) {
+      setRequiresApproval(true);
+      const firstRule = recs.approval_rules[0];
+      setApprovalThreshold(String(firstRule.min_amount));
+      setApprovalRole(firstRule.required_role);
+    }
+    if (recs.inventory_types_to_enable && recs.inventory_types_to_enable.length > 0) {
+      setPurchaseTypes(recs.inventory_types_to_enable);
+      const hasResaleOrMfg = recs.inventory_types_to_enable.some(
+        (t) => t === "resale" || t === "manufacturing_input"
+      );
+      if (hasResaleOrMfg) setTracksInventory(true);
+    }
+    if (recs.suggested_roles) {
+      const hasSales = recs.suggested_roles.includes("sales");
+      if (hasSales) setHasSalesTeam(true);
+    }
+
+    toast({ title: "Recommendations Applied", description: "Fields have been pre-populated. Review each step before finishing." });
   };
 
   const togglePurchaseType = (id: string) => {
@@ -182,13 +261,11 @@ export default function OrgSetupWizard() {
     setSaving(true);
 
     try {
-      // Update org industry and mark onboarded
       await supabase
         .from("organizations")
         .update({ industry: industry.trim(), is_onboarded: true } as any)
         .eq("id", orgId);
 
-      // Create departments
       if (hasDepartments && departmentNames.trim()) {
         const names = departmentNames
           .split(",")
@@ -201,7 +278,6 @@ export default function OrgSetupWizard() {
         }
       }
 
-      // Create approval rule
       if (requiresApproval && approvalThreshold) {
         await supabase.from("approval_rules").insert({
           organization_id: orgId,
@@ -233,7 +309,6 @@ export default function OrgSetupWizard() {
       case 1:
         return (
           <div className="space-y-6">
-            {/* Primary industry input */}
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-foreground">What industry is your business in?</h2>
               <p className="text-sm text-muted-foreground">This helps us tailor default settings for your organization.</p>
@@ -244,7 +319,6 @@ export default function OrgSetupWizard() {
               />
             </div>
 
-            {/* Separator */}
             <div className="relative py-4">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
@@ -254,7 +328,6 @@ export default function OrgSetupWizard() {
               </div>
             </div>
 
-            {/* AI Quick Setup Panel */}
             <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
               <div className="flex gap-2">
                 <Textarea
@@ -422,61 +495,139 @@ export default function OrgSetupWizard() {
     }
   };
 
-  const renderAssistantPanel = () => (
-    <div className="w-72 shrink-0 border rounded-lg bg-card flex flex-col h-[400px]">
-      {/* Header */}
-      <div className="flex items-center gap-2 border-b px-4 py-3">
-        <Bot className="h-4 w-4 text-primary" />
-        <span className="text-sm font-semibold text-foreground">Assistant</span>
-      </div>
+  const renderRecommendationsCard = () => {
+    if (!recommendations) return null;
 
-      {/* Chat history */}
-      <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0">
-        {chatMessages.length === 0 && (
-          <p className="text-xs text-muted-foreground">
-            Ask me to update any fields, e.g. "set approval threshold to $5,000"
-          </p>
-        )}
-        {chatMessages.map((msg, i) => (
-          <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            {msg.role === "assistant" && <Bot className="h-4 w-4 mt-1 text-primary shrink-0" />}
-            <div
-              className={`rounded-lg px-3 py-2 text-sm max-w-[85%] ${
-                msg.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-foreground"
-              }`}
-            >
-              {msg.content}
+    return (
+      <Card className="border-primary/30 bg-primary/5">
+        <CardHeader className="pb-3 pt-4 px-4">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            AI Recommendations
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4 space-y-3 text-xs">
+          {recommendations.suggested_departments && recommendations.suggested_departments.length > 0 && (
+            <div>
+              <p className="font-medium text-muted-foreground mb-1">Departments</p>
+              <div className="flex flex-wrap gap-1">
+                {recommendations.suggested_departments.map((d) => (
+                  <Badge key={d} variant="secondary" className="text-xs">{d}</Badge>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-        {chatSending && (
-          <div className="flex gap-2">
-            <Bot className="h-4 w-4 mt-1 text-primary shrink-0" />
-            <div className="bg-muted rounded-lg px-3 py-2 text-sm text-muted-foreground">Thinking...</div>
-          </div>
-        )}
+          )}
+
+          {recommendations.approval_rules && recommendations.approval_rules.length > 0 && (
+            <div>
+              <p className="font-medium text-muted-foreground mb-1">Approval Rules</p>
+              {recommendations.approval_rules.map((rule, i) => (
+                <p key={i} className="text-foreground">
+                  ${rule.min_amount.toLocaleString()}
+                  {rule.max_amount ? `–$${rule.max_amount.toLocaleString()}` : "+"} → {rule.required_role}
+                </p>
+              ))}
+            </div>
+          )}
+
+          {recommendations.inventory_types_to_enable && recommendations.inventory_types_to_enable.length > 0 && (
+            <div>
+              <p className="font-medium text-muted-foreground mb-1">Inventory Types</p>
+              <div className="flex flex-wrap gap-1">
+                {recommendations.inventory_types_to_enable.map((t) => (
+                  <Badge key={t} variant="outline" className="text-xs">{t.replace(/_/g, " ")}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {recommendations.suggested_roles && recommendations.suggested_roles.length > 0 && (
+            <div>
+              <p className="font-medium text-muted-foreground mb-1">Suggested Roles</p>
+              <div className="flex flex-wrap gap-1">
+                {recommendations.suggested_roles.map((r) => (
+                  <Badge key={r} variant="outline" className="text-xs">{r}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {recommendations.notes && (
+            <p className="text-muted-foreground italic">{recommendations.notes}</p>
+          )}
+
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full mt-2"
+            onClick={() => applyRecommendations(recommendations)}
+          >
+            <Sparkles className="h-3 w-3 mr-1" />
+            Apply Recommendations
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderAssistantPanel = () => (
+    <div className="w-72 shrink-0 flex flex-col gap-3">
+      {/* Chat panel */}
+      <div className="border rounded-lg bg-card flex flex-col h-[320px]">
+        <div className="flex items-center gap-2 border-b px-4 py-3">
+          <Bot className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold text-foreground">Assistant</span>
+        </div>
+
+        <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0">
+          {chatMessages.length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              Ask me about your setup, e.g. "what approval threshold should I use?"
+            </p>
+          )}
+          {chatMessages.map((msg, i) => (
+            <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+              {msg.role === "assistant" && <Bot className="h-4 w-4 mt-1 text-primary shrink-0" />}
+              <div
+                className={`rounded-lg px-3 py-2 text-sm max-w-[85%] ${
+                  msg.role === "user"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-foreground"
+                }`}
+              >
+                {msg.content}
+              </div>
+            </div>
+          ))}
+          {chatSending && (
+            <div className="flex gap-2">
+              <Bot className="h-4 w-4 mt-1 text-primary shrink-0" />
+              <div className="bg-muted rounded-lg px-3 py-2 text-sm text-muted-foreground">Thinking...</div>
+            </div>
+          )}
+        </div>
+
+        <div className="border-t p-3">
+          <form
+            onSubmit={(e) => { e.preventDefault(); handleChatSend(); }}
+            className="flex gap-2"
+          >
+            <Input
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Ask about setup..."
+              className="text-sm"
+              disabled={chatSending}
+            />
+            <Button type="submit" size="icon" disabled={chatSending || !chatInput.trim()}>
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
+        </div>
       </div>
 
-      {/* Input */}
-      <div className="border-t p-3">
-        <form
-          onSubmit={(e) => { e.preventDefault(); handleChatSend(); }}
-          className="flex gap-2"
-        >
-          <Input
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Ask to update fields..."
-            className="text-sm"
-            disabled={chatSending}
-          />
-          <Button type="submit" size="icon" disabled={chatSending || !chatInput.trim()}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
-      </div>
+      {/* Recommendations card */}
+      {renderRecommendationsCard()}
     </div>
   );
 

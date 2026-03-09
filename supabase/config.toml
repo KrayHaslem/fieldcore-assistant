@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.parse-command]
 verify_jwt = false
+
+[functions.form-assistant]
+verify_jwt = false
+
+[functions.setup-assistant]
+verify_jwt = false
