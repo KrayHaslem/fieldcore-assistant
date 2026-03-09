@@ -454,22 +454,47 @@ export default function Dashboard() {
                   No commands yet. Try the command input above!
                 </p>
               )}
-              {commandHistory?.map((cmd: any) => (
-                <div key={cmd.id} className="flex items-center justify-between px-5 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-foreground">{cmd.command_text}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <Clock className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(cmd.created_at).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                  {cmd.intent_type && (
-                    <span className="status-badge status-submitted ml-3 whitespace-nowrap">{cmd.intent_type}</span>
-                  )}
-                </div>
-              ))}
+              {commandHistory?.map((cmd: any) => {
+                const goTo = getCommandDestination(cmd);
+                const isClickable = !!goTo;
+                return (
+                  <TooltipProvider key={cmd.id} delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={`group flex items-center justify-between px-5 py-3 transition-colors ${
+                            isClickable ? "cursor-pointer hover:bg-muted/50" : ""
+                          }`}
+                          onClick={goTo ?? undefined}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm text-foreground">{cmd.command_text}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Clock className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(cmd.created_at).toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 ml-3">
+                            {cmd.intent_type && (
+                              <span className="status-badge status-submitted whitespace-nowrap">{cmd.intent_type}</span>
+                            )}
+                            {isClickable && (
+                              <RotateCcw className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                            )}
+                          </div>
+                        </div>
+                      </TooltipTrigger>
+                      {isClickable && (
+                        <TooltipContent side="left">
+                          <p>Re-open with prefill</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+                );
+              })}
             </div>
           </div>
         </div>
