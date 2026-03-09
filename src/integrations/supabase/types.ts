@@ -681,6 +681,7 @@ export type Database = {
           id: string
           name: string
           organization_id: string | null
+          source_template_id: string | null
           sql_query: string
           supports_date_range: boolean | null
           supports_quarterly: boolean | null
@@ -693,6 +694,7 @@ export type Database = {
           id?: string
           name: string
           organization_id?: string | null
+          source_template_id?: string | null
           sql_query: string
           supports_date_range?: boolean | null
           supports_quarterly?: boolean | null
@@ -705,6 +707,7 @@ export type Database = {
           id?: string
           name?: string
           organization_id?: string | null
+          source_template_id?: string | null
           sql_query?: string
           supports_date_range?: boolean | null
           supports_quarterly?: boolean | null
@@ -715,6 +718,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_templates_source_template_id_fkey"
+            columns: ["source_template_id"]
+            isOneToOne: false
+            referencedRelation: "report_templates"
             referencedColumns: ["id"]
           },
         ]
