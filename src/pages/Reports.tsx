@@ -123,10 +123,20 @@ export default function Reports() {
     },
   });
 
-  // Build reportDef array from templates
+  // Build reportDef array from templates, preferring org overrides
   const allReports: ReportDef[] = useMemo(() => {
     if (!templatesData) return [];
-    return templatesData
+    // Build a set of system template IDs that have been overridden by org templates
+    const overriddenSystemIds = new Set(
+      templatesData
+        .filter((t) => t.organization_id && (t as any).source_template_id)
+        .map((t) => (t as any).source_template_id as string)
+    );
+    // Filter out system templates that have an org override
+    const effectiveTemplates = templatesData.filter(
+      (t) => !(t.organization_id === null && overriddenSystemIds.has(t.id))
+    );
+    return effectiveTemplates
       .filter((t) => REPORT_KEY_MAP[t.name] !== undefined)
       .map((t) => ({
         key: REPORT_KEY_MAP[t.name],
