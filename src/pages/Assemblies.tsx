@@ -1,5 +1,5 @@
-import { useState, useCallback, Fragment } from "react";
-import { useLocation } from "react-router-dom";
+import { useState, useCallback, useEffect, Fragment } from "react";
+import { useLocation, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, ChevronDown, ChevronRight, Hammer } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronRight, Hammer, RefreshCw, AlertTriangle } from "lucide-react";
 import { FormAssistantPanel } from "@/components/FormAssistantPanel";
 
 interface ItemOption extends ComboBoxOption {
@@ -21,6 +21,12 @@ interface ComponentRow {
   key: number;
   item: ItemOption | null;
   quantity: string;
+}
+
+interface BomEntry {
+  component_item_id: string;
+  quantity_per_unit: number;
+  inventory_items: { name: string; sku: string | null } | null;
 }
 
 let rowKeyCounter = 0;
@@ -42,6 +48,14 @@ export default function Assemblies() {
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
+  // BOM state
+  const [bomData, setBomData] = useState<BomEntry[]>([]);
+  const [bomLoaded, setBomLoaded] = useState(false);
+
+  // Stock warning state
+  const [stockWarningAcknowledged, setStockWarningAcknowledged] = useState(false);
+  const [stockShortfalls, setStockShortfalls] = useState<{ name: string; required: number; available: number }[]>([]);
 
   // Search finished goods (resale)
   const searchFinished = useCallback(async (query: string): Promise<ItemOption[]> => {
@@ -65,18 +79,78 @@ export default function Assemblies() {
     return (data ?? []).map((i) => ({ id: i.id, label: i.name, sku: i.sku }));
   }, []);
 
+  // Auto-populate from BOM when finished item changes
+  useEffect(() => {
+    if (!finishedItem || !orgId) {
+      setBomData([]);
+      setBomLoaded(false);
+      return;
+    }
+    setStockWarningAcknowledged(false);
+    setStockShortfalls([]);
+
+    (async () => {
+      const { data } = await supabase
+        .from("bill_of_materials")
+        .select("component_item_id, quantity_per_unit, inventory_items!bill_of_materials_component_item_id_fkey(name, sku)")
+        .eq("finished_item_id", finishedItem.id)
+        .order("created_at");
+
+      const entries = (data ?? []) as unknown as BomEntry[];
+      setBomData(entries);
+
+      if (entries.length > 0) {
+        const qty = parseInt(qtyProduced || "1", 10) || 1;
+        const rows: ComponentRow[] = entries.map((b) => ({
+          key: ++rowKeyCounter,
+          item: {
+            id: b.component_item_id,
+            label: b.inventory_items?.name ?? "Unknown",
+            sku: b.inventory_items?.sku ?? null,
+          },
+          quantity: String(Math.round(b.quantity_per_unit * qty)),
+        }));
+        setComponents(rows);
+        setBomLoaded(true);
+      } else {
+        setBomLoaded(false);
+      }
+    })();
+  }, [finishedItem?.id, orgId]);
+
+  // Recalculate component quantities from BOM
+  const recalculateFromBom = () => {
+    const qty = parseInt(qtyProduced, 10);
+    if (isNaN(qty) || qty <= 0 || bomData.length === 0) return;
+    const rows: ComponentRow[] = bomData.map((b) => ({
+      key: ++rowKeyCounter,
+      item: {
+        id: b.component_item_id,
+        label: b.inventory_items?.name ?? "Unknown",
+        sku: b.inventory_items?.sku ?? null,
+      },
+      quantity: String(Math.round(b.quantity_per_unit * qty)),
+    }));
+    setComponents(rows);
+    setStockWarningAcknowledged(false);
+    setStockShortfalls([]);
+    toast({ title: "Components recalculated from BOM" });
+  };
+
   const addComponent = () => {
     setComponents((prev) => [...prev, { key: ++rowKeyCounter, item: null, quantity: "" }]);
   };
 
   const removeComponent = (key: number) => {
     setComponents((prev) => prev.filter((c) => c.key !== key));
+    setStockWarningAcknowledged(false);
   };
 
   const updateComponent = (key: number, field: "item" | "quantity", value: any) => {
     setComponents((prev) =>
       prev.map((c) => (c.key === key ? { ...c, [field]: value } : c))
     );
+    setStockWarningAcknowledged(false);
   };
 
   const resetForm = () => {
@@ -84,6 +158,10 @@ export default function Assemblies() {
     setQtyProduced("");
     setComponents([]);
     setNotes("");
+    setBomData([]);
+    setBomLoaded(false);
+    setStockWarningAcknowledged(false);
+    setStockShortfalls([]);
   };
 
   const handleSave = async () => {
@@ -94,7 +172,6 @@ export default function Assemblies() {
       return;
     }
 
-    // Validate component rows that have items selected
     const validComponents = components.filter((c) => c.item);
     for (const c of validComponents) {
       const cq = parseInt(c.quantity, 10);
@@ -104,9 +181,40 @@ export default function Assemblies() {
       }
     }
 
+    // Stock validation
+    if (validComponents.length > 0 && !stockWarningAcknowledged) {
+      try {
+        const itemIds = validComponents.map((c) => c.item!.id);
+        const { data: stockData } = await supabase.rpc("get_component_stock", {
+          _org_id: orgId,
+          _item_ids: itemIds,
+        });
+        const stockMap = new Map((stockData ?? []).map((s: any) => [s.item_id, Number(s.on_hand)]));
+        const shortfalls: typeof stockShortfalls = [];
+        for (const c of validComponents) {
+          const required = parseInt(c.quantity, 10);
+          const available = stockMap.get(c.item!.id) ?? 0;
+          if (required > available) {
+            shortfalls.push({ name: c.item!.label, required, available });
+          }
+        }
+        if (shortfalls.length > 0) {
+          setStockShortfalls(shortfalls);
+          setStockWarningAcknowledged(true);
+          toast({
+            title: "Stock Warning",
+            description: `${shortfalls.length} component(s) have insufficient stock. Click save again to proceed anyway.`,
+            variant: "destructive",
+          });
+          return;
+        }
+      } catch {
+        // If RPC fails, proceed without validation
+      }
+    }
+
     setIsSaving(true);
     try {
-      // 1. Insert assembly record
       const { data: rec, error: recErr } = await supabase
         .from("assembly_records")
         .insert({
@@ -120,7 +228,6 @@ export default function Assemblies() {
         .single();
       if (recErr) throw recErr;
 
-      // 2. Insert component rows
       if (validComponents.length > 0) {
         const { error: compErr } = await supabase.from("assembly_record_components").insert(
           validComponents.map((c) => ({
@@ -132,7 +239,6 @@ export default function Assemblies() {
         if (compErr) throw compErr;
       }
 
-      // 3. Positive movement for finished item
       const { error: posErr } = await supabase.from("inventory_movements").insert({
         organization_id: orgId,
         item_id: finishedItem.id,
@@ -144,7 +250,6 @@ export default function Assemblies() {
       });
       if (posErr) throw posErr;
 
-      // 4. Negative movements for each component
       for (const c of validComponents) {
         const { error: negErr } = await supabase.from("inventory_movements").insert({
           organization_id: orgId,
@@ -176,7 +281,7 @@ export default function Assemblies() {
     queryFn: async () => {
       const { data } = await supabase
         .from("assembly_records")
-        .select("*, inventory_items!assembly_records_finished_item_id_fkey(name)")
+        .select("*, inventory_items!assembly_records_finished_item_id_fkey(name), assembly_record_components(id)")
         .order("created_at", { ascending: false });
       return data ?? [];
     },
@@ -212,6 +317,26 @@ export default function Assemblies() {
       updates.push(`Setting finished item to "${intent.item_name}"`);
     }
     if (intent.quantity) { setQtyProduced(String(intent.quantity)); updates.push(`Set quantity to ${intent.quantity}`); }
+    if (intent.components && Array.isArray(intent.components)) {
+      for (const comp of intent.components) {
+        if (comp.name) {
+          supabase.from("inventory_items").select("id, name, sku").eq("item_type", "manufacturing_input").ilike("name", `%${comp.name}%`).limit(1)
+            .then(({ data }) => {
+              if (data && data[0]) {
+                setComponents((prev) => [
+                  ...prev,
+                  {
+                    key: ++rowKeyCounter,
+                    item: { id: data[0].id, label: data[0].name, sku: data[0].sku },
+                    quantity: String(comp.quantity ?? 1),
+                  },
+                ]);
+              }
+            });
+          updates.push(`Adding component "${comp.name}"`);
+        }
+      }
+    }
     return updates.length > 0 ? `I've updated the form: ${updates.join(". ")}.` : "I couldn't find specific fields to update.";
   };
 
@@ -246,16 +371,50 @@ export default function Assemblies() {
 
               {finishedItem && (
                 <>
-                  <div className="max-w-xs">
-                    <Label className="text-sm text-muted-foreground">Quantity Produced</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={qtyProduced}
-                      onChange={(e) => setQtyProduced(e.target.value)}
-                      placeholder="Enter quantity"
-                    />
+                  <div className="flex items-end gap-3">
+                    <div className="max-w-xs flex-1">
+                      <Label className="text-sm text-muted-foreground">Quantity Produced</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={qtyProduced}
+                        onChange={(e) => { setQtyProduced(e.target.value); setStockWarningAcknowledged(false); }}
+                        placeholder="Enter quantity"
+                      />
+                    </div>
+                    {bomLoaded && qtyProduced && (
+                      <Button type="button" variant="outline" size="sm" onClick={recalculateFromBom}>
+                        <RefreshCw className="h-4 w-4" /> Recalculate from BOM
+                      </Button>
+                    )}
                   </div>
+
+                  {/* BOM info banner */}
+                  {bomLoaded && (
+                    <div className="rounded-md border border-primary/20 bg-primary/5 px-4 py-2 text-sm text-primary">
+                      Components auto-populated from saved BOM. You can adjust quantities or add/remove items.
+                    </div>
+                  )}
+                  {!bomLoaded && finishedItem && bomData.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      No BOM defined for this item.{" "}
+                      <Link to="/settings?tab=bom" className="text-primary underline">Set up a Bill of Materials</Link>
+                    </p>
+                  )}
+
+                  {/* Stock warning banner */}
+                  {stockShortfalls.length > 0 && (
+                    <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm space-y-1">
+                      <div className="flex items-center gap-2 text-destructive font-medium">
+                        <AlertTriangle className="h-4 w-4" /> Insufficient Stock
+                      </div>
+                      {stockShortfalls.map((s, i) => (
+                        <p key={i} className="text-muted-foreground">
+                          {s.name}: need {s.required}, have {s.available}
+                        </p>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Components */}
                   <div className="space-y-3">
@@ -310,8 +469,8 @@ export default function Assemblies() {
                     />
                   </div>
 
-                  <Button onClick={handleSave} disabled={isSaving || !qtyProduced}>
-                    {isSaving ? "Saving..." : "Save Assembly Record"}
+                  <Button onClick={handleSave} disabled={isSaving || !qtyProduced} variant={stockWarningAcknowledged ? "destructive" : "default"}>
+                    {isSaving ? "Saving..." : stockWarningAcknowledged ? "Save Anyway (Stock Warning)" : "Save Assembly Record"}
                   </Button>
                 </>
               )}
@@ -341,50 +500,55 @@ export default function Assemblies() {
               {records?.length === 0 && !isLoading && (
                 <tr><td colSpan={5} className="px-5 py-8 text-center text-muted-foreground">No assembly records yet</td></tr>
               )}
-              {records?.map((r: any) => (
-                <Fragment key={r.id}>
-                  <tr
-                    className="hover:bg-muted/30 transition-colors cursor-pointer"
-                    onClick={() => setExpandedRow(expandedRow === r.id ? null : r.id)}
-                  >
-                    <td className="px-5 py-3 text-muted-foreground">
-                      {expandedRow === r.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                    </td>
-                    <td className="px-5 py-3 font-medium text-foreground">{r.inventory_items?.name ?? "—"}</td>
-                    <td className="px-5 py-3 text-foreground">{r.quantity_produced}</td>
-                    <td className="px-5 py-3 text-muted-foreground">—</td>
-                    <td className="px-5 py-3 text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</td>
-                  </tr>
-                  {expandedRow === r.id && (
-                    <tr>
-                      <td colSpan={5} className="px-10 py-3 bg-muted/20">
-                        {!expandedComponents || expandedComponents.length === 0 ? (
-                          <p className="text-sm text-muted-foreground italic">No components recorded</p>
-                        ) : (
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="text-left">
-                                <th className="pb-1 font-medium text-muted-foreground">Component</th>
-                                <th className="pb-1 font-medium text-muted-foreground">SKU</th>
-                                <th className="pb-1 font-medium text-muted-foreground text-right">Qty Consumed</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y">
-                              {expandedComponents.map((c: any) => (
-                                <tr key={c.id}>
-                                  <td className="py-1 text-foreground">{c.inventory_items?.name ?? "—"}</td>
-                                  <td className="py-1 text-muted-foreground">{c.inventory_items?.sku ?? "—"}</td>
-                                  <td className="py-1 text-right text-foreground">{c.quantity_consumed}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        )}
+              {records?.map((r: any) => {
+                const compCount = r.assembly_record_components?.length ?? 0;
+                return (
+                  <Fragment key={r.id}>
+                    <tr
+                      className="hover:bg-muted/30 transition-colors cursor-pointer"
+                      onClick={() => setExpandedRow(expandedRow === r.id ? null : r.id)}
+                    >
+                      <td className="px-5 py-3 text-muted-foreground">
+                        {expandedRow === r.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                       </td>
+                      <td className="px-5 py-3 font-medium text-foreground">{r.inventory_items?.name ?? "—"}</td>
+                      <td className="px-5 py-3 text-foreground">{r.quantity_produced}</td>
+                      <td className="px-5 py-3 text-muted-foreground">
+                        {compCount > 0 ? `${compCount} component${compCount > 1 ? "s" : ""}` : "No components"}
+                      </td>
+                      <td className="px-5 py-3 text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</td>
                     </tr>
-                  )}
-                </Fragment>
-              ))}
+                    {expandedRow === r.id && (
+                      <tr>
+                        <td colSpan={5} className="px-10 py-3 bg-muted/20">
+                          {!expandedComponents || expandedComponents.length === 0 ? (
+                            <p className="text-sm text-muted-foreground italic">No components recorded</p>
+                          ) : (
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="text-left">
+                                  <th className="pb-1 font-medium text-muted-foreground">Component</th>
+                                  <th className="pb-1 font-medium text-muted-foreground">SKU</th>
+                                  <th className="pb-1 font-medium text-muted-foreground text-right">Qty Consumed</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y">
+                                {expandedComponents.map((c: any) => (
+                                  <tr key={c.id}>
+                                    <td className="py-1 text-foreground">{c.inventory_items?.name ?? "—"}</td>
+                                    <td className="py-1 text-muted-foreground">{c.inventory_items?.sku ?? "—"}</td>
+                                    <td className="py-1 text-right text-foreground">{c.quantity_consumed}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -394,7 +558,7 @@ export default function Assemblies() {
       {showAssistant && prefill && (
         <FormAssistantPanel
           commandText={prefill.raw || prefill.command || "AI command"}
-          formContext="Assembly Record form. Fields include the finished goods resale item being produced, quantity produced, and the manufacturing input components consumed with their quantities."
+          formContext="Assembly Record form. Fields include the finished goods resale item being produced, quantity produced, and the manufacturing input components consumed with their quantities. You can also return a 'components' array with {name, quantity} objects."
           onIntentReceived={handleAssistantIntent}
           onClose={() => setShowAssistant(false)}
         />
