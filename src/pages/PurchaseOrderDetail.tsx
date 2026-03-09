@@ -120,7 +120,7 @@ export default function PurchaseOrderDetail() {
     },
   });
 
-
+  const canApprove = useMemo(() => {
     if (!po || !user) return false;
     if (roles.includes("admin")) return true;
     if ((po as any).assigned_approver_id) {
