@@ -770,10 +770,11 @@ export default function SettingsPage() {
                                 <div className="flex items-center gap-2"><Checkbox checked={rtEditForm.supports_date_range} onCheckedChange={(v) => setRtEditForm({ ...rtEditForm, supports_date_range: !!v })} /><Label>Date Range</Label></div>
                                 <div className="flex items-center gap-2"><Checkbox checked={rtEditForm.supports_quarterly} onCheckedChange={(v) => setRtEditForm({ ...rtEditForm, supports_quarterly: !!v })} /><Label>Quarterly</Label></div>
                               </div>
-                              <div>
-                                <Label>SQL Query *</Label>
-                                <Textarea value={rtEditForm.sql_query} onChange={(e) => setRtEditForm({ ...rtEditForm, sql_query: e.target.value })} rows={4} className="font-mono text-xs" />
-                              </div>
+                              <ReportSqlAssistant
+                                sqlQuery={rtEditForm.sql_query}
+                                onSqlChange={(sql) => setRtEditForm({ ...rtEditForm, sql_query: sql })}
+                                accessLevel={rtEditForm.access_level}
+                              />
                               <div className="flex gap-2">
                                 <Button size="sm" onClick={saveRtEdit} disabled={rtSaving || !rtEditForm.name?.trim() || !rtEditForm.sql_query?.trim()}>{rtSaving ? "Saving..." : "Save"}</Button>
                                 <Button size="sm" variant="outline" onClick={() => setRtEditId(null)}>Cancel</Button>
