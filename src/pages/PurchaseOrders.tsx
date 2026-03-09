@@ -65,7 +65,7 @@ export default function PurchaseOrders() {
             <tbody className="divide-y">
               {isLoading && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-5 py-8 text-center text-muted-foreground">
                     Loading...
                   </td>
                 </tr>
