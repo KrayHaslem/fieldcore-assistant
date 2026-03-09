@@ -999,6 +999,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_insert_profile: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
       get_approval_rule: {
         Args: { _department_id: string; _org_id: string; _total_amount: number }
         Returns: {
