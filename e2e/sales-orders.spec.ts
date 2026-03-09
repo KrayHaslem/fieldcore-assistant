@@ -1,9 +1,15 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Sales Orders", () => {
-  test("SO list page loads with table headers", async ({ page }) => {
+  test("SO list shows seeded test data", async ({ page }) => {
     await page.goto("/sales");
     await expect(page.getByText("Manage quotes, orders, and invoices")).toBeVisible();
+    await expect(page.getByText("SO-E2E-001")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("E2E Test Customer")).toBeVisible();
+  });
+
+  test("SO list shows correct table headers", async ({ page }) => {
+    await page.goto("/sales");
     await expect(page.getByText("SO #")).toBeVisible();
     await expect(page.getByText("Customer")).toBeVisible();
     await expect(page.getByText("Status")).toBeVisible();
@@ -32,17 +38,10 @@ test.describe("Sales Orders", () => {
     await expect(page.getByText(/Missing customer/i)).toBeVisible({ timeout: 5000 });
   });
 
-  test("can click an SO row to view detail", async ({ page }) => {
+  test("can click seeded SO row to view detail", async ({ page }) => {
     await page.goto("/sales");
-    const rows = page.locator("tbody tr");
-    const count = await rows.count();
-    
-    if (count > 0) {
-      const firstRowText = await rows.first().textContent();
-      if (firstRowText && !firstRowText.includes("No sales orders") && !firstRowText.includes("Loading")) {
-        await rows.first().click();
-        await expect(page).toHaveURL(/\/sales\/.+/);
-      }
-    }
+    await expect(page.getByText("SO-E2E-001")).toBeVisible({ timeout: 10000 });
+    await page.getByText("SO-E2E-001").click();
+    await expect(page).toHaveURL(/\/sales\/.+/);
   });
 });
