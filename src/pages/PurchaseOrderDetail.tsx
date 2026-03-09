@@ -126,8 +126,14 @@ export default function PurchaseOrderDetail() {
   const isCreator = user?.id === po?.created_by;
 
   const handleStatusChange = async (newStatus: POStatus) => {
+    if (newStatus === "draft") {
+      // Open rejection modal instead of immediate status change
+      setRejectionNotes("");
+      setShowRejectModal(true);
+      return;
+    }
+
     if (newStatus === "received") {
-      // Open receiving modal instead - pre-populate with remaining quantities
       const initial: Record<string, string> = {};
       lineItems?.forEach((li: any) => {
         const alreadyReceived = li.quantity_received ?? 0;
@@ -157,6 +163,31 @@ export default function PurchaseOrderDetail() {
       if (error) throw error;
 
       toast({ title: "Status Updated", description: `PO moved to ${newStatus}` });
+      queryClient.invalidateQueries({ queryKey: ["purchase-order", id] });
+      queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleConfirmRejection = async () => {
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from("purchase_orders")
+        .update({
+          status: "draft" as any,
+          rejected_by: user!.id,
+          rejected_at: new Date().toISOString(),
+          rejection_notes: rejectionNotes.trim() || null,
+        } as any)
+        .eq("id", id!);
+      if (error) throw error;
+
+      toast({ title: "PO Rejected", description: "Purchase order returned to draft." });
+      setShowRejectModal(false);
       queryClient.invalidateQueries({ queryKey: ["purchase-order", id] });
       queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
     } catch (err: any) {
