@@ -237,7 +237,7 @@ export default function Dashboard() {
     return null;
   };
 
-
+  return (
     <div>
       <PageHeader
         title={`Welcome back, ${profile?.full_name?.split(" ")[0] ?? "User"}`}
