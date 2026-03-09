@@ -72,8 +72,8 @@ export default function PurchaseOrders() {
               )}
               {orders?.length === 0 && !isLoading && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-muted-foreground">
-                    No purchase orders yet
+                  <td colSpan={7} className="px-5 py-8 text-center text-muted-foreground">
+                    No orders yet
                   </td>
                 </tr>
               )}
