@@ -613,6 +613,14 @@ export default function Assemblies() {
           onClose={() => setShowAssistant(false)}
         />
       )}
+
+      <QuickCreateItemDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        defaultName={createDialogName}
+        fixedItemType={createDialogType}
+        onCreated={handleItemCreated}
+      />
     </div>
   );
 }
