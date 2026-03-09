@@ -212,6 +212,7 @@ export type Database = {
       }
       inventory_items: {
         Row: {
+          avg_unit_cost: number | null
           created_at: string
           default_unit_cost: number | null
           description: string | null
@@ -225,6 +226,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avg_unit_cost?: number | null
           created_at?: string
           default_unit_cost?: number | null
           description?: string | null
@@ -238,6 +240,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avg_unit_cost?: number | null
           created_at?: string
           default_unit_cost?: number | null
           description?: string | null
@@ -967,6 +970,11 @@ export type Database = {
           industry: string
           name: string
         }[]
+      }
+      update_item_avg_cost: { Args: { _item_id: string }; Returns: undefined }
+      update_supplier_lead_time: {
+        Args: { _supplier_id: string }
+        Returns: undefined
       }
       update_user_roles: {
         Args: {
