@@ -38,7 +38,7 @@ export default function PurchaseOrders() {
   return (
     <div>
       <PageHeader
-        title="Purchase Orders"
+        title="Orders"
         description="Manage purchasing workflows"
         actions={
           <Button onClick={() => navigate("/purchase-orders/new")}>
