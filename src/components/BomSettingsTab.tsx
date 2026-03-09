@@ -205,6 +205,14 @@ export function BomSettingsTab() {
                   onSearch={searchComponents}
                   placeholder="Search manufacturing inputs..."
                   renderOption={renderOption}
+                  allowCreate
+                  createLabel="Add new component"
+                  onCreateNew={(name) => {
+                    setCreateDialogName(name);
+                    setCreateDialogType("manufacturing_input");
+                    setCreateDialogTarget("component");
+                    setCreateDialogOpen(true);
+                  }}
                 />
               </div>
               <div className="w-28">
