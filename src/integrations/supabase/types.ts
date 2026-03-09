@@ -963,6 +963,17 @@ export type Database = {
           sku: string
         }[]
       }
+      get_margin_by_item: {
+        Args: { _end_date: string; _start_date: string; _user_id: string }
+        Returns: {
+          cogs: number
+          gross_margin: number
+          item_name: string
+          margin_pct: number
+          revenue: number
+          units_sold: number
+        }[]
+      }
       get_margins_by_timeframe: {
         Args: {
           _end_date: string
