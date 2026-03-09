@@ -472,32 +472,23 @@ export default function Reports() {
   });
 
   const { data: marginItemData, isLoading: loadingMarginItem } = useQuery({
-    queryKey: ["report-margin-item", orgId, startISO, endISO],
-    enabled: selectedKey === "margin_by_item" && !!orgId && canAccessKey("margin_by_item"),
+    queryKey: ["report-margin-item", orgId, user?.id, startISO, endISO],
+    enabled: selectedKey === "margin_by_item" && !!orgId && !!user && canAccessKey("margin_by_item"),
     queryFn: async () => {
-      let soQ = supabase.from("sales_orders").select("id").in("status", ["fulfilled", "invoiced", "paid", "closed"]);
-      if (startISO) soQ = soQ.gte("created_at", startISO);
-      if (endISO) soQ = soQ.lte("created_at", endISO);
-      const { data: sos } = await soQ;
-      if (!sos || sos.length === 0) return [];
-      const soIds = sos.map((s) => s.id);
-      const { data: lines } = await supabase
-        .from("sales_order_items")
-        .select("item_id, quantity, unit_price, cost_per_unit, inventory_items:item_id(name)")
-        .in("sales_order_id", soIds);
-      const map: Record<string, any> = {};
-      (lines ?? []).forEach((li: any) => {
-        const id = li.item_id;
-        if (!map[id]) map[id] = { name: li.inventory_items?.name ?? "—", units: 0, revenue: 0, cogs: 0 };
-        map[id].units += li.quantity;
-        map[id].revenue += li.quantity * Number(li.unit_price);
-        map[id].cogs += li.quantity * Number(li.cost_per_unit || 0);
+      const { data, error } = await supabase.rpc("get_margin_by_item", {
+        _user_id: user!.id,
+        _start_date: startISO!,
+        _end_date: endISO!,
       });
-      return Object.values(map).map((i: any) => ({
-        ...i,
-        grossMargin: i.revenue - i.cogs,
-        marginPct: i.revenue > 0 ? ((i.revenue - i.cogs) / i.revenue) * 100 : 0,
-      })).sort((a: any, b: any) => b.grossMargin - a.grossMargin);
+      if (error) throw error;
+      return (data ?? []).map((r: any) => ({
+        name: r.item_name,
+        units: Number(r.units_sold),
+        revenue: Number(r.revenue),
+        cogs: Number(r.cogs),
+        grossMargin: Number(r.gross_margin),
+        marginPct: Number(r.margin_pct),
+      }));
     },
   });
 
