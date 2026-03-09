@@ -17,14 +17,14 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/purchase-orders", icon: ShoppingCart, label: "Orders" },
-  { to: "/po-groups", icon: FolderOpen, label: "PO Groups", roles: ["admin", "procurement"] },
+  { to: "/po-groups", icon: FolderOpen, label: "PO Groups", roles: ["admin", "procurement"] as string[] },
   { to: "/inventory", icon: Package, label: "Inventory" },
   { to: "/sales", icon: DollarSign, label: "Sales" },
   { to: "/assemblies", icon: Wrench, label: "Assemblies" },
   { to: "/reconciliation", icon: ClipboardCheck, label: "Reconciliation" },
   { to: "/reports", icon: BarChart3, label: "Reports" },
   { to: "/settings", icon: Settings, label: "Settings" },
-];
+] as const;
 
 export function AppSidebar() {
   const { profile, roles, signOut } = useAuth();
