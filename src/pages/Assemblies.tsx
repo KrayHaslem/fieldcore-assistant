@@ -561,6 +561,12 @@ export default function Assemblies() {
             </tbody>
           </table>
         </div>
+          </TabsContent>
+
+          <TabsContent value="bom" className="mt-6">
+            <BomSettingsTab />
+          </TabsContent>
+        </Tabs>
       </div>
       </div>
 
