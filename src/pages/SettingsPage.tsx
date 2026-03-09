@@ -663,12 +663,7 @@ export default function SettingsPage() {
             </div>
           </TabsContent>
 
-          {/* Bill of Materials */}
-          {(isAdmin || roles.includes("procurement")) && (
-            <TabsContent value="bom">
-              <BomSettingsTab />
-            </TabsContent>
-          )}
+          
 
           {/* Report Templates (admin only) */}
           {isAdmin && (

@@ -407,7 +407,10 @@ export default function Assemblies() {
                   {!bomLoaded && finishedItem && bomData.length === 0 && (
                     <p className="text-xs text-muted-foreground">
                       No BOM defined for this item.{" "}
-                      <Link to="/settings?tab=bom" className="text-primary underline">Set up a Bill of Materials</Link>
+                      <button type="button" className="text-primary underline" onClick={() => {
+                        const bomTab = document.querySelector('[data-state="inactive"][value="bom"]') as HTMLElement;
+                        bomTab?.click();
+                      }}>Set up a Bill of Materials</button>
                     </p>
                   )}
 
