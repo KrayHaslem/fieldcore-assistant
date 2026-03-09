@@ -91,7 +91,9 @@ export default function PurchaseOrders() {
                     <div className="flex items-center gap-2">
                       <StatusBadge status={po.status} />
                       {po.has_shortfall && (
-                        <AlertTriangle className="h-4 w-4 text-warning" title="Has shortfall" />
+                        <span title="Has shortfall">
+                          <AlertTriangle className="h-4 w-4 text-warning" />
+                        </span>
                       )}
                     </div>
                   </td>
