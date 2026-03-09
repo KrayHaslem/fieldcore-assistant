@@ -396,14 +396,19 @@ export default function CreatePurchaseOrder() {
   const handleAssistantIntent = (intent: Record<string, any>): string => {
     const updates: string[] = [];
 
-    if (intent.supplier) {
-      // Search and set supplier
+    // Use enriched supplier_match from parse-command if available
+    if (intent.supplier_match) {
+      setSupplier({ id: intent.supplier_match.id, label: intent.supplier_match.name, name: intent.supplier_match.name } as SupplierOption);
+      updates.push(`Set supplier to "${intent.supplier_match.name}"`);
+      if (intent.supplier_match.avg_lead_time_days != null) {
+        updates.push(`Avg lead time: ${intent.supplier_match.avg_lead_time_days} days`);
+      }
+    } else if (intent.supplier) {
       supabase.from("suppliers").select("id, name, contact_email, contact_name")
         .ilike("name", `%${intent.supplier}%`).limit(1)
         .then(({ data }) => {
           if (data && data[0]) {
             setSupplier({ ...data[0], label: data[0].name });
-            updates.push(`Set supplier to ${data[0].name}`);
           }
         });
       updates.push(`Looking up supplier "${intent.supplier}"`);
@@ -420,54 +425,86 @@ export default function CreatePurchaseOrder() {
       updates.push(`Setting department to "${intent.department}"`);
     }
 
+    // Build a map of enriched item matches by parsed_name for quick lookup
+    const enrichedMap: Record<string, any> = {};
+    if (intent.item_matches && Array.isArray(intent.item_matches)) {
+      for (const im of intent.item_matches) {
+        enrichedMap[im.parsed_name?.toLowerCase()] = im;
+      }
+    }
+
     if (intent.items && Array.isArray(intent.items)) {
       for (const intentItem of intent.items) {
-        supabase.from("inventory_items").select("id, name, item_type, default_unit_cost, sku")
-          .ilike("name", `%${intentItem.name}%`).limit(1)
-          .then(async ({ data }) => {
-            if (data && data[0]) {
-              const match = data[0];
+        const enriched = enrichedMap[intentItem.name?.toLowerCase()];
 
-              // Look up most recent unit cost from past purchase orders
-              const { data: priceHistory } = await supabase
-                .from("purchase_order_items")
-                .select("unit_cost, purchase_orders!inner(created_at)")
-                .eq("item_id", match.id)
-                .order("created_at", { ascending: false, referencedTable: "purchase_orders" })
-                .limit(1);
+        if (enriched) {
+          // Use enriched data directly — no extra DB call needed
+          const unitCost = enriched.avg_unit_cost != null
+            ? String(enriched.avg_unit_cost)
+            : enriched.default_unit_cost != null
+            ? String(enriched.default_unit_cost)
+            : "";
 
-              const historicalCost = priceHistory?.[0]?.unit_cost
-                ? String(priceHistory[0].unit_cost)
-                : match.default_unit_cost
-                ? String(match.default_unit_cost)
-                : "";
-
-              setItems((prev) => {
-                // Check if item already exists
-                const existing = prev.find((li) => li.item?.id === match.id);
-                if (existing) {
-                  return prev.map((li) =>
-                    li.item?.id === match.id
-                      ? { ...li, quantity: String(intentItem.quantity || li.quantity) }
-                      : li
-                  );
-                }
-                // Add new line or fill empty slot
-                const empty = prev.find((li) => !li.item);
-                const newLi = {
-                  id: empty?.id || String(Date.now()),
-                  item: { ...match, label: match.sku ? `${match.name} (${match.sku})` : match.name },
-                  quantity: String(intentItem.quantity || 1),
-                  unit_cost: historicalCost,
-                  item_type: (match.item_type || "resale") as any,
-                  unit: null,
-                };
-                if (empty) return prev.map((li) => (li.id === empty.id ? newLi : li));
-                return [...prev, newLi];
-              });
+          setItems((prev) => {
+            const existing = prev.find((li) => li.item?.id === enriched.id);
+            if (existing) {
+              return prev.map((li) =>
+                li.item?.id === enriched.id
+                  ? { ...li, quantity: String(intentItem.quantity || li.quantity) }
+                  : li
+              );
             }
+            const empty = prev.find((li) => !li.item);
+            const newLi: LineItem = {
+              id: empty?.id || String(Date.now()),
+              item: { id: enriched.id, label: enriched.sku ? `${enriched.name} (${enriched.sku})` : enriched.name, sku: enriched.sku, default_unit_cost: enriched.default_unit_cost },
+              quantity: String(intentItem.quantity || 1),
+              unit_cost: unitCost,
+              item_type: "resale",
+              unit: null,
+            };
+            if (empty) return prev.map((li) => (li.id === empty.id ? newLi : li));
+            return [...prev, newLi];
           });
-        updates.push(`Adding ${intentItem.quantity || 1}× ${intentItem.name}`);
+          updates.push(`Adding ${intentItem.quantity || 1}× ${enriched.name}`);
+        } else {
+          // Fallback: client-side lookup
+          supabase.from("inventory_items").select("id, name, item_type, default_unit_cost, sku, avg_unit_cost")
+            .ilike("name", `%${intentItem.name}%`).limit(1)
+            .then(async ({ data }) => {
+              if (data && data[0]) {
+                const match = data[0];
+                const costStr = match.avg_unit_cost != null
+                  ? String(match.avg_unit_cost)
+                  : match.default_unit_cost != null
+                  ? String(match.default_unit_cost)
+                  : "";
+
+                setItems((prev) => {
+                  const existing = prev.find((li) => li.item?.id === match.id);
+                  if (existing) {
+                    return prev.map((li) =>
+                      li.item?.id === match.id
+                        ? { ...li, quantity: String(intentItem.quantity || li.quantity) }
+                        : li
+                    );
+                  }
+                  const empty = prev.find((li) => !li.item);
+                  const newLi: LineItem = {
+                    id: empty?.id || String(Date.now()),
+                    item: { ...match, label: match.sku ? `${match.name} (${match.sku})` : match.name },
+                    quantity: String(intentItem.quantity || 1),
+                    unit_cost: costStr,
+                    item_type: (match.item_type || "resale") as InventoryType,
+                    unit: null,
+                  };
+                  if (empty) return prev.map((li) => (li.id === empty.id ? newLi : li));
+                  return [...prev, newLi];
+                });
+              }
+            });
+          updates.push(`Adding ${intentItem.quantity || 1}× ${intentItem.name}`);
+        }
       }
     }
 
