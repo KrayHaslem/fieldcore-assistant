@@ -60,6 +60,37 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## Running E2E Tests
+
+The project includes a Playwright end-to-end test suite. Tests use a dedicated test organization that is automatically created, seeded, and cleaned up.
+
+### Required Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_SUPABASE_URL` | Supabase project URL |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/publishable key |
+| `E2E_USER_EMAIL` | Email for the test user (created automatically) |
+| `E2E_USER_PASSWORD` | Password for the test user |
+| `E2E_RESET_SECRET` | Shared secret to authorize the reset-e2e edge function (optional locally, required in CI) |
+
+### Running Locally
+
+```sh
+export VITE_SUPABASE_URL="https://your-project.supabase.co"
+export VITE_SUPABASE_PUBLISHABLE_KEY="your-anon-key"
+export E2E_USER_EMAIL="e2e@example.com"
+export E2E_USER_PASSWORD="a-strong-password"
+export E2E_RESET_SECRET="your-shared-secret"
+
+npm run test:e2e        # headless
+npm run test:e2e:ui     # interactive UI mode
+```
+
+### CI (GitHub Actions)
+
+The workflow at `.github/workflows/e2e.yml` runs on every push/PR to `main`. Add the five variables above as **repository secrets** in GitHub → Settings → Secrets and variables → Actions.
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
