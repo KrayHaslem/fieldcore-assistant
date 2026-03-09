@@ -14,7 +14,7 @@ export default defineConfig({
     storageState: "e2e/.auth/user.json",
   },
   projects: [
-    // Setup project — runs first to authenticate
+    // Setup project — resets test org and authenticates
     {
       name: "setup",
       testMatch: /global-setup\.ts/,
@@ -39,6 +39,13 @@ export default defineConfig({
       name: "mobile-chrome",
       use: { ...devices["Pixel 5"] },
       dependencies: ["setup"],
+    },
+    // Teardown project — cleans up test org after all tests
+    {
+      name: "teardown",
+      testMatch: /global-teardown\.ts/,
+      use: { storageState: undefined },
+      dependencies: ["chromium", "firefox", "webkit", "mobile-chrome"],
     },
   ],
   webServer: {
