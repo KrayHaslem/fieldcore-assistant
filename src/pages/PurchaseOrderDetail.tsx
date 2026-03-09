@@ -380,7 +380,25 @@ export default function PurchaseOrderDetail() {
           </div>
         )}
 
-        {/* Details */}
+        {/* Rejection History */}
+        {(po as any).rejected_at && (
+          <div className="flex items-start gap-3 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3">
+            <XCircle className="h-5 w-5 flex-shrink-0 text-destructive mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-destructive">
+                Previously rejected by {rejectedByProfile ?? "unknown"} on{" "}
+                {new Date((po as any).rejected_at).toLocaleString()}
+              </p>
+              {(po as any).rejection_notes && (
+                <p className="mt-1 text-muted-foreground">
+                  Reason: {(po as any).rejection_notes}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+
         <div className="fieldcore-card p-6">
           <h3 className="text-sm font-semibold text-foreground mb-4">Order Details</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
