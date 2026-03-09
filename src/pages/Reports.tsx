@@ -126,17 +126,19 @@ export default function Reports() {
   // Build reportDef array from templates
   const allReports: ReportDef[] = useMemo(() => {
     if (!templatesData) return [];
-    return templatesData.map((t) => ({
-      key: REPORT_KEY_MAP[t.name] ?? ("unknown" as ReportKey),
-      name: t.name,
-      description: t.description ?? "",
-      hasDateRange: t.supports_date_range ?? true,
-      accessRoles: t.access_level === "admin" ? ["admin"] :
-                   t.access_level === "finance" ? ["admin", "finance"] :
-                   t.access_level === "sales" ? ["admin", "finance", "sales"] :
-                   t.access_level === "procurement" ? ["admin", "finance", "procurement"] :
-                   ["admin", t.access_level],
-    })).filter((r) => r.key !== "unknown");
+    return templatesData
+      .filter((t) => REPORT_KEY_MAP[t.name] !== undefined)
+      .map((t) => ({
+        key: REPORT_KEY_MAP[t.name],
+        name: t.name,
+        description: t.description ?? "",
+        hasDateRange: t.supports_date_range ?? true,
+        accessRoles: t.access_level === "admin" ? ["admin"] :
+                     t.access_level === "finance" ? ["admin", "finance"] :
+                     t.access_level === "sales" ? ["admin", "finance", "sales"] :
+                     t.access_level === "procurement" ? ["admin", "finance", "procurement"] :
+                     ["admin", t.access_level],
+      }));
   }, [templatesData]);
 
   // Build categories from LOCAL_CATEGORIES with DB-sourced reports
