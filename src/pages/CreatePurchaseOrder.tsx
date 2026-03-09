@@ -517,8 +517,8 @@ export default function CreatePurchaseOrder() {
     <div className="flex h-full">
       <div className="flex-1 min-w-0">
       <PageHeader
-        title="New Purchase Order"
-        description="Create a purchase order and submit for approval"
+        title="New Order"
+        description="Create an order and submit for approval"
       />
 
       <div className="p-8 max-w-4xl">
