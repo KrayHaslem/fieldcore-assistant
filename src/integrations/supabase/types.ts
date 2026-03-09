@@ -412,6 +412,7 @@ export type Database = {
           purchase_order_id: string
           quantity: number
           quantity_received: number | null
+          shortfall_notes: string | null
           unit_cost: number
           unit_id: string | null
         }
@@ -424,6 +425,7 @@ export type Database = {
           purchase_order_id: string
           quantity: number
           quantity_received?: number | null
+          shortfall_notes?: string | null
           unit_cost: number
           unit_id?: string | null
         }
@@ -436,6 +438,7 @@ export type Database = {
           purchase_order_id?: string
           quantity?: number
           quantity_received?: number | null
+          shortfall_notes?: string | null
           unit_cost?: number
           unit_id?: string | null
         }
@@ -478,6 +481,7 @@ export type Database = {
           created_at: string
           created_by: string
           department_id: string | null
+          has_shortfall: boolean
           id: string
           notes: string | null
           ordered_at: string | null
@@ -498,6 +502,7 @@ export type Database = {
           created_at?: string
           created_by: string
           department_id?: string | null
+          has_shortfall?: boolean
           id?: string
           notes?: string | null
           ordered_at?: string | null
@@ -518,6 +523,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           department_id?: string | null
+          has_shortfall?: boolean
           id?: string
           notes?: string | null
           ordered_at?: string | null
@@ -883,6 +889,7 @@ export type Database = {
           created_at: string
           created_by: string
           department_id: string | null
+          has_shortfall: boolean
           id: string
           notes: string | null
           ordered_at: string | null
@@ -963,6 +970,7 @@ export type Database = {
         | "submitted"
         | "approved"
         | "ordered"
+        | "partially_received"
         | "received"
         | "closed"
       so_status:
@@ -1133,6 +1141,7 @@ export const Constants = {
         "submitted",
         "approved",
         "ordered",
+        "partially_received",
         "received",
         "closed",
       ],

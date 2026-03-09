@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function PurchaseOrders() {
@@ -23,7 +23,7 @@ export default function PurchaseOrders() {
     queryFn: async () => {
       let q = supabase
         .from("purchase_orders")
-        .select("*, suppliers(name), profiles!purchase_orders_created_by_fkey(full_name)");
+        .select("*, suppliers(name), profiles!purchase_orders_created_by_fkey(full_name), has_shortfall");
 
       if (isEmployeeOnly) {
         q = q.eq("created_by", user!.id);
@@ -88,7 +88,14 @@ export default function PurchaseOrders() {
                     ${Number(po.total_amount).toLocaleString()}
                   </td>
                   <td className="px-5 py-3">
-                    <StatusBadge status={po.status} />
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={po.status} />
+                      {po.has_shortfall && (
+                        <span title="Has shortfall">
+                          <AlertTriangle className="h-4 w-4 text-warning" />
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-5 py-3 text-muted-foreground">
                     {new Date(po.created_at).toLocaleDateString()}

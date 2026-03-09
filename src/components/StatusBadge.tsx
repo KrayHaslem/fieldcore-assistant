@@ -5,6 +5,7 @@ const statusStyles: Record<string, string> = {
   submitted: "status-submitted",
   approved: "status-approved",
   ordered: "status-ordered",
+  partially_received: "status-partial",
   received: "status-received",
   closed: "status-closed",
   quote: "status-submitted",
@@ -15,9 +16,10 @@ const statusStyles: Record<string, string> = {
 };
 
 export function StatusBadge({ status }: { status: string }) {
+  const displayStatus = status === "partially_received" ? "Partially Received" : status;
   return (
     <span className={cn("status-badge capitalize", statusStyles[status] ?? "status-draft")}>
-      {status}
+      {displayStatus}
     </span>
   );
 }

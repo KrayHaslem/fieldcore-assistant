@@ -24,9 +24,10 @@ import {
   Truck,
   PackageCheck,
   Lock,
+  AlertTriangle,
 } from "lucide-react";
 
-type POStatus = "draft" | "submitted" | "approved" | "ordered" | "received" | "closed";
+type POStatus = "draft" | "submitted" | "approved" | "ordered" | "partially_received" | "received" | "closed";
 
 const statusFlow: Record<string, { next: POStatus; label: string; icon: typeof Send }[]> = {
   draft: [{ next: "submitted", label: "Submit for Approval", icon: Send }],
@@ -36,6 +37,7 @@ const statusFlow: Record<string, { next: POStatus; label: string; icon: typeof S
   ],
   approved: [{ next: "ordered", label: "Mark as Ordered", icon: Truck }],
   ordered: [{ next: "received", label: "Mark as Received", icon: PackageCheck }],
+  partially_received: [{ next: "received", label: "Receive More Items", icon: PackageCheck }],
   received: [{ next: "closed", label: "Close PO", icon: Lock }],
   closed: [],
 };
@@ -122,10 +124,12 @@ export default function PurchaseOrderDetail() {
 
   const handleStatusChange = async (newStatus: POStatus) => {
     if (newStatus === "received") {
-      // Open receiving modal instead
+      // Open receiving modal instead - pre-populate with remaining quantities
       const initial: Record<string, string> = {};
       lineItems?.forEach((li: any) => {
-        initial[li.id] = String(li.quantity);
+        const alreadyReceived = li.quantity_received ?? 0;
+        const remaining = Math.max(0, li.quantity - alreadyReceived);
+        initial[li.id] = String(remaining);
       });
       setReceivingItems(initial);
       setShowReceiveModal(true);
@@ -165,21 +169,41 @@ export default function PurchaseOrderDetail() {
       const orgId = po!.organization_id;
       let itemsReceived = 0;
       let movementsCreated = 0;
+      const shortfalls: { name: string; ordered: number; received: number }[] = [];
 
       for (const li of lineItems ?? []) {
-        const qtyReceived = parseInt(receivingItems[li.id] || "0", 10);
+        const qtyThisShipment = parseInt(receivingItems[li.id] || "0", 10);
+        const previouslyReceived = li.quantity_received ?? 0;
+        const newTotalReceived = previouslyReceived + qtyThisShipment;
+
+        // Build update payload
+        const itemUpdate: any = { quantity_received: newTotalReceived };
+        
+        // Check for shortfall
+        if (newTotalReceived < li.quantity) {
+          const shortfall = li.quantity - newTotalReceived;
+          itemUpdate.shortfall_notes = `Ordered ${li.quantity}, received ${newTotalReceived}. Shortfall: ${shortfall}.`;
+          shortfalls.push({
+            name: li.inventory_items?.name ?? "Unknown Item",
+            ordered: li.quantity,
+            received: newTotalReceived,
+          });
+        } else {
+          itemUpdate.shortfall_notes = null;
+        }
+
         await supabase
           .from("purchase_order_items")
-          .update({ quantity_received: qtyReceived })
+          .update(itemUpdate)
           .eq("id", li.id);
 
-        if (qtyReceived > 0) {
+        if (qtyThisShipment > 0) {
           itemsReceived++;
           if (li.item_type !== "internal_use") {
             const { error } = await supabase.from("inventory_movements").insert({
               item_id: li.item_id,
               movement_type: "received" as const,
-              quantity: qtyReceived,
+              quantity: qtyThisShipment,
               source_type: "purchase_order" as const,
               source_id: po!.id,
               created_by: user!.id,
@@ -192,15 +216,39 @@ export default function PurchaseOrderDetail() {
         }
       }
 
+      // Determine if fully received or partially received
+      const hasShortfall = shortfalls.length > 0;
+      const newStatus: POStatus = hasShortfall ? "partially_received" : "received";
+      
+      const poUpdate: any = { 
+        status: newStatus, 
+        has_shortfall: hasShortfall,
+      };
+      if (newStatus === "received") {
+        poUpdate.received_at = new Date().toISOString();
+      }
+
       const { error } = await supabase
         .from("purchase_orders")
-        .update({ status: "received" as const, received_at: new Date().toISOString() })
+        .update(poUpdate)
         .eq("id", id!);
       if (error) throw error;
 
+      // Show shortfall warning if applicable
+      if (hasShortfall) {
+        const shortfallList = shortfalls
+          .map((s) => `${s.name} (ordered ${s.ordered}, received ${s.received})`)
+          .join(", ");
+        toast({
+          title: `Shortfall on ${shortfalls.length} item(s)`,
+          description: shortfallList,
+          variant: "destructive",
+        });
+      }
+
       toast({
-        title: "Items Received",
-        description: `${itemsReceived} item(s) received, ${movementsCreated} inventory movement(s) created.`,
+        title: newStatus === "received" ? "Items Fully Received" : "Items Partially Received",
+        description: `${itemsReceived} item(s) received this shipment, ${movementsCreated} inventory movement(s) created.`,
       });
       setShowReceiveModal(false);
       queryClient.invalidateQueries({ queryKey: ["purchase-order", id] });
@@ -274,6 +322,16 @@ export default function PurchaseOrderDetail() {
             </div>
           </div>
         </div>
+
+        {/* Shortfall Warning Banner */}
+        {(po as any).has_shortfall && (
+          <div className="flex items-center gap-3 rounded-md border border-warning/50 bg-warning/10 px-4 py-3 text-warning-foreground">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0 text-warning" />
+            <p className="text-sm font-medium">
+              This order was received with shortfalls. Review line items for details.
+            </p>
+          </div>
+        )}
 
         {/* Details */}
         <div className="fieldcore-card p-6">
