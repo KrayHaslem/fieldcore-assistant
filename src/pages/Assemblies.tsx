@@ -462,6 +462,14 @@ export default function Assemblies() {
                             onSearch={searchComponents}
                             placeholder="Search manufacturing inputs..."
                             renderOption={renderOption}
+                            allowCreate
+                            createLabel="Add new component"
+                            onCreateNew={(name) => {
+                              setCreateDialogName(name);
+                              setCreateDialogType("manufacturing_input");
+                              setCreateDialogTarget(c.key);
+                              setCreateDialogOpen(true);
+                            }}
                           />
                         </div>
                         <div className="w-28">
