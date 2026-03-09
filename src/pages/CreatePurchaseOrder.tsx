@@ -261,7 +261,7 @@ export default function CreatePurchaseOrder() {
     const y = now.getFullYear().toString().slice(-2);
     const m = String(now.getMonth() + 1).padStart(2, "0");
     const rand = Math.floor(Math.random() * 9000 + 1000);
-    return `PO-${y}${m}-${rand}`;
+    return `ord-${y}${m}-${rand}`;
   };
 
   // Validation
