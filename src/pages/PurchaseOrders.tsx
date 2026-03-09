@@ -53,7 +53,7 @@ export default function PurchaseOrders() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50 text-left">
-                <th className="px-5 py-3 font-medium text-muted-foreground">PO #</th>
+                <th className="px-5 py-3 font-medium text-muted-foreground">Order #</th>
                 <th className="px-5 py-3 font-medium text-muted-foreground">Supplier</th>
                 <th className="px-5 py-3 font-medium text-muted-foreground">Created By</th>
                 <th className="px-5 py-3 font-medium text-muted-foreground">Amount</th>
