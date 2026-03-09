@@ -61,7 +61,7 @@ export default function PurchaseOrderDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("purchase_orders")
-        .select("*, suppliers(name, contact_name, contact_email), departments(name)")
+        .select("*, suppliers(name, contact_name, contact_email), departments(name), po_groups(id, po_number)")
         .eq("id", id!)
         .single();
       if (error) throw error;
