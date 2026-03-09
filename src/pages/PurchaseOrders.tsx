@@ -88,7 +88,12 @@ export default function PurchaseOrders() {
                     ${Number(po.total_amount).toLocaleString()}
                   </td>
                   <td className="px-5 py-3">
-                    <StatusBadge status={po.status} />
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={po.status} />
+                      {po.has_shortfall && (
+                        <AlertTriangle className="h-4 w-4 text-warning" title="Has shortfall" />
+                      )}
+                    </div>
                   </td>
                   <td className="px-5 py-3 text-muted-foreground">
                     {new Date(po.created_at).toLocaleDateString()}
