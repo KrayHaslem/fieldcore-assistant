@@ -24,6 +24,7 @@ import {
   Truck,
   PackageCheck,
   Lock,
+  AlertTriangle,
 } from "lucide-react";
 
 type POStatus = "draft" | "submitted" | "approved" | "ordered" | "partially_received" | "received" | "closed";
