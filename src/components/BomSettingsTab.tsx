@@ -212,21 +212,7 @@ export function BomSettingsTab() {
 
           {/* Add component form */}
           <div className="border-t px-5 py-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs text-muted-foreground">Add Component</Label>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setCreateDialogName("");
-                  setCreateDialogType("manufacturing_input");
-                  setCreateDialogTarget("component");
-                  setCreateDialogOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4" /> Add New Component
-              </Button>
-            </div>
+            <Label className="text-xs text-muted-foreground">Add Component</Label>
             <div className="flex items-end gap-3">
               <div className="flex-1">
                 <ComboBox<ItemOption>
