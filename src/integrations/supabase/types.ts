@@ -143,6 +143,61 @@ export type Database = {
           },
         ]
       }
+      bill_of_materials: {
+        Row: {
+          component_item_id: string
+          created_at: string
+          finished_item_id: string
+          id: string
+          notes: string | null
+          organization_id: string
+          quantity_per_unit: number
+          updated_at: string
+        }
+        Insert: {
+          component_item_id: string
+          created_at?: string
+          finished_item_id: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          quantity_per_unit?: number
+          updated_at?: string
+        }
+        Update: {
+          component_item_id?: string
+          created_at?: string
+          finished_item_id?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          quantity_per_unit?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_of_materials_component_item_id_fkey"
+            columns: ["component_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_of_materials_finished_item_id_fkey"
+            columns: ["finished_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_of_materials_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       command_history: {
         Row: {
           command_text: string
@@ -951,6 +1006,13 @@ export type Database = {
           auto_approve: boolean
           required_role: string
           rule_is_department_scoped: boolean
+        }[]
+      }
+      get_component_stock: {
+        Args: { _item_ids: string[]; _org_id: string }
+        Returns: {
+          item_id: string
+          on_hand: number
         }[]
       }
       get_low_stock_items: {
