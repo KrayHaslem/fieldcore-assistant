@@ -448,6 +448,16 @@ export default function PurchaseOrderDetail() {
               <span className="text-muted-foreground">Total Amount</span>
               <p className="font-medium text-foreground">${Number(po.total_amount).toLocaleString()}</p>
             </div>
+            <div>
+              <span className="text-muted-foreground">PO Group</span>
+              <p className="font-medium text-foreground">
+                {(po as any).po_groups?.po_number ? (
+                  <Link to={`/po-groups/${(po as any).po_groups.id}`} className="text-primary hover:underline">
+                    {(po as any).po_groups.po_number}
+                  </Link>
+                ) : "Not assigned"}
+              </p>
+            </div>
             {po.notes && (
               <div className="sm:col-span-2">
                 <span className="text-muted-foreground">Notes</span>
