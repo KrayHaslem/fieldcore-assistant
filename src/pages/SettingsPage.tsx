@@ -334,6 +334,128 @@ export default function SettingsPage() {
     qc.invalidateQueries({ queryKey: ["units"] });
   };
 
+  // ---- Report Templates ----
+  const [rtEditId, setRtEditId] = useState<string | null>(null);
+  const [rtEditForm, setRtEditForm] = useState<any>({});
+  const [rtSaving, setRtSaving] = useState(false);
+  const [rtNewOpen, setRtNewOpen] = useState(false);
+  const [rtNewForm, setRtNewForm] = useState({
+    name: "", description: "", access_level: "admin", chart_type: "table",
+    supports_date_range: true, supports_quarterly: false, sql_query: "",
+  });
+
+  const { data: systemTemplates } = useQuery({
+    queryKey: ["system-report-templates"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data } = await supabase.from("report_templates").select("*").is("organization_id", null).order("name");
+      return data ?? [];
+    },
+  });
+
+  const { data: orgTemplates } = useQuery({
+    queryKey: ["org-report-templates", orgId],
+    enabled: !!orgId && isAdmin,
+    queryFn: async () => {
+      const { data } = await supabase.from("report_templates").select("*").eq("organization_id", orgId!).order("name");
+      return data ?? [];
+    },
+  });
+
+  const orgOverrideMap = new Map((orgTemplates ?? []).filter((t: any) => t.source_template_id).map((t: any) => [t.source_template_id, t]));
+
+  const customizeSystemTemplate = async (sysTemplate: any) => {
+    if (!orgId) return;
+    setRtSaving(true);
+    const { error } = await supabase.from("report_templates").insert({
+      organization_id: orgId,
+      name: sysTemplate.name,
+      description: sysTemplate.description,
+      access_level: sysTemplate.access_level,
+      chart_type: sysTemplate.chart_type,
+      sql_query: sysTemplate.sql_query,
+      supports_date_range: sysTemplate.supports_date_range,
+      supports_quarterly: sysTemplate.supports_quarterly,
+      source_template_id: sysTemplate.id,
+    } as any);
+    setRtSaving(false);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Template customized for your organization" });
+    qc.invalidateQueries({ queryKey: ["org-report-templates"] });
+  };
+
+  const saveRtEdit = async () => {
+    if (!rtEditId) return;
+    setRtSaving(true);
+    const { error } = await supabase.from("report_templates").update({
+      name: rtEditForm.name, description: rtEditForm.description || null,
+      access_level: rtEditForm.access_level, chart_type: rtEditForm.chart_type,
+      sql_query: rtEditForm.sql_query,
+      supports_date_range: rtEditForm.supports_date_range,
+      supports_quarterly: rtEditForm.supports_quarterly,
+    } as any).eq("id", rtEditId);
+    setRtSaving(false);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Template updated" });
+    setRtEditId(null);
+    qc.invalidateQueries({ queryKey: ["org-report-templates"] });
+    qc.invalidateQueries({ queryKey: ["report-templates"] });
+  };
+
+  const resetToDefault = async (orgTemplate: any) => {
+    const sys = systemTemplates?.find((s: any) => s.id === orgTemplate.source_template_id);
+    if (!sys) return;
+    setRtSaving(true);
+    const { error } = await supabase.from("report_templates").update({
+      name: sys.name, description: sys.description, access_level: sys.access_level,
+      chart_type: sys.chart_type, sql_query: sys.sql_query,
+      supports_date_range: sys.supports_date_range, supports_quarterly: sys.supports_quarterly,
+    } as any).eq("id", orgTemplate.id);
+    setRtSaving(false);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Reset to system default" });
+    qc.invalidateQueries({ queryKey: ["org-report-templates"] });
+    qc.invalidateQueries({ queryKey: ["report-templates"] });
+  };
+
+  const deleteOrgTemplate = async (t: any) => {
+    const msg = t.source_template_id
+      ? "Deleting this override will restore the system default for this report. Continue?"
+      : `Delete template "${t.name}"?`;
+    setConfirmAction({
+      message: msg,
+      onConfirm: async () => {
+        setConfirmAction(null);
+        await supabase.from("report_templates").delete().eq("id", t.id);
+        toast({ title: "Template deleted" });
+        qc.invalidateQueries({ queryKey: ["org-report-templates"] });
+        qc.invalidateQueries({ queryKey: ["report-templates"] });
+      },
+    });
+  };
+
+  const saveNewTemplate = async () => {
+    if (!rtNewForm.name.trim() || !rtNewForm.sql_query.trim() || !orgId) return;
+    setRtSaving(true);
+    const { error } = await supabase.from("report_templates").insert({
+      organization_id: orgId,
+      name: rtNewForm.name.trim(),
+      description: rtNewForm.description || null,
+      access_level: rtNewForm.access_level,
+      chart_type: rtNewForm.chart_type,
+      sql_query: rtNewForm.sql_query,
+      supports_date_range: rtNewForm.supports_date_range,
+      supports_quarterly: rtNewForm.supports_quarterly,
+    } as any);
+    setRtSaving(false);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Template created" });
+    setRtNewOpen(false);
+    setRtNewForm({ name: "", description: "", access_level: "admin", chart_type: "table", supports_date_range: true, supports_quarterly: false, sql_query: "" });
+    qc.invalidateQueries({ queryKey: ["org-report-templates"] });
+    qc.invalidateQueries({ queryKey: ["report-templates"] });
+  };
+
   return (
     <div>
       <PageHeader title="Settings" description="Organization and account configuration" />
