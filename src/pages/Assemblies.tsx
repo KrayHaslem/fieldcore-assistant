@@ -60,6 +60,12 @@ export default function Assemblies() {
   const [stockWarningAcknowledged, setStockWarningAcknowledged] = useState(false);
   const [stockShortfalls, setStockShortfalls] = useState<{ name: string; required: number; available: number }[]>([]);
 
+  // Quick-create dialog state
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createDialogName, setCreateDialogName] = useState("");
+  const [createDialogType, setCreateDialogType] = useState<"resale" | "manufacturing_input">("resale");
+  const [createDialogTarget, setCreateDialogTarget] = useState<"finished" | number>("finished");
+
   // Search finished goods (resale)
   const searchFinished = useCallback(async (query: string): Promise<ItemOption[]> => {
     const { data } = await supabase
