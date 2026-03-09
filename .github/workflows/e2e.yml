@@ -32,6 +32,7 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
           E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+          E2E_RESET_SECRET: ${{ secrets.E2E_RESET_SECRET }}
 
       - name: Upload test report
         uses: actions/upload-artifact@v4

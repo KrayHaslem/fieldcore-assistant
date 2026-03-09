@@ -15,6 +15,15 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
 
   try {
+    // Guard: require shared secret if configured
+    const secret = Deno.env.get("E2E_RESET_SECRET");
+    if (secret && req.headers.get("x-e2e-secret") !== secret) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, serviceKey);
