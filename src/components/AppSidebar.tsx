@@ -16,7 +16,8 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/purchase-orders", icon: ShoppingCart, label: "Purchase Orders" },
+  { to: "/purchase-orders", icon: ShoppingCart, label: "Orders" },
+  { to: "/po-groups", icon: FolderOpen, label: "PO Groups", roles: ["admin", "procurement"] },
   { to: "/inventory", icon: Package, label: "Inventory" },
   { to: "/sales", icon: DollarSign, label: "Sales" },
   { to: "/assemblies", icon: Wrench, label: "Assemblies" },

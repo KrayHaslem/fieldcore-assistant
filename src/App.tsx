@@ -49,6 +49,9 @@ function ProtectedRoutes() {
         <Route path="/purchase-orders" element={<PurchaseOrders />} />
         <Route path="/purchase-orders/new" element={<CreatePurchaseOrder />} />
         <Route path="/purchase-orders/:id" element={<PurchaseOrderDetail />} />
+        <Route path="/po-groups" element={<POGroups />} />
+        <Route path="/po-groups/new" element={<POGroupDetail />} />
+        <Route path="/po-groups/:id" element={<POGroupDetail />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/sales" element={<SalesOrders />} />
         <Route path="/sales/new" element={<CreateSalesOrder />} />
