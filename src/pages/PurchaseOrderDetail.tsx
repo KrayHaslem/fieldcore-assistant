@@ -323,6 +323,16 @@ export default function PurchaseOrderDetail() {
           </div>
         </div>
 
+        {/* Shortfall Warning Banner */}
+        {(po as any).has_shortfall && (
+          <div className="flex items-center gap-3 rounded-md border border-amber-400/50 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-amber-800 dark:text-amber-200">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+            <p className="text-sm font-medium">
+              This order was received with shortfalls. Review line items for details.
+            </p>
+          </div>
+        )}
+
         {/* Details */}
         <div className="fieldcore-card p-6">
           <h3 className="text-sm font-semibold text-foreground mb-4">Order Details</h3>
