@@ -880,6 +880,21 @@ export type Database = {
           rule_is_department_scoped: boolean
         }[]
       }
+      get_margins_by_timeframe: {
+        Args: {
+          _end_date: string
+          _grouping: string
+          _start_date: string
+          _user_id: string
+        }
+        Returns: {
+          cogs: number
+          gross_margin: number
+          margin_pct: number
+          period: string
+          revenue: number
+        }[]
+      }
       get_my_approval_queue: {
         Args: { _user_id: string }
         Returns: {
@@ -909,6 +924,21 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      get_quarterly_revenue: {
+        Args: { _end_date: string; _start_date: string; _user_id: string }
+        Returns: {
+          quarter: string
+          total: number
+        }[]
+      }
+      get_sales_by_item: {
+        Args: { _end_date: string; _start_date: string; _user_id: string }
+        Returns: {
+          item_name: string
+          revenue: number
+          units_sold: number
+        }[]
       }
       get_sales_by_salesperson: {
         Args: { _end_date: string; _start_date: string; _user_id: string }

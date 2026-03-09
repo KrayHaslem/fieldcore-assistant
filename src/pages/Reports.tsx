@@ -259,24 +259,20 @@ export default function Reports() {
   });
 
   const { data: salesItemData, isLoading: loadingSales } = useQuery({
-    queryKey: ["report-sales-item", orgId, startISO, endISO],
-    enabled: selectedKey === "sales_by_item" && !!orgId && canAccessKey("sales_by_item"),
+    queryKey: ["report-sales-item", orgId, user?.id, startISO, endISO],
+    enabled: selectedKey === "sales_by_item" && !!orgId && !!user && canAccessKey("sales_by_item"),
     queryFn: async () => {
-      let soQ = supabase.from("sales_orders").select("id").in("status", ["fulfilled", "invoiced", "paid", "closed"]);
-      if (startISO) soQ = soQ.gte("created_at", startISO);
-      if (endISO) soQ = soQ.lte("created_at", endISO);
-      const { data: sos } = await soQ;
-      if (!sos || sos.length === 0) return [];
-      const soIds = sos.map((s) => s.id);
-      const { data: items } = await supabase.from("sales_order_items").select("item_id, quantity, unit_price, inventory_items:item_id(name)").in("sales_order_id", soIds);
-      const map: Record<string, { name: string; units: number; revenue: number }> = {};
-      (items ?? []).forEach((li: any) => {
-        const name = li.inventory_items?.name ?? "Unknown";
-        if (!map[li.item_id]) map[li.item_id] = { name, units: 0, revenue: 0 };
-        map[li.item_id].units += li.quantity;
-        map[li.item_id].revenue += li.quantity * Number(li.unit_price);
+      const { data, error } = await supabase.rpc("get_sales_by_item", {
+        _user_id: user!.id,
+        _start_date: startISO!,
+        _end_date: endISO!,
       });
-      return Object.values(map).sort((a, b) => b.revenue - a.revenue);
+      if (error) throw error;
+      return (data ?? []).map((r: any) => ({
+        name: r.item_name,
+        units: Number(r.units_sold),
+        revenue: Number(r.revenue),
+      }));
     },
   });
 
@@ -496,62 +492,39 @@ export default function Reports() {
   });
 
   const { data: quarterlyRevData, isLoading: loadingQtrRev } = useQuery({
-    queryKey: ["report-quarterly-rev", orgId, startISO, endISO],
-    enabled: selectedKey === "quarterly_revenue" && !!orgId && canAccessKey("quarterly_revenue"),
+    queryKey: ["report-quarterly-rev", orgId, user?.id, startISO, endISO],
+    enabled: selectedKey === "quarterly_revenue" && !!orgId && !!user && canAccessKey("quarterly_revenue"),
     queryFn: async () => {
-      let q = supabase.from("sales_orders").select("total_amount, created_at").in("status", ["fulfilled", "invoiced", "paid", "closed"]);
-      if (startISO) q = q.gte("created_at", startISO);
-      if (endISO) q = q.lte("created_at", endISO);
-      const { data } = await q;
-      const map: Record<string, number> = {};
-      (data ?? []).forEach((so: any) => {
-        const d = new Date(so.created_at);
-        const qtr = Math.floor(d.getMonth() / 3) + 1;
-        const key = `Q${qtr} ${d.getFullYear()}`;
-        map[key] = (map[key] || 0) + Number(so.total_amount || 0);
+      const { data, error } = await supabase.rpc("get_quarterly_revenue", {
+        _user_id: user!.id,
+        _start_date: startISO!,
+        _end_date: endISO!,
       });
-      return Object.entries(map).map(([quarter, total]) => ({ quarter, total }));
+      if (error) throw error;
+      return (data ?? []).map((r: any) => ({
+        quarter: r.quarter,
+        total: Number(r.total),
+      }));
     },
   });
 
   const { data: marginTimeData, isLoading: loadingMarginTime } = useQuery({
-    queryKey: ["report-margin-time", orgId, startISO, endISO, marginGrouping],
-    enabled: selectedKey === "margins_by_timeframe" && !!orgId && canAccessKey("margins_by_timeframe"),
+    queryKey: ["report-margin-time", orgId, user?.id, startISO, endISO, marginGrouping],
+    enabled: selectedKey === "margins_by_timeframe" && !!orgId && !!user && canAccessKey("margins_by_timeframe"),
     queryFn: async () => {
-      let soQ = supabase.from("sales_orders").select("id, created_at").in("status", ["fulfilled", "invoiced", "paid", "closed"]);
-      if (startISO) soQ = soQ.gte("created_at", startISO);
-      if (endISO) soQ = soQ.lte("created_at", endISO);
-      const { data: sos } = await soQ;
-      if (!sos || sos.length === 0) return [];
-      const soIds = sos.map((s) => s.id);
-      const soDateMap: Record<string, string> = {};
-      sos.forEach((s: any) => { soDateMap[s.id] = s.created_at; });
-      const { data: lines } = await supabase
-        .from("sales_order_items")
-        .select("sales_order_id, quantity, unit_price, inventory_items:item_id(default_unit_cost)")
-        .in("sales_order_id", soIds);
-      const buckets: Record<string, { revenue: number; cogs: number }> = {};
-      (lines ?? []).forEach((li: any) => {
-        const d = new Date(soDateMap[li.sales_order_id]);
-        let key: string;
-        if (marginGrouping === "weekly") {
-          key = `Week of ${format(d, "MMM d, yyyy")}`;
-        } else if (marginGrouping === "monthly") {
-          key = format(d, "MMM yyyy");
-        } else {
-          const qtr = Math.floor(d.getMonth() / 3) + 1;
-          key = `Q${qtr} ${d.getFullYear()}`;
-        }
-        if (!buckets[key]) buckets[key] = { revenue: 0, cogs: 0 };
-        buckets[key].revenue += li.quantity * Number(li.unit_price);
-        buckets[key].cogs += li.quantity * Number(li.inventory_items?.default_unit_cost || 0);
+      const { data, error } = await supabase.rpc("get_margins_by_timeframe", {
+        _user_id: user!.id,
+        _start_date: startISO!,
+        _end_date: endISO!,
+        _grouping: marginGrouping,
       });
-      return Object.entries(buckets).map(([period, v]) => ({
-        period,
-        revenue: v.revenue,
-        cogs: v.cogs,
-        grossMargin: v.revenue - v.cogs,
-        marginPct: v.revenue > 0 ? ((v.revenue - v.cogs) / v.revenue) * 100 : 0,
+      if (error) throw error;
+      return (data ?? []).map((r: any) => ({
+        period: r.period,
+        revenue: Number(r.revenue),
+        cogs: Number(r.cogs),
+        grossMargin: Number(r.gross_margin),
+        marginPct: Number(r.margin_pct),
       }));
     },
   });
