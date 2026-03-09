@@ -394,6 +394,7 @@ export default function Assemblies() {
       {showAssistant && prefill && (
         <FormAssistantPanel
           commandText={prefill.raw || prefill.command || "AI command"}
+          formContext="Assembly Record form. Fields include the finished goods resale item being produced, quantity produced, and the manufacturing input components consumed with their quantities."
           onIntentReceived={handleAssistantIntent}
           onClose={() => setShowAssistant(false)}
         />
