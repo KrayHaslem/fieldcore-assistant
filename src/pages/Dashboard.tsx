@@ -213,7 +213,31 @@ export default function Dashboard() {
     }
   };
 
-  return (
+  const getCommandDestination = (cmd: any): (() => void) | null => {
+    const intentType = cmd.intent_type;
+    const data = cmd.intent_data as Record<string, any> | null;
+    if (!data || intentType === "unknown") return null;
+
+    if (intentType === "create_purchase_order") return () => navigate("/purchase-orders/new", { state: { prefill: data } });
+    if (intentType === "create_sales_order") return () => navigate("/sales", { state: { prefill: data } });
+    if (intentType === "show_report") return () => navigate("/reports", { state: { prefill: data, startDate: data.date_range?.start ?? null, endDate: data.date_range?.end ?? null } });
+    if (intentType === "reconcile_item") return () => navigate("/reconciliation", { state: { prefill: data } });
+    if (intentType === "record_assembly") return () => navigate("/assemblies", { state: { prefill: data } });
+    if (intentType === "navigate") {
+      const dest = data.destination?.toLowerCase();
+      if (dest?.includes("purchase")) return () => navigate("/purchase-orders");
+      if (dest?.includes("inventor")) return () => navigate("/inventory");
+      if (dest?.includes("sales")) return () => navigate("/sales");
+      if (dest?.includes("assembl")) return () => navigate("/assemblies");
+      if (dest?.includes("reconcil")) return () => navigate("/reconciliation");
+      if (dest?.includes("report")) return () => navigate("/reports");
+      if (dest?.includes("setting")) return () => navigate("/settings");
+      return null;
+    }
+    return null;
+  };
+
+
     <div>
       <PageHeader
         title={`Welcome back, ${profile?.full_name?.split(" ")[0] ?? "User"}`}
