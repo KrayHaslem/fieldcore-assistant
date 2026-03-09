@@ -382,6 +382,14 @@ export default function Assemblies() {
                   onSearch={searchFinished}
                   placeholder="Search resale items..."
                   renderOption={renderOption}
+                  allowCreate
+                  createLabel="Add new item"
+                  onCreateNew={(name) => {
+                    setCreateDialogName(name);
+                    setCreateDialogType("resale");
+                    setCreateDialogTarget("finished");
+                    setCreateDialogOpen(true);
+                  }}
                 />
               </div>
 
