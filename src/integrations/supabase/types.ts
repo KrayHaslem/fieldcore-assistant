@@ -357,6 +357,44 @@ export type Database = {
         }
         Relationships: []
       }
+      po_groups: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          notes: string | null
+          organization_id: string
+          po_number: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          po_number: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          po_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "po_groups_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -489,6 +527,7 @@ export type Database = {
           notes: string | null
           ordered_at: string | null
           organization_id: string
+          po_group_id: string | null
           po_number: string
           received_at: string | null
           rejected_at: string | null
@@ -513,6 +552,7 @@ export type Database = {
           notes?: string | null
           ordered_at?: string | null
           organization_id: string
+          po_group_id?: string | null
           po_number: string
           received_at?: string | null
           rejected_at?: string | null
@@ -537,6 +577,7 @@ export type Database = {
           notes?: string | null
           ordered_at?: string | null
           organization_id?: string
+          po_group_id?: string | null
           po_number?: string
           received_at?: string | null
           rejected_at?: string | null
@@ -562,6 +603,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_po_group_id_fkey"
+            columns: ["po_group_id"]
+            isOneToOne: false
+            referencedRelation: "po_groups"
             referencedColumns: ["id"]
           },
           {
@@ -934,6 +982,7 @@ export type Database = {
           notes: string | null
           ordered_at: string | null
           organization_id: string
+          po_group_id: string | null
           po_number: string
           received_at: string | null
           rejected_at: string | null
