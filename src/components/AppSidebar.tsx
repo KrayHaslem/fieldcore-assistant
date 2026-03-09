@@ -9,6 +9,7 @@ import {
   Wrench,
   ClipboardCheck,
   LogOut,
+  FolderOpen,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
