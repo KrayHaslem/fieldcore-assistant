@@ -491,6 +491,9 @@ export type Database = {
           organization_id: string
           po_number: string
           received_at: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_notes: string | null
           required_approver_role: string | null
           rule_is_department_scoped: boolean | null
           status: Database["public"]["Enums"]["po_status"]
@@ -512,6 +515,9 @@ export type Database = {
           organization_id: string
           po_number: string
           received_at?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_notes?: string | null
           required_approver_role?: string | null
           rule_is_department_scoped?: boolean | null
           status?: Database["public"]["Enums"]["po_status"]
@@ -533,6 +539,9 @@ export type Database = {
           organization_id?: string
           po_number?: string
           received_at?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_notes?: string | null
           required_approver_role?: string | null
           rule_is_department_scoped?: boolean | null
           status?: Database["public"]["Enums"]["po_status"]
@@ -917,6 +926,9 @@ export type Database = {
           organization_id: string
           po_number: string
           received_at: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_notes: string | null
           required_approver_role: string | null
           rule_is_department_scoped: boolean | null
           status: Database["public"]["Enums"]["po_status"]

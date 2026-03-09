@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +52,8 @@ export default function PurchaseOrderDetail() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [receivingItems, setReceivingItems] = useState<Record<string, string>>({});
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectionNotes, setRejectionNotes] = useState("");
 
   const { data: po, isLoading } = useQuery({
     queryKey: ["purchase-order", id],
@@ -104,6 +107,19 @@ export default function PurchaseOrderDetail() {
     },
   });
 
+  const { data: rejectedByProfile } = useQuery({
+    queryKey: ["rejected-by-profile", (po as any)?.rejected_by],
+    enabled: !!(po as any)?.rejected_by,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", (po as any).rejected_by)
+        .single();
+      return data?.full_name ?? null;
+    },
+  });
+
   const canApprove = useMemo(() => {
     if (!po || !user) return false;
     if (roles.includes("admin")) return true;
@@ -123,8 +139,14 @@ export default function PurchaseOrderDetail() {
   const isCreator = user?.id === po?.created_by;
 
   const handleStatusChange = async (newStatus: POStatus) => {
+    if (newStatus === "draft") {
+      // Open rejection modal instead of immediate status change
+      setRejectionNotes("");
+      setShowRejectModal(true);
+      return;
+    }
+
     if (newStatus === "received") {
-      // Open receiving modal instead - pre-populate with remaining quantities
       const initial: Record<string, string> = {};
       lineItems?.forEach((li: any) => {
         const alreadyReceived = li.quantity_received ?? 0;
@@ -154,6 +176,31 @@ export default function PurchaseOrderDetail() {
       if (error) throw error;
 
       toast({ title: "Status Updated", description: `PO moved to ${newStatus}` });
+      queryClient.invalidateQueries({ queryKey: ["purchase-order", id] });
+      queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleConfirmRejection = async () => {
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from("purchase_orders")
+        .update({
+          status: "draft" as any,
+          rejected_by: user!.id,
+          rejected_at: new Date().toISOString(),
+          rejection_notes: rejectionNotes.trim() || null,
+        } as any)
+        .eq("id", id!);
+      if (error) throw error;
+
+      toast({ title: "PO Rejected", description: "Purchase order returned to draft." });
+      setShowRejectModal(false);
       queryClient.invalidateQueries({ queryKey: ["purchase-order", id] });
       queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
     } catch (err: any) {
@@ -333,7 +380,25 @@ export default function PurchaseOrderDetail() {
           </div>
         )}
 
-        {/* Details */}
+        {/* Rejection History */}
+        {(po as any).rejected_at && (
+          <div className="flex items-start gap-3 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3">
+            <XCircle className="h-5 w-5 flex-shrink-0 text-destructive mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-destructive">
+                Previously rejected by {rejectedByProfile ?? "unknown"} on{" "}
+                {new Date((po as any).rejected_at).toLocaleString()}
+              </p>
+              {(po as any).rejection_notes && (
+                <p className="mt-1 text-muted-foreground">
+                  Reason: {(po as any).rejection_notes}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+
         <div className="fieldcore-card p-6">
           <h3 className="text-sm font-semibold text-foreground mb-4">Order Details</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -512,6 +577,32 @@ export default function PurchaseOrderDetail() {
             </Button>
             <Button onClick={handleReceive} disabled={isUpdating}>
               {isUpdating ? "Saving..." : "Confirm Receipt"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rejection Modal */}
+      <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reject Purchase Order</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label className="text-sm text-muted-foreground">Rejection reason (optional)</Label>
+            <Textarea
+              value={rejectionNotes}
+              onChange={(e) => setRejectionNotes(e.target.value)}
+              placeholder="Enter reason for rejection..."
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRejectModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmRejection} disabled={isUpdating}>
+              {isUpdating ? "Rejecting..." : "Confirm Rejection"}
             </Button>
           </DialogFooter>
         </DialogContent>
