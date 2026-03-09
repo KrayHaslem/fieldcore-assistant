@@ -360,7 +360,7 @@ export default function CreatePurchaseOrder() {
         toast({ title: "Draft Saved", description: `${poNumber} saved as draft.` });
         navigate("/purchase-orders");
       } else if (autoApprove) {
-        toast({ title:reated", description: `${poNumber} approved automatically.` });
+        toast({ title: "Order Created", description: `${poNumber} approved automatically.` });
         navigate(`/purchase-orders/${po.id}`);
       } else {
         toast({ title: "Submitted for Approval", description: `${poNumber} requires ${rule?.required_role} approval.` });
