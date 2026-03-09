@@ -15,13 +15,87 @@ function jsonResp(body: any, status = 200) {
   });
 }
 
+const MAX_ROWS = 5000;
+const QUERY_TIMEOUT_SECONDS = 15;
+
+/**
+ * Validate an ISO date string. Returns the sanitized string or null.
+ */
+function sanitizeDate(input: string | undefined | null, fallback: string): string {
+  if (!input || typeof input !== "string") return fallback;
+  // Strict ISO 8601 date/datetime pattern
+  const iso = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?)?$/;
+  if (!iso.test(input.trim())) return fallback;
+  // Extra safety: try parsing
+  const d = new Date(input.trim());
+  if (isNaN(d.getTime())) return fallback;
+  return d.toISOString();
+}
+
+/**
+ * Strip SQL comments (both -- and /* *​/) to prevent hiding keywords inside them.
+ */
+function stripComments(sql: string): string {
+  // Remove block comments (non-greedy, handles nested poorly but sufficient for blocklist)
+  let result = sql.replace(/\/\*[\s\S]*?\*\//g, " ");
+  // Remove line comments
+  result = result.replace(/--.*/g, " ");
+  return result;
+}
+
+/**
+ * Validate that SQL is a safe read-only SELECT statement.
+ */
+function validateSelectOnly(sql: string): string | null {
+  const stripped = stripComments(sql);
+  // Normalize whitespace
+  const normalized = stripped.replace(/\s+/g, " ").trim().toUpperCase();
+
+  // Must start with SELECT or WITH (for CTEs)
+  if (!normalized.startsWith("SELECT") && !normalized.startsWith("WITH")) {
+    return "Only SELECT queries are allowed.";
+  }
+
+  // Forbidden keywords — check against comment-stripped, normalized SQL
+  const forbidden = [
+    "INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE",
+    "TRUNCATE", "GRANT", "REVOKE", "EXECUTE", "EXEC",
+    "COPY", "CALL", "DO", "SET ", "RESET",
+    "LISTEN", "NOTIFY", "VACUUM", "ANALYZE",
+    "PREPARE", "DEALLOCATE",
+    "CREATE FUNCTION", "CREATE PROCEDURE",
+    "PG_SLEEP", "PG_TERMINATE_BACKEND", "PG_CANCEL_BACKEND",
+    "LO_IMPORT", "LO_EXPORT",
+    "DBLINK", "FILE_FDW",
+    "PG_READ_FILE", "PG_READ_BINARY_FILE", "PG_LS_DIR",
+    "CURRENT_SETTING", "SET_CONFIG",
+  ];
+
+  for (const kw of forbidden) {
+    // Word-boundary check to avoid false positives (e.g. "UPDATED_AT")
+    const regex = new RegExp(`\\b${kw.replace(/\s+/g, "\\s+")}\\b`);
+    if (regex.test(normalized)) {
+      return `Forbidden SQL keyword detected: ${kw.trim()}`;
+    }
+  }
+
+  // No multiple statements (semicolons)
+  // Remove string literals first to avoid false positives on semicolons inside strings
+  const withoutStrings = normalized.replace(/'[^']*'/g, "''");
+  if (withoutStrings.includes(";")) {
+    return "Multiple SQL statements are not allowed.";
+  }
+
+  return null; // valid
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { template_id, start_date, end_date, user_id, inline_sql, inline_access_level } = await req.json();
 
-    if (!user_id) return jsonResp({ error: "user_id is required." }, 400);
+    if (!user_id || typeof user_id !== "string") return jsonResp({ error: "user_id is required." }, 400);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -39,11 +113,17 @@ serve(async (req) => {
     if (profileErr || !profile) return jsonResp({ error: "User profile not found." }, 403);
     const orgId = profile.organization_id;
 
+    // Validate orgId is a proper UUID to prevent injection through it
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(orgId)) {
+      return jsonResp({ error: "Invalid organization." }, 403);
+    }
+
     let sqlQuery: string;
     let accessLevel: string;
 
     if (inline_sql) {
-      // "Test Query" mode — caller provides SQL directly
+      if (typeof inline_sql !== "string") return jsonResp({ error: "inline_sql must be a string." }, 400);
       sqlQuery = inline_sql;
       accessLevel = inline_access_level || "admin";
     } else {
@@ -90,39 +170,55 @@ serve(async (req) => {
       return jsonResp({ error: "This template has no query configured." }, 400);
     }
 
-    // Validate: only SELECT allowed
-    const upper = trimmedSql.toUpperCase();
-    if (!upper.startsWith("SELECT")) {
-      return jsonResp({ error: "Only SELECT queries are allowed." }, 400);
-    }
-    const forbidden = ["INSERT ", "UPDATE ", "DELETE ", "DROP ", "ALTER ", "CREATE ", "TRUNCATE ", "GRANT ", "REVOKE "];
-    for (const kw of forbidden) {
-      if (upper.includes(kw)) {
-        return jsonResp({ error: `Forbidden SQL keyword detected: ${kw.trim()}` }, 400);
-      }
+    // Validate SQL safety
+    const validationError = validateSelectOnly(trimmedSql);
+    if (validationError) {
+      return jsonResp({ error: validationError }, 400);
     }
 
-    // Replace placeholders — ALWAYS inject user's org_id for security
+    // Sanitize date inputs strictly
+    const safeStartDate = sanitizeDate(start_date, "1970-01-01T00:00:00Z");
+    const safeEndDate = sanitizeDate(end_date, "2099-12-31T23:59:59Z");
+
+    // Replace placeholders with validated values
     const execSql = trimmedSql
       .replace(/:org_id/g, `'${orgId}'`)
-      .replace(/:start_date/g, `'${start_date || "1970-01-01T00:00:00Z"}'`)
-      .replace(/:end_date/g, `'${end_date || "2099-12-31T23:59:59Z"}'`);
+      .replace(/:start_date/g, `'${safeStartDate}'`)
+      .replace(/:end_date/g, `'${safeEndDate}'`);
 
-    // Execute using postgres
+    // Wrap in a read-only transaction with timeout and row limit
+    const wrappedSql = `
+      SET LOCAL statement_timeout = '${QUERY_TIMEOUT_SECONDS}s';
+      SET LOCAL default_transaction_read_only = on;
+      SELECT * FROM (${execSql}) AS _report_result LIMIT ${MAX_ROWS + 1};
+    `;
+
     const sql = postgres(dbUrl, { max: 1, idle_timeout: 5 });
 
     try {
-      const result = await sql.unsafe(execSql);
-      const rows = Array.from(result) as Record<string, unknown>[];
+      const result = await sql.unsafe(wrappedSql);
+      let rows = Array.from(result) as Record<string, unknown>[];
+      let truncated = false;
+      if (rows.length > MAX_ROWS) {
+        rows = rows.slice(0, MAX_ROWS);
+        truncated = true;
+      }
       const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
       await sql.end();
-      return jsonResp({ columns, rows });
+      return jsonResp({ columns, rows, truncated, row_count: rows.length });
     } catch (sqlError: any) {
       try { await sql.end(); } catch {}
-      return jsonResp({ error: `Query execution failed: ${sqlError.message}` }, 400);
+      const msg = sqlError.message || "Unknown query error";
+      // Don't leak internal details — sanitize
+      const safeMsg = msg.includes("statement timeout")
+        ? "Query timed out. Please simplify your query."
+        : msg.includes("read-only")
+        ? "Write operations are not allowed in reports."
+        : `Query execution failed: ${msg.substring(0, 200)}`;
+      return jsonResp({ error: safeMsg }, 400);
     }
   } catch (error: any) {
     console.error("run-report error:", error);
-    return jsonResp({ error: error.message || "Internal error" }, 500);
+    return jsonResp({ error: "Internal error" }, 500);
   }
 });
