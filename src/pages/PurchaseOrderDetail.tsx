@@ -52,6 +52,8 @@ export default function PurchaseOrderDetail() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [receivingItems, setReceivingItems] = useState<Record<string, string>>({});
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectionNotes, setRejectionNotes] = useState("");
 
   const { data: po, isLoading } = useQuery({
     queryKey: ["purchase-order", id],
