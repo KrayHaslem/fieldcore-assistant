@@ -83,7 +83,7 @@ ${reportDescription ? `The user described this report: "${reportDescription}"` :
     // Extract SQL if the response is a pure SQL statement
     const trimmed = content.trim();
     let sql: string | null = null;
-    if (trimmed.toUpperCase().startsWith("SELECT")) {
+    if (trimmed.toUpperCase().startsWith("SELECT") || trimmed.toUpperCase().startsWith("WITH")) {
       // It's a SQL query
       sql = trimmed.replace(/;$/, "");
     }
