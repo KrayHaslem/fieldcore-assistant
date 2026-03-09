@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, ChevronDown, ChevronRight, Hammer, RefreshCw, AlertTriangle } from "lucide-react";
 import { FormAssistantPanel } from "@/components/FormAssistantPanel";
 import { BomSettingsTab } from "@/components/BomSettingsTab";
+import { QuickCreateItemDialog, type CreatedItem } from "@/components/QuickCreateItemDialog";
 
 interface ItemOption extends ComboBoxOption {
   sku: string | null;
