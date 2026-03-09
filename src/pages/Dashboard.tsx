@@ -268,7 +268,7 @@ export default function Dashboard() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Purchase Orders" value={stats?.totalPOs ?? 0} icon={ShoppingCart} />
+          <StatCard label="Orders" value={stats?.totalPOs ?? 0} icon={ShoppingCart} />
           <StatCard
             label="Pending Approvals"
             value={stats?.pendingApprovals ?? 0}

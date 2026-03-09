@@ -208,7 +208,7 @@ serve(async (req) => {
 
     // A sample PO
     const { data: poData } = await sb.from("purchase_orders").insert({
-      po_number: "PO-E2E-001",
+      po_number: "ord-E2E-001",
       supplier_id: suppAlphaId,
       status: "submitted",
       total_amount: 500,

@@ -197,7 +197,7 @@ export default function POGroupDetail() {
           <div className="fieldcore-card p-6 space-y-4">
             <div>
               <Label>Official PO Number</Label>
-              <Input value={poNumber} onChange={(e) => setPoNumber(e.target.value)} placeholder="e.g. PO-2024-001" />
+              <Input value={poNumber} onChange={(e) => setPoNumber(e.target.value)} placeholder="e.g. PO-2024-0001" />
             </div>
             <div>
               <Label>Notes</Label>

@@ -261,7 +261,7 @@ export default function CreatePurchaseOrder() {
     const y = now.getFullYear().toString().slice(-2);
     const m = String(now.getMonth() + 1).padStart(2, "0");
     const rand = Math.floor(Math.random() * 9000 + 1000);
-    return `PO-${y}${m}-${rand}`;
+    return `orddd-${y}${m}-${rand}`;
   };
 
   // Validation
@@ -360,14 +360,14 @@ export default function CreatePurchaseOrder() {
         toast({ title: "Draft Saved", description: `${poNumber} saved as draft.` });
         navigate("/purchase-orders");
       } else if (autoApprove) {
-        toast({ title: "Purchase Order Created", description: `${poNumber} approved automatically.` });
+        toast({ title: "Order Created", description: `${poNumber} approved automatically.` });
         navigate(`/purchase-orders/${po.id}`);
       } else {
         toast({ title: "Submitted for Approval", description: `${poNumber} requires ${rule?.required_role} approval.` });
         navigate("/purchase-orders");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to create purchase order");
+      setError(err.message || "Failed to create order");
     } finally {
       setIsSubmitting(false);
     }
@@ -517,8 +517,8 @@ export default function CreatePurchaseOrder() {
     <div className="flex h-full">
       <div className="flex-1 min-w-0">
       <PageHeader
-        title="New Purchase Order"
-        description="Create a purchase order and submit for approval"
+        title="New Order"
+        description="Create an order and submit for approval"
       />
 
       <div className="p-8 max-w-4xl">
@@ -787,7 +787,7 @@ export default function CreatePurchaseOrder() {
                 ? "Saving..."
                 : requiresApproval
                 ? "Submit for Approval"
-                : "Create Purchase Order"}
+                : "Create Order"}
             </Button>
           </div>
         </div>
@@ -911,7 +911,7 @@ export default function CreatePurchaseOrder() {
       {showAssistant && prefill && (
         <FormAssistantPanel
           commandText={prefill.raw || prefill.command || "AI command"}
-          formContext="Purchase Order creation form. Fields include supplier, department, line items with item name, quantity, unit cost, inventory type, and unit number for internal use items."
+          formContext="Order creation form. Fields include supplier, department, line items with item name, quantity, unit cost, inventory type, and unit number for internal use items."
           onIntentReceived={handleAssistantIntent}
           onClose={() => setShowAssistant(false)}
         />
