@@ -13,6 +13,24 @@ test.describe("Assemblies", () => {
     await expect(page.getByPlaceholder(/Search resale items/i)).toBeVisible();
   });
 
+  test("selecting a seeded resale item auto-populates BOM components", async ({ page }) => {
+    await page.goto("/assemblies");
+    const searchInput = page.getByPlaceholder(/Search resale items/i);
+    await searchInput.click();
+    await searchInput.fill("E2E Resale");
+
+    // Wait for and click the option
+    const option = page.getByText("E2E Resale Widget").first();
+    await expect(option).toBeVisible({ timeout: 5000 });
+    await option.click();
+
+    // BOM banner should appear since we seeded a BOM entry
+    await expect(page.getByText(/Components auto-populated from saved BOM/i)).toBeVisible({ timeout: 5000 });
+
+    // The component "E2E Mfg Input Part" should be auto-populated
+    await expect(page.getByText("E2E Mfg Input Part")).toBeVisible();
+  });
+
   test("assembly history table is present", async ({ page }) => {
     await page.goto("/assemblies");
     await expect(page.getByText("Assembly History")).toBeVisible();
@@ -21,24 +39,5 @@ test.describe("Assemblies", () => {
   test("history table shows component count column", async ({ page }) => {
     await page.goto("/assemblies");
     await expect(page.getByText("Components")).toBeVisible();
-  });
-
-  test("BOM link appears when no BOM is defined for an item", async ({ page }) => {
-    await page.goto("/assemblies");
-    // Search for an item that likely has no BOM
-    const searchInput = page.getByPlaceholder(/Search resale items/i);
-    await searchInput.click();
-    await searchInput.fill("test");
-    
-    // If results appear, click one
-    const options = page.locator('[role="option"], [data-value]');
-    const count = await options.count();
-    if (count > 0) {
-      await options.first().click();
-      // Check for either BOM auto-populate banner or "No BOM defined" link
-      const bomBanner = page.getByText(/Components auto-populated from saved BOM/i);
-      const noBomLink = page.getByText(/Set up a Bill of Materials/i);
-      await expect(bomBanner.or(noBomLink)).toBeVisible({ timeout: 5000 });
-    }
   });
 });
