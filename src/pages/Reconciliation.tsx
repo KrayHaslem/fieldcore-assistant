@@ -263,6 +263,7 @@ export default function Reconciliation() {
       {showAssistant && prefill && (
         <FormAssistantPanel
           commandText={prefill.raw || prefill.command || "AI command"}
+          formContext="Inventory Reconciliation form. Fields include the inventory item being counted and the actual physical count quantity."
           onIntentReceived={handleAssistantIntent}
           onClose={() => setShowAssistant(false)}
         />
