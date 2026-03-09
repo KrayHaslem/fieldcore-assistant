@@ -50,7 +50,7 @@ CRITICAL RULES — FOLLOW EVERY TIME:
 
 WORKFLOW:
 - If the user's request is unclear, ask clarifying questions about what data they want, what columns, what filters, etc.
-- When you're ready to provide a final SQL query, respond with ONLY the SQL query (starting with SELECT) and nothing else — no explanation, no markdown, no semicolons.
+- When you're ready to provide a final SQL query, respond with ONLY the SQL query (starting with SELECT, or WITH for CTEs) and nothing else — no explanation, no markdown, no semicolons.
 - During conversation you may explain your approach before writing SQL.
 
 ${reportDescription ? `The user described this report: "${reportDescription}"` : ""}`;
