@@ -9,20 +9,22 @@ import {
   Wrench,
   ClipboardCheck,
   LogOut,
+  FolderOpen,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/purchase-orders", icon: ShoppingCart, label: "Purchase Orders" },
+  { to: "/purchase-orders", icon: ShoppingCart, label: "Orders" },
+  { to: "/po-groups", icon: FolderOpen, label: "PO Groups", roles: ["admin", "procurement"] as string[] },
   { to: "/inventory", icon: Package, label: "Inventory" },
   { to: "/sales", icon: DollarSign, label: "Sales" },
   { to: "/assemblies", icon: Wrench, label: "Assemblies" },
   { to: "/reconciliation", icon: ClipboardCheck, label: "Reconciliation" },
   { to: "/reports", icon: BarChart3, label: "Reports" },
   { to: "/settings", icon: Settings, label: "Settings" },
-];
+] as const;
 
 export function AppSidebar() {
   const { profile, roles, signOut } = useAuth();
@@ -44,6 +46,7 @@ export function AppSidebar() {
       {/* Nav */}
       <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
         {navItems.map((item) => {
+          if ("roles" in item && item.roles && !item.roles.some((r) => roles.includes(r))) return null;
           const isActive = item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
           return (
             <NavLink

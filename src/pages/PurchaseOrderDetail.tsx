@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -61,7 +61,7 @@ export default function PurchaseOrderDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("purchase_orders")
-        .select("*, suppliers(name, contact_name, contact_email), departments(name)")
+        .select("*, suppliers(name, contact_name, contact_email), departments(name), po_groups(id, po_number)")
         .eq("id", id!)
         .single();
       if (error) throw error;
@@ -336,7 +336,7 @@ export default function PurchaseOrderDetail() {
     <div>
       <PageHeader
         title={po.po_number}
-        description={`Purchase order details`}
+        description="Order details"
         actions={
           <Button variant="outline" size="sm" onClick={() => navigate("/purchase-orders")}>
             <ArrowLeft className="h-4 w-4" />
@@ -447,6 +447,16 @@ export default function PurchaseOrderDetail() {
             <div>
               <span className="text-muted-foreground">Total Amount</span>
               <p className="font-medium text-foreground">${Number(po.total_amount).toLocaleString()}</p>
+            </div>
+            <div>
+              <span className="text-muted-foreground">PO Group</span>
+              <p className="font-medium text-foreground">
+                {(po as any).po_groups?.po_number ? (
+                  <Link to={`/po-groups/${(po as any).po_groups.id}`} className="text-primary hover:underline">
+                    {(po as any).po_groups.po_number}
+                  </Link>
+                ) : "Not assigned"}
+              </p>
             </div>
             {po.notes && (
               <div className="sm:col-span-2">

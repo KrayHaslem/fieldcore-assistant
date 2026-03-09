@@ -10,6 +10,8 @@ import Dashboard from "./pages/Dashboard";
 import PurchaseOrders from "./pages/PurchaseOrders";
 import CreatePurchaseOrder from "./pages/CreatePurchaseOrder";
 import PurchaseOrderDetail from "./pages/PurchaseOrderDetail";
+import POGroups from "./pages/POGroups";
+import POGroupDetail from "./pages/POGroupDetail";
 import CreateSalesOrder from "./pages/CreateSalesOrder";
 import SalesOrderDetail from "./pages/SalesOrderDetail";
 import Inventory from "./pages/Inventory";
@@ -46,6 +48,9 @@ function ProtectedRoutes() {
         <Route path="/purchase-orders" element={<PurchaseOrders />} />
         <Route path="/purchase-orders/new" element={<CreatePurchaseOrder />} />
         <Route path="/purchase-orders/:id" element={<PurchaseOrderDetail />} />
+        <Route path="/po-groups" element={<POGroups />} />
+        <Route path="/po-groups/new" element={<POGroupDetail />} />
+        <Route path="/po-groups/:id" element={<POGroupDetail />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/sales" element={<SalesOrders />} />
         <Route path="/sales/new" element={<CreateSalesOrder />} />

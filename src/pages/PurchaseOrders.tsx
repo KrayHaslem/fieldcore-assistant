@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { Link } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ export default function PurchaseOrders() {
     queryFn: async () => {
       let q = supabase
         .from("purchase_orders")
-        .select("*, suppliers(name), profiles!purchase_orders_created_by_fkey(full_name), has_shortfall");
+        .select("*, suppliers(name), profiles!purchase_orders_created_by_fkey(full_name), has_shortfall, po_groups(po_number)");
 
       if (isEmployeeOnly) {
         q = q.eq("created_by", user!.id);
@@ -37,7 +38,7 @@ export default function PurchaseOrders() {
   return (
     <div>
       <PageHeader
-        title="Purchase Orders"
+        title="Orders"
         description="Manage purchasing workflows"
         actions={
           <Button onClick={() => navigate("/purchase-orders/new")}>
@@ -52,10 +53,11 @@ export default function PurchaseOrders() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50 text-left">
-                <th className="px-5 py-3 font-medium text-muted-foreground">PO #</th>
+                <th className="px-5 py-3 font-medium text-muted-foreground">Order #</th>
                 <th className="px-5 py-3 font-medium text-muted-foreground">Supplier</th>
                 <th className="px-5 py-3 font-medium text-muted-foreground">Created By</th>
                 <th className="px-5 py-3 font-medium text-muted-foreground">Amount</th>
+                <th className="px-5 py-3 font-medium text-muted-foreground">PO Group</th>
                 <th className="px-5 py-3 font-medium text-muted-foreground">Status</th>
                 <th className="px-5 py-3 font-medium text-muted-foreground">Date</th>
               </tr>
@@ -63,15 +65,15 @@ export default function PurchaseOrders() {
             <tbody className="divide-y">
               {isLoading && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-5 py-8 text-center text-muted-foreground">
                     Loading...
                   </td>
                 </tr>
               )}
               {orders?.length === 0 && !isLoading && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-muted-foreground">
-                    No purchase orders yet
+                  <td colSpan={7} className="px-5 py-8 text-center text-muted-foreground">
+                    No orders yet
                   </td>
                 </tr>
               )}
@@ -86,6 +88,17 @@ export default function PurchaseOrders() {
                   <td className="px-5 py-3 text-muted-foreground">{po.profiles?.full_name ?? "—"}</td>
                   <td className="px-5 py-3 font-medium text-foreground">
                     ${Number(po.total_amount).toLocaleString()}
+                  </td>
+                  <td className="px-5 py-3 text-muted-foreground">
+                    {(po as any).po_groups?.po_number ? (
+                      <Link
+                        to={`/po-groups/${(po as any).po_group_id}`}
+                        className="text-primary hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {(po as any).po_groups.po_number}
+                      </Link>
+                    ) : "—"}
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2">
