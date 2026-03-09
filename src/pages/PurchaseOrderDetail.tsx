@@ -255,8 +255,8 @@ export default function PurchaseOrderDetail() {
               source_id: po!.id,
               created_by: user!.id,
               organization_id: orgId,
-              notes: `Received from PO ${ppo_num}`,
-         });
+              notes: `Received from ${po!.po_number}`,
+            });
             if (error) throw error;
             movementsCreated++;
           }
