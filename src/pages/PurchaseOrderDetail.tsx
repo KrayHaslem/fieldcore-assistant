@@ -123,10 +123,12 @@ export default function PurchaseOrderDetail() {
 
   const handleStatusChange = async (newStatus: POStatus) => {
     if (newStatus === "received") {
-      // Open receiving modal instead
+      // Open receiving modal instead - pre-populate with remaining quantities
       const initial: Record<string, string> = {};
       lineItems?.forEach((li: any) => {
-        initial[li.id] = String(li.quantity);
+        const alreadyReceived = li.quantity_received ?? 0;
+        const remaining = Math.max(0, li.quantity - alreadyReceived);
+        initial[li.id] = String(remaining);
       });
       setReceivingItems(initial);
       setShowReceiveModal(true);
