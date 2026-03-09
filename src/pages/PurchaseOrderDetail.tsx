@@ -199,7 +199,7 @@ export default function PurchaseOrderDetail() {
         .eq("id", id!);
       if (error) throw error;
 
-      toast({ title: "Order Rejected", description: "Oeturned to draft." });
+      toast({ title: "Order Rejected", description: "Od to draft." });
       setShowRejectModal(false);
       queryClient.invalidateQueries({ queryKey: ["purchase-order", id] });
       queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
@@ -255,7 +255,7 @@ export default function PurchaseOrderDetail() {
               source_id: po!.id,
               created_by: user!.id,
               organization_id: orgId,
-              notes: `Received from PO ${ppo_number}`,
+              notes: `Received from PO ${ppo_num}`,
             });
             if (error) throw error;
             movementsCreated++;
@@ -319,7 +319,7 @@ export default function PurchaseOrderDetail() {
   if (!po) {
     return (
       <div className="p-8 text-center text-muted-foreground">
-        Purchase order not found.
+        Purchase Ofound.
         <Button variant="link" onClick={() => navigate("/purchase-orders")}>Back to list</Button>
       </div>
     );
