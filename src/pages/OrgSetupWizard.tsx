@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
+import { Bot, Send, Loader2 } from "lucide-react";
 
 const TOTAL_STEPS = 6;
 
@@ -18,6 +19,11 @@ const PURCHASE_TYPES = [
   { id: "manufacturing_input", label: "Manufacturing" },
   { id: "consumable", label: "Consumables" },
 ] as const;
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
 
 export default function OrgSetupWizard() {
   const { orgId } = useParams<{ orgId: string }>();
@@ -42,6 +48,118 @@ export default function OrgSetupWizard() {
   const [hasSalesTeam, setHasSalesTeam] = useState(false);
   // Step 6
   const [policyAccepted, setPolicyAccepted] = useState(false);
+
+  // AI Quick Setup state
+  const [aiInput, setAiInput] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiPrefilled, setAiPrefilled] = useState(false);
+
+  // Chat assistant state
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatSending, setChatSending] = useState(false);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    chatScrollRef.current?.scrollTo({ top: chatScrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [chatMessages]);
+
+  const applyAiPrefill = (data: Record<string, any>): string => {
+    const updated: string[] = [];
+
+    if (data.industry !== undefined) {
+      setIndustry(data.industry);
+      updated.push("industry");
+    }
+    if (data.requires_approval !== undefined) {
+      setRequiresApproval(data.requires_approval);
+      updated.push("approval requirement");
+    }
+    if (data.approval_threshold !== undefined) {
+      setApprovalThreshold(String(data.approval_threshold));
+      updated.push(`approval threshold to $${data.approval_threshold}`);
+    }
+    if (data.approval_role !== undefined) {
+      setApprovalRole(data.approval_role);
+      updated.push(`approver role to ${data.approval_role}`);
+    }
+    if (data.has_departments !== undefined) {
+      setHasDepartments(data.has_departments);
+      updated.push("department setting");
+    }
+    if (data.department_names !== undefined) {
+      const names = Array.isArray(data.department_names)
+        ? data.department_names.join(", ")
+        : data.department_names;
+      setDepartmentNames(names);
+      updated.push("department names");
+    }
+    if (data.tracks_inventory !== undefined) {
+      setTracksInventory(data.tracks_inventory);
+      updated.push("inventory tracking");
+    }
+    if (data.has_sales_team !== undefined) {
+      setHasSalesTeam(data.has_sales_team);
+      updated.push("sales team setting");
+    }
+
+    setAiPrefilled(true);
+
+    if (updated.length > 0) {
+      return `Updated fields: ${updated.join(", ")}.`;
+    }
+    return "I couldn't find anything to update from that. Try describing a specific change, like 'change the approval threshold to $2,000'.";
+  };
+
+  const handleAnalyze = async () => {
+    if (!aiInput.trim() || aiLoading) return;
+    setAiLoading(true);
+    setAiError("");
+
+    try {
+      const { data, error } = await supabase.functions.invoke("parse-command", {
+        body: { command: aiInput.trim() },
+      });
+
+      if (error) throw error;
+
+      applyAiPrefill(data);
+      setStep(2);
+    } catch (err: any) {
+      setAiError(err.message || "Failed to analyze. Please try again.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleChatSend = async () => {
+    const text = chatInput.trim();
+    if (!text || chatSending) return;
+
+    const userMsg: ChatMessage = { role: "user", content: text };
+    setChatMessages((prev) => [...prev, userMsg]);
+    setChatInput("");
+    setChatSending(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("parse-command", {
+        body: { command: text },
+      });
+
+      if (error) throw error;
+
+      const summary = applyAiPrefill(data);
+      setChatMessages((prev) => [...prev, { role: "assistant", content: summary }]);
+    } catch (err: any) {
+      setChatMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: `Sorry, I couldn't process that: ${err.message}` },
+      ]);
+    } finally {
+      setChatSending(false);
+    }
+  };
 
   const togglePurchaseType = (id: string) => {
     setPurchaseTypes((prev) =>
@@ -99,9 +217,270 @@ export default function OrgSetupWizard() {
     }
   };
 
+  const getStepHeading = (stepNum: number, defaultHeading: string) => {
+    if (aiPrefilled && stepNum >= 2 && stepNum <= 5) {
+      return `Review: ${defaultHeading}`;
+    }
+    return defaultHeading;
+  };
+
+  const showAssistantPanel = aiPrefilled && step >= 2 && step <= 5;
+
+  const renderStepContent = () => {
+    switch (step) {
+      case 1:
+        return (
+          <div className="space-y-6">
+            {/* Primary industry input */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-foreground">What industry is your business in?</h2>
+              <p className="text-sm text-muted-foreground">This helps us tailor default settings for your organization.</p>
+              <Input
+                placeholder="e.g. Construction, Manufacturing, Healthcare..."
+                value={industry}
+                onChange={(e) => setIndustry(e.target.value)}
+              />
+            </div>
+
+            {/* Separator */}
+            <div className="relative py-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">or quick setup with AI</span>
+              </div>
+            </div>
+
+            {/* AI Quick Setup Panel */}
+            <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
+              <div className="flex gap-2">
+                <Textarea
+                  className="min-h-[100px] resize-none"
+                  placeholder="Describe your organization..."
+                  value={aiInput}
+                  onChange={(e) => setAiInput(e.target.value)}
+                />
+                <Button
+                  onClick={handleAnalyze}
+                  disabled={aiLoading || !aiInput.trim()}
+                  className="shrink-0"
+                >
+                  {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Analyze"}
+                </Button>
+              </div>
+              {aiError && (
+                <p className="text-sm text-destructive">{aiError}</p>
+              )}
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p className="font-medium">Describe your organization and we'll pre-fill your setup. Try to include:</p>
+                <ul className="list-disc list-inside space-y-0.5 ml-2">
+                  <li>Your industry (e.g. oilfield equipment manufacturing, construction supply)</li>
+                  <li>Whether purchases require approval, and at what dollar amount</li>
+                  <li>Whether approvals are handled company-wide or per department</li>
+                  <li>Your department names if applicable</li>
+                  <li>Whether you manufacture finished goods, buy for resale, or both</li>
+                  <li>Whether you have a dedicated sales team</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 2:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-foreground">{getStepHeading(2, "Purchase Types")}</h2>
+            <p className="text-sm text-muted-foreground">What types of items does your business purchase? Select all that apply.</p>
+            <div className="space-y-3">
+              {PURCHASE_TYPES.map((pt) => (
+                <label
+                  key={pt.id}
+                  className="flex items-center gap-3 rounded-md border px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                >
+                  <Checkbox
+                    checked={purchaseTypes.includes(pt.id)}
+                    onCheckedChange={() => togglePurchaseType(pt.id)}
+                  />
+                  <span className="text-sm font-medium text-foreground">{pt.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 3:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-foreground">{getStepHeading(3, "Approval Requirements")}</h2>
+            <p className="text-sm text-muted-foreground">Do your purchases require approval? If yes, specify the dollar threshold and approver role.</p>
+            <div className="flex items-center gap-3">
+              <Switch checked={requiresApproval} onCheckedChange={setRequiresApproval} />
+              <Label className="text-sm">{requiresApproval ? "Yes, approval required" : "No approval needed"}</Label>
+            </div>
+            {requiresApproval && (
+              <div className="space-y-3 pt-2">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Threshold Amount ($)</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g. 500"
+                    value={approvalThreshold}
+                    onChange={(e) => setApprovalThreshold(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Approver Role</Label>
+                  <Select value={approvalRole} onValueChange={setApprovalRole}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="finance">Finance</SelectItem>
+                      <SelectItem value="procurement">Procurement</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      case 4:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-foreground">{getStepHeading(4, "Departments")}</h2>
+            <p className="text-sm text-muted-foreground">Do you have multiple departments with separate approvers?</p>
+            <div className="flex items-center gap-3">
+              <Switch checked={hasDepartments} onCheckedChange={setHasDepartments} />
+              <Label className="text-sm">{hasDepartments ? "Yes" : "No"}</Label>
+            </div>
+            {hasDepartments && (
+              <div className="pt-2">
+                <Label className="text-xs text-muted-foreground">Department names (comma-separated)</Label>
+                <Textarea
+                  placeholder="e.g. Operations, Engineering, Sales, HR"
+                  value={departmentNames}
+                  onChange={(e) => setDepartmentNames(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-5">
+            <h2 className="text-xl font-semibold text-foreground">{getStepHeading(5, "Inventory & Sales")}</h2>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-foreground mb-2">Do you track inventory for resale or manufacture finished goods?</p>
+                <div className="flex items-center gap-3">
+                  <Switch checked={tracksInventory} onCheckedChange={setTracksInventory} />
+                  <Label className="text-sm">{tracksInventory ? "Yes" : "No"}</Label>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-foreground mb-2">Do you have a sales team?</p>
+                <div className="flex items-center gap-3">
+                  <Switch checked={hasSalesTeam} onCheckedChange={setHasSalesTeam} />
+                  <Label className="text-sm">{hasSalesTeam ? "Yes" : "No"}</Label>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 6:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-foreground">Data Sharing Policy</h2>
+            <div className="rounded-md border-2 border-amber-400/60 bg-amber-50/50 dark:bg-amber-950/20 p-5">
+              <p className="text-sm leading-relaxed text-foreground">
+                FieldCore uses anonymized patterns from across all organizations to improve AI autofill
+                suggestions. This includes item names, supplier names, average prices, and lead times.
+                Your organization's identity, financial totals, and user data are never shared. You must
+                acknowledge this policy to activate your organization.
+              </p>
+            </div>
+            <label className="flex items-start gap-3 cursor-pointer pt-2">
+              <Checkbox
+                checked={policyAccepted}
+                onCheckedChange={(v) => setPolicyAccepted(v === true)}
+                className="mt-0.5"
+              />
+              <span className="text-sm font-medium text-foreground">
+                I understand and agree to the FieldCore data sharing policy.
+              </span>
+            </label>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  const renderAssistantPanel = () => (
+    <div className="w-72 shrink-0 border rounded-lg bg-card flex flex-col h-[400px]">
+      {/* Header */}
+      <div className="flex items-center gap-2 border-b px-4 py-3">
+        <Bot className="h-4 w-4 text-primary" />
+        <span className="text-sm font-semibold text-foreground">Assistant</span>
+      </div>
+
+      {/* Chat history */}
+      <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0">
+        {chatMessages.length === 0 && (
+          <p className="text-xs text-muted-foreground">
+            Ask me to update any fields, e.g. "set approval threshold to $5,000"
+          </p>
+        )}
+        {chatMessages.map((msg, i) => (
+          <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            {msg.role === "assistant" && <Bot className="h-4 w-4 mt-1 text-primary shrink-0" />}
+            <div
+              className={`rounded-lg px-3 py-2 text-sm max-w-[85%] ${
+                msg.role === "user"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-foreground"
+              }`}
+            >
+              {msg.content}
+            </div>
+          </div>
+        ))}
+        {chatSending && (
+          <div className="flex gap-2">
+            <Bot className="h-4 w-4 mt-1 text-primary shrink-0" />
+            <div className="bg-muted rounded-lg px-3 py-2 text-sm text-muted-foreground">Thinking...</div>
+          </div>
+        )}
+      </div>
+
+      {/* Input */}
+      <div className="border-t p-3">
+        <form
+          onSubmit={(e) => { e.preventDefault(); handleChatSend(); }}
+          className="flex gap-2"
+        >
+          <Input
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            placeholder="Ask to update fields..."
+            className="text-sm"
+            disabled={chatSending}
+          />
+          <Button type="submit" size="icon" disabled={chatSending || !chatInput.trim()}>
+            <Send className="h-4 w-4" />
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
-      <div className="w-full max-w-xl">
+      <div className={`w-full ${showAssistantPanel ? "max-w-4xl" : "max-w-xl"}`}>
         {/* Progress */}
         <div className="mb-6 text-center">
           <p className="text-sm font-medium text-muted-foreground mb-2">
@@ -119,165 +498,35 @@ export default function OrgSetupWizard() {
           </div>
         </div>
 
-        <div className="fieldcore-card p-8 space-y-6">
-          {/* Step 1 — Industry */}
-          {step === 1 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-foreground">What industry is your business in?</h2>
-              <p className="text-sm text-muted-foreground">This helps us tailor default settings for your organization.</p>
-              <Input
-                placeholder="e.g. Construction, Manufacturing, Healthcare..."
-                value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
-              />
-            </div>
-          )}
+        <div className="fieldcore-card p-8">
+          <div className={`${showAssistantPanel ? "flex gap-6" : ""}`}>
+            {/* Step content */}
+            <div className={`space-y-6 ${showAssistantPanel ? "flex-1" : ""}`}>
+              {renderStepContent()}
 
-          {/* Step 2 — Purchase Types */}
-          {step === 2 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-foreground">What types of items does your business purchase?</h2>
-              <p className="text-sm text-muted-foreground">Select all that apply.</p>
-              <div className="space-y-3">
-                {PURCHASE_TYPES.map((pt) => (
-                  <label
-                    key={pt.id}
-                    className="flex items-center gap-3 rounded-md border px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
-                  >
-                    <Checkbox
-                      checked={purchaseTypes.includes(pt.id)}
-                      onCheckedChange={() => togglePurchaseType(pt.id)}
-                    />
-                    <span className="text-sm font-medium text-foreground">{pt.label}</span>
-                  </label>
-                ))}
+              {/* Navigation */}
+              <div className="flex justify-between pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setStep((s) => s - 1)}
+                  disabled={step === 1}
+                >
+                  Back
+                </Button>
+                {step < TOTAL_STEPS ? (
+                  <Button onClick={() => setStep((s) => s + 1)} disabled={!canGoNext()}>
+                    Next
+                  </Button>
+                ) : (
+                  <Button onClick={handleFinish} disabled={!canGoNext() || saving}>
+                    {saving ? "Saving…" : "Finish Setup"}
+                  </Button>
+                )}
               </div>
             </div>
-          )}
 
-          {/* Step 3 — Approval Thresholds */}
-          {step === 3 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-foreground">Do your purchases require approval?</h2>
-              <p className="text-sm text-muted-foreground">If yes, specify the dollar threshold and approver role.</p>
-              <div className="flex items-center gap-3">
-                <Switch checked={requiresApproval} onCheckedChange={setRequiresApproval} />
-                <Label className="text-sm">{requiresApproval ? "Yes, approval required" : "No approval needed"}</Label>
-              </div>
-              {requiresApproval && (
-                <div className="space-y-3 pt-2">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Threshold Amount ($)</Label>
-                    <Input
-                      type="number"
-                      placeholder="e.g. 500"
-                      value={approvalThreshold}
-                      onChange={(e) => setApprovalThreshold(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Approver Role</Label>
-                    <Select value={approvalRole} onValueChange={setApprovalRole}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="finance">Finance</SelectItem>
-                        <SelectItem value="procurement">Procurement</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Step 4 — Departments */}
-          {step === 4 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-foreground">Do you have multiple departments with separate approvers?</h2>
-              <div className="flex items-center gap-3">
-                <Switch checked={hasDepartments} onCheckedChange={setHasDepartments} />
-                <Label className="text-sm">{hasDepartments ? "Yes" : "No"}</Label>
-              </div>
-              {hasDepartments && (
-                <div className="pt-2">
-                  <Label className="text-xs text-muted-foreground">Department names (comma-separated)</Label>
-                  <Textarea
-                    placeholder="e.g. Operations, Engineering, Sales, HR"
-                    value={departmentNames}
-                    onChange={(e) => setDepartmentNames(e.target.value)}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Step 5 — Inventory & Sales */}
-          {step === 5 && (
-            <div className="space-y-5">
-              <h2 className="text-xl font-semibold text-foreground">Inventory & Sales</h2>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-foreground mb-2">Do you track inventory for resale or manufacture finished goods?</p>
-                  <div className="flex items-center gap-3">
-                    <Switch checked={tracksInventory} onCheckedChange={setTracksInventory} />
-                    <Label className="text-sm">{tracksInventory ? "Yes" : "No"}</Label>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-foreground mb-2">Do you have a sales team?</p>
-                  <div className="flex items-center gap-3">
-                    <Switch checked={hasSalesTeam} onCheckedChange={setHasSalesTeam} />
-                    <Label className="text-sm">{hasSalesTeam ? "Yes" : "No"}</Label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 6 — Cross-tenant disclosure */}
-          {step === 6 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-foreground">Data Sharing Policy</h2>
-              <div className="rounded-md border-2 border-amber-400/60 bg-amber-50/50 dark:bg-amber-950/20 p-5">
-                <p className="text-sm leading-relaxed text-foreground">
-                  FieldCore uses anonymized patterns from across all organizations to improve AI autofill
-                  suggestions. This includes item names, supplier names, average prices, and lead times.
-                  Your organization's identity, financial totals, and user data are never shared. You must
-                  acknowledge this policy to activate your organization.
-                </p>
-              </div>
-              <label className="flex items-start gap-3 cursor-pointer pt-2">
-                <Checkbox
-                  checked={policyAccepted}
-                  onCheckedChange={(v) => setPolicyAccepted(v === true)}
-                  className="mt-0.5"
-                />
-                <span className="text-sm font-medium text-foreground">
-                  I understand and agree to the FieldCore data sharing policy.
-                </span>
-              </label>
-            </div>
-          )}
-
-          {/* Navigation */}
-          <div className="flex justify-between pt-4">
-            <Button
-              variant="outline"
-              onClick={() => setStep((s) => s - 1)}
-              disabled={step === 1}
-            >
-              Back
-            </Button>
-            {step < TOTAL_STEPS ? (
-              <Button onClick={() => setStep((s) => s + 1)} disabled={!canGoNext()}>
-                Next
-              </Button>
-            ) : (
-              <Button onClick={handleFinish} disabled={!canGoNext() || saving}>
-                {saving ? "Saving…" : "Finish Setup"}
-              </Button>
-            )}
+            {/* Assistant panel */}
+            {showAssistantPanel && renderAssistantPanel()}
           </div>
         </div>
       </div>
