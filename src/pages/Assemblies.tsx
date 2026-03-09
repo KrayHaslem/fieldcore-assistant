@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, ChevronDown, ChevronRight, Hammer, RefreshCw, AlertTriangle } from "lucide-react";
 import { FormAssistantPanel } from "@/components/FormAssistantPanel";
 import { BomSettingsTab } from "@/components/BomSettingsTab";
+import { QuickCreateItemDialog, type CreatedItem } from "@/components/QuickCreateItemDialog";
 
 interface ItemOption extends ComboBoxOption {
   sku: string | null;
@@ -58,6 +59,12 @@ export default function Assemblies() {
   // Stock warning state
   const [stockWarningAcknowledged, setStockWarningAcknowledged] = useState(false);
   const [stockShortfalls, setStockShortfalls] = useState<{ name: string; required: number; available: number }[]>([]);
+
+  // Quick-create dialog state
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createDialogName, setCreateDialogName] = useState("");
+  const [createDialogType, setCreateDialogType] = useState<"resale" | "manufacturing_input">("resale");
+  const [createDialogTarget, setCreateDialogTarget] = useState<"finished" | number>("finished");
 
   // Search finished goods (resale)
   const searchFinished = useCallback(async (query: string): Promise<ItemOption[]> => {
@@ -309,6 +316,15 @@ export default function Assemblies() {
     </div>
   );
 
+  const handleItemCreated = (item: CreatedItem) => {
+    const option: ItemOption = { id: item.id, label: item.name, sku: item.sku };
+    if (createDialogTarget === "finished") {
+      setFinishedItem(option);
+    } else {
+      updateComponent(createDialogTarget as number, "item", option);
+    }
+  };
+
   const handleAssistantIntent = (intent: Record<string, any>): string => {
     const updates: string[] = [];
     if (intent.item_name) {
@@ -375,6 +391,14 @@ export default function Assemblies() {
                   onSearch={searchFinished}
                   placeholder="Search resale items..."
                   renderOption={renderOption}
+                  allowCreate
+                  createLabel="Add new item"
+                  onCreateNew={(name) => {
+                    setCreateDialogName(name);
+                    setCreateDialogType("resale");
+                    setCreateDialogTarget("finished");
+                    setCreateDialogOpen(true);
+                  }}
                 />
               </div>
 
@@ -447,6 +471,14 @@ export default function Assemblies() {
                             onSearch={searchComponents}
                             placeholder="Search manufacturing inputs..."
                             renderOption={renderOption}
+                            allowCreate
+                            createLabel="Add new component"
+                            onCreateNew={(name) => {
+                              setCreateDialogName(name);
+                              setCreateDialogType("manufacturing_input");
+                              setCreateDialogTarget(c.key);
+                              setCreateDialogOpen(true);
+                            }}
                           />
                         </div>
                         <div className="w-28">
@@ -581,6 +613,14 @@ export default function Assemblies() {
           onClose={() => setShowAssistant(false)}
         />
       )}
+
+      <QuickCreateItemDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        defaultName={createDialogName}
+        fixedItemType={createDialogType}
+        onCreated={handleItemCreated}
+      />
     </div>
   );
 }

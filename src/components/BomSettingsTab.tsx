@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2 } from "lucide-react";
+import { QuickCreateItemDialog, type CreatedItem } from "@/components/QuickCreateItemDialog";
 
 interface ItemOption extends ComboBoxOption {
   sku: string | null;
@@ -23,6 +24,12 @@ export function BomSettingsTab() {
   const [addQty, setAddQty] = useState("1");
   const [addNotes, setAddNotes] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Quick-create dialog state
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createDialogName, setCreateDialogName] = useState("");
+  const [createDialogType, setCreateDialogType] = useState<"resale" | "manufacturing_input">("resale");
+  const [createDialogTarget, setCreateDialogTarget] = useState<"finished" | "component">("finished");
 
   // Search finished goods (resale items)
   const searchFinished = useCallback(async (query: string): Promise<ItemOption[]> => {
@@ -123,6 +130,14 @@ export function BomSettingsTab() {
             onSearch={searchFinished}
             placeholder="Search resale items..."
             renderOption={renderOption}
+            allowCreate
+            createLabel="Add new item"
+            onCreateNew={(name) => {
+              setCreateDialogName(name);
+              setCreateDialogType("resale");
+              setCreateDialogTarget("finished");
+              setCreateDialogOpen(true);
+            }}
           />
         </div>
       </div>
@@ -190,6 +205,14 @@ export function BomSettingsTab() {
                   onSearch={searchComponents}
                   placeholder="Search manufacturing inputs..."
                   renderOption={renderOption}
+                  allowCreate
+                  createLabel="Add new component"
+                  onCreateNew={(name) => {
+                    setCreateDialogName(name);
+                    setCreateDialogType("manufacturing_input");
+                    setCreateDialogTarget("component");
+                    setCreateDialogOpen(true);
+                  }}
                 />
               </div>
               <div className="w-28">
@@ -207,6 +230,21 @@ export function BomSettingsTab() {
           </div>
         </div>
       )}
+
+      <QuickCreateItemDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        defaultName={createDialogName}
+        fixedItemType={createDialogType}
+        onCreated={(item: CreatedItem) => {
+          const option: ItemOption = { id: item.id, label: item.name, sku: item.sku };
+          if (createDialogTarget === "finished") {
+            setSelectedItem(option);
+          } else {
+            setAddComponent(option);
+          }
+        }}
+      />
     </div>
   );
 }
