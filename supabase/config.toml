@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.setup-assistant]
 verify_jwt = false
+
+[functions.run-report]
+verify_jwt = false
+
+[functions.report-sql-assistant]
+verify_jwt = false

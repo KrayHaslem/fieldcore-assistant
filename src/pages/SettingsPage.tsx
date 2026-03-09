@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { useToast } from "@/hooks/use-toast";
 import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
 import { Plus, Trash2, Pencil, FlaskConical, RotateCcw, AlertTriangle, Copy } from "lucide-react";
+import { ReportSqlAssistant } from "@/components/ReportSqlAssistant";
 
 const ALL_ROLES = ["admin", "procurement", "sales", "finance", "employee"] as const;
 
@@ -769,10 +770,11 @@ export default function SettingsPage() {
                                 <div className="flex items-center gap-2"><Checkbox checked={rtEditForm.supports_date_range} onCheckedChange={(v) => setRtEditForm({ ...rtEditForm, supports_date_range: !!v })} /><Label>Date Range</Label></div>
                                 <div className="flex items-center gap-2"><Checkbox checked={rtEditForm.supports_quarterly} onCheckedChange={(v) => setRtEditForm({ ...rtEditForm, supports_quarterly: !!v })} /><Label>Quarterly</Label></div>
                               </div>
-                              <div>
-                                <Label>SQL Query *</Label>
-                                <Textarea value={rtEditForm.sql_query} onChange={(e) => setRtEditForm({ ...rtEditForm, sql_query: e.target.value })} rows={4} className="font-mono text-xs" />
-                              </div>
+                              <ReportSqlAssistant
+                                sqlQuery={rtEditForm.sql_query}
+                                onSqlChange={(sql) => setRtEditForm({ ...rtEditForm, sql_query: sql })}
+                                accessLevel={rtEditForm.access_level}
+                              />
                               <div className="flex gap-2">
                                 <Button size="sm" onClick={saveRtEdit} disabled={rtSaving || !rtEditForm.name?.trim() || !rtEditForm.sql_query?.trim()}>{rtSaving ? "Saving..." : "Save"}</Button>
                                 <Button size="sm" variant="outline" onClick={() => setRtEditId(null)}>Cancel</Button>
@@ -818,14 +820,11 @@ export default function SettingsPage() {
                       <div className="flex items-center gap-2"><Checkbox checked={rtNewForm.supports_date_range} onCheckedChange={(v) => setRtNewForm({ ...rtNewForm, supports_date_range: !!v })} /><Label>Date Range</Label></div>
                       <div className="flex items-center gap-2"><Checkbox checked={rtNewForm.supports_quarterly} onCheckedChange={(v) => setRtNewForm({ ...rtNewForm, supports_quarterly: !!v })} /><Label>Quarterly</Label></div>
                     </div>
-                    <div>
-                      <Label>SQL Query *</Label>
-                      <div className="flex items-start gap-2 rounded-md border border-warning/50 bg-warning/10 px-3 py-2 mb-2 text-xs text-warning-foreground">
-                        <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-warning" />
-                        Custom SQL is executed against your organization's data. Queries are automatically scoped via RLS. Use :start_date, :end_date, and :org_id as parameter placeholders.
-                      </div>
-                      <Textarea value={rtNewForm.sql_query} onChange={(e) => setRtNewForm({ ...rtNewForm, sql_query: e.target.value })} rows={5} className="font-mono text-xs" placeholder="SELECT ..." />
-                    </div>
+                    <ReportSqlAssistant
+                      sqlQuery={rtNewForm.sql_query}
+                      onSqlChange={(sql) => setRtNewForm({ ...rtNewForm, sql_query: sql })}
+                      accessLevel={rtNewForm.access_level}
+                    />
                     <div className="flex gap-2">
                       <Button onClick={saveNewTemplate} disabled={rtSaving || !rtNewForm.name.trim() || !rtNewForm.sql_query.trim()}>{rtSaving ? "Creating..." : "Create Template"}</Button>
                       <Button variant="outline" onClick={() => setRtNewOpen(false)}>Cancel</Button>
