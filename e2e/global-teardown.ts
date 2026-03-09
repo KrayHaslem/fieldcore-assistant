@@ -20,6 +20,7 @@ teardown("cleanup test environment", async () => {
       headers: {
         "Content-Type": "application/json",
         apikey: SUPABASE_ANON_KEY,
+        "x-e2e-secret": process.env.E2E_RESET_SECRET ?? "",
       },
       body: JSON.stringify({
         action: "cleanup",
