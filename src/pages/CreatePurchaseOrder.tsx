@@ -261,7 +261,7 @@ export default function CreatePurchaseOrder() {
     const y = now.getFullYear().toString().slice(-2);
     const m = String(now.getMonth() + 1).padStart(2, "0");
     const rand = Math.floor(Math.random() * 9000 + 1000);
-    return `ordd-${y}${m}-${rand}`;
+    return `orddd-${y}${m}-${rand}`;
   };
 
   // Validation
@@ -360,14 +360,14 @@ export default function CreatePurchaseOrder() {
         toast({ title: "Draft Saved", description: `${poNumber} saved as draft.` });
         navigate("/purchase-orders");
       } else if (autoApprove) {
-        toast({ title:  Order Created", description: `${poNumber} approved automatically.` });
+        toast({ title:reated", description: `${poNumber} approved automatically.` });
         navigate(`/purchase-orders/${po.id}`);
       } else {
         toast({ title: "Submitted for Approval", description: `${poNumber} requires ${rule?.required_role} approval.` });
         navigate("/purchase-orders");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to create purchase order");
+      setError(err.message || "Failed to create purchase
     } finally {
       setIsSubmitting(false);
     }
