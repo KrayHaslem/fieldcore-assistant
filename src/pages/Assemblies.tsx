@@ -316,6 +316,15 @@ export default function Assemblies() {
     </div>
   );
 
+  const handleItemCreated = (item: CreatedItem) => {
+    const option: ItemOption = { id: item.id, label: item.name, sku: item.sku };
+    if (createDialogTarget === "finished") {
+      setFinishedItem(option);
+    } else {
+      updateComponent(createDialogTarget as number, "item", option);
+    }
+  };
+
   const handleAssistantIntent = (intent: Record<string, any>): string => {
     const updates: string[] = [];
     if (intent.item_name) {
