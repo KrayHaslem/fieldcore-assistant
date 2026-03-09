@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
 import { Plus, Trash2, Pencil, FlaskConical, RotateCcw, AlertTriangle, Copy } from "lucide-react";
 import { ReportSqlAssistant } from "@/components/ReportSqlAssistant";
+import { BomSettingsTab } from "@/components/BomSettingsTab";
 
 const ALL_ROLES = ["admin", "procurement", "sales", "finance", "employee"] as const;
 
