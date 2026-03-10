@@ -60,7 +60,7 @@ export default function PurchaseOrders() {
         title="Orders"
         description="Manage purchasing workflows"
         actions={
-          <Button onClick={() => navigate("/purchase-orders/new")}>
+          <Button onClick={() => navigate("/orders/new")}>
             <Plus className="h-4 w-4" />
             New Order
           </Button>
