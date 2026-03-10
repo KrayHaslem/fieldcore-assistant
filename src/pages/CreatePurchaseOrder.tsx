@@ -361,7 +361,7 @@ export default function CreatePurchaseOrder() {
         navigate("/orders");
       } else if (autoApprove) {
         toast({ title: "Order Created", description: `${poNumber} approved automatically.` });
-        navigate(`/purchase-orders/${po.id}`);
+        navigate(`/orders/${po.id}`);
       } else {
         toast({ title: "Submitted for Approval", description: `${poNumber} requires ${rule?.required_role} approval.` });
         navigate("/purchase-orders");
