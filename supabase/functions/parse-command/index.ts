@@ -171,7 +171,7 @@ Always return valid JSON only. No markdown, no explanation. If you cannot determ
     });
   } catch (error) {
     console.error("parse-command error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
