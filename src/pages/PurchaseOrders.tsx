@@ -24,14 +24,33 @@ export default function PurchaseOrders() {
     queryFn: async () => {
       let q = supabase
         .from("purchase_orders")
-        .select("*, suppliers(name), profiles!purchase_orders_created_by_fkey(full_name), has_shortfall, po_groups(po_number)");
+        .select("*, suppliers(name), has_shortfall, po_groups(po_number)");
 
       if (isEmployeeOnly) {
         q = q.eq("created_by", user!.id);
       }
 
-      const { data } = await q.order("created_at", { ascending: false });
-      return data ?? [];
+      const { data, error } = await q.order("created_at", { ascending: false });
+      if (error) {
+        console.error("Orders query error:", error);
+        return [];
+      }
+      
+      // Fetch creator names separately since there's no FK from purchase_orders to profiles
+      const creatorIds = [...new Set((data ?? []).map((po: any) => po.created_by).filter(Boolean))];
+      let profileMap: Record<string, string> = {};
+      if (creatorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", creatorIds);
+        profileMap = Object.fromEntries((profiles ?? []).map((p: any) => [p.user_id, p.full_name]));
+      }
+      
+      return (data ?? []).map((po: any) => ({
+        ...po,
+        creator_name: profileMap[po.created_by] ?? "—",
+      }));
     },
   });
 
