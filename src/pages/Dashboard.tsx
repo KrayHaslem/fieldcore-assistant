@@ -172,7 +172,7 @@ export default function Dashboard() {
       // Route based on intent
       const intent = data?.intent;
       if (intent === "create_purchase_order") {
-        navigate("/purchase-orders/new", { state: { prefill: data } });
+        navigate("/orders/new", { state: { prefill: data } });
       } else if (intent === "create_sales_order") {
         navigate("/sales", { state: { prefill: data } });
       } else if (intent === "show_report") {
@@ -189,7 +189,7 @@ export default function Dashboard() {
         navigate("/assemblies", { state: { prefill: data } });
       } else if (intent === "navigate") {
         const dest = data?.destination?.toLowerCase();
-        if (dest?.includes("purchase")) navigate("/purchase-orders");
+        if (dest?.includes("purchase") || dest?.includes("order")) navigate("/orders");
         else if (dest?.includes("inventor")) navigate("/inventory");
         else if (dest?.includes("sales")) navigate("/sales");
         else if (dest?.includes("assembl")) navigate("/assemblies");
@@ -218,14 +218,14 @@ export default function Dashboard() {
     const data = cmd.intent_data as Record<string, any> | null;
     if (!data || intentType === "unknown") return null;
 
-    if (intentType === "create_purchase_order") return () => navigate("/purchase-orders/new", { state: { prefill: data } });
+    if (intentType === "create_purchase_order") return () => navigate("/orders/new", { state: { prefill: data } });
     if (intentType === "create_sales_order") return () => navigate("/sales", { state: { prefill: data } });
     if (intentType === "show_report") return () => navigate("/reports", { state: { prefill: data, startDate: data.date_range?.start ?? null, endDate: data.date_range?.end ?? null } });
     if (intentType === "reconcile_item") return () => navigate("/reconciliation", { state: { prefill: data } });
     if (intentType === "record_assembly") return () => navigate("/assemblies", { state: { prefill: data } });
     if (intentType === "navigate") {
       const dest = data.destination?.toLowerCase();
-      if (dest?.includes("purchase")) return () => navigate("/purchase-orders");
+      if (dest?.includes("purchase") || dest?.includes("order")) return () => navigate("/orders");
       if (dest?.includes("inventor")) return () => navigate("/inventory");
       if (dest?.includes("sales")) return () => navigate("/sales");
       if (dest?.includes("assembl")) return () => navigate("/assemblies");
@@ -300,7 +300,7 @@ export default function Dashboard() {
                     <div
                       key={po.id}
                       className="flex items-center justify-between px-5 py-3 hover:bg-muted/50 cursor-pointer transition-colors"
-                      onClick={() => navigate(`/purchase-orders/${po.id}`)}
+                      onClick={() => navigate(`/orders/${po.id}`)}
                     >
                       <div>
                         <p className="text-sm font-medium text-foreground">{po.po_number}</p>
@@ -336,7 +336,7 @@ export default function Dashboard() {
                   <div
                     key={po.id}
                     className="flex items-center justify-between px-5 py-3 hover:bg-muted/50 cursor-pointer transition-colors"
-                    onClick={() => navigate(`/purchase-orders/${po.id}`)}
+                    onClick={() => navigate(`/orders/${po.id}`)}
                   >
                     <div>
                       <p className="text-sm font-medium text-foreground">{po.po_number}</p>

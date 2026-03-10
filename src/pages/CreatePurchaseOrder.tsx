@@ -358,13 +358,13 @@ export default function CreatePurchaseOrder() {
 
       if (!submitForApproval) {
         toast({ title: "Draft Saved", description: `${poNumber} saved as draft.` });
-        navigate("/purchase-orders");
+        navigate("/orders");
       } else if (autoApprove) {
         toast({ title: "Order Created", description: `${poNumber} approved automatically.` });
-        navigate(`/purchase-orders/${po.id}`);
+        navigate(`/orders/${po.id}`);
       } else {
         toast({ title: "Submitted for Approval", description: `${poNumber} requires ${rule?.required_role} approval.` });
-        navigate("/purchase-orders");
+        navigate("/orders");
       }
     } catch (err: any) {
       setError(err.message || "Failed to create order");
@@ -768,7 +768,7 @@ export default function CreatePurchaseOrder() {
           <div className="flex items-center gap-3 pt-2">
             <Button
               variant="outline"
-              onClick={() => navigate("/purchase-orders")}
+              onClick={() => navigate("/orders")}
             >
               Cancel
             </Button>

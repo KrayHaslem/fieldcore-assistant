@@ -320,7 +320,7 @@ export default function PurchaseOrderDetail() {
     return (
       <div className="p-8 text-center text-muted-foreground">
         Order not found.
-        <Button variant="link" onClick={() => navigate("/purchase-orders")}>Back to list</Button>
+        <Button variant="link" onClick={() => navigate("/orders")}>Back to list</Button>
       </div>
     );
   }
@@ -338,7 +338,7 @@ export default function PurchaseOrderDetail() {
         title={po.po_number}
         description="Order details"
         actions={
-          <Button variant="outline" size="sm" onClick={() => navigate("/purchase-orders")}>
+          <Button variant="outline" size="sm" onClick={() => navigate("/orders")}>
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>

@@ -280,7 +280,7 @@ export default function POGroupDetail() {
                 <tr key={o.id} className="hover:bg-muted/30 transition-colors">
                   <td
                     className="px-5 py-3 font-medium text-primary cursor-pointer hover:underline"
-                    onClick={() => navigate(`/purchase-orders/${o.id}`)}
+                    onClick={() => navigate(`/orders/${o.id}`)}
                   >
                     {o.po_number}
                   </td>

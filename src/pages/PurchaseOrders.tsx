@@ -24,14 +24,33 @@ export default function PurchaseOrders() {
     queryFn: async () => {
       let q = supabase
         .from("purchase_orders")
-        .select("*, suppliers(name), profiles!purchase_orders_created_by_fkey(full_name), has_shortfall, po_groups(po_number)");
+        .select("*, suppliers(name), has_shortfall, po_groups(po_number)");
 
       if (isEmployeeOnly) {
         q = q.eq("created_by", user!.id);
       }
 
-      const { data } = await q.order("created_at", { ascending: false });
-      return data ?? [];
+      const { data, error } = await q.order("created_at", { ascending: false });
+      if (error) {
+        console.error("Orders query error:", error);
+        return [];
+      }
+      
+      // Fetch creator names separately since there's no FK from purchase_orders to profiles
+      const creatorIds = [...new Set((data ?? []).map((po: any) => po.created_by).filter(Boolean))];
+      let profileMap: Record<string, string> = {};
+      if (creatorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", creatorIds);
+        profileMap = Object.fromEntries((profiles ?? []).map((p: any) => [p.user_id, p.full_name]));
+      }
+      
+      return (data ?? []).map((po: any) => ({
+        ...po,
+        creator_name: profileMap[po.created_by] ?? "—",
+      }));
     },
   });
 
@@ -41,7 +60,7 @@ export default function PurchaseOrders() {
         title="Orders"
         description="Manage purchasing workflows"
         actions={
-          <Button onClick={() => navigate("/purchase-orders/new")}>
+          <Button onClick={() => navigate("/orders/new")}>
             <Plus className="h-4 w-4" />
             New Order
           </Button>
@@ -81,11 +100,11 @@ export default function PurchaseOrders() {
                 <tr
                   key={po.id}
                   className="hover:bg-muted/30 cursor-pointer transition-colors"
-                  onClick={() => navigate(`/purchase-orders/${po.id}`)}
+                  onClick={() => navigate(`/orders/${po.id}`)}
                 >
                   <td className="px-5 py-3 font-medium text-foreground">{po.po_number}</td>
                   <td className="px-5 py-3 text-foreground">{po.suppliers?.name ?? "—"}</td>
-                  <td className="px-5 py-3 text-muted-foreground">{po.profiles?.full_name ?? "—"}</td>
+                  <td className="px-5 py-3 text-muted-foreground">{po.creator_name}</td>
                   <td className="px-5 py-3 font-medium text-foreground">
                     ${Number(po.total_amount).toLocaleString()}
                   </td>
