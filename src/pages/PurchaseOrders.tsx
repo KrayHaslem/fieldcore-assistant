@@ -104,7 +104,7 @@ export default function PurchaseOrders() {
                 >
                   <td className="px-5 py-3 font-medium text-foreground">{po.po_number}</td>
                   <td className="px-5 py-3 text-foreground">{po.suppliers?.name ?? "—"}</td>
-                  <td className="px-5 py-3 text-muted-foreground">{po.profiles?.full_name ?? "—"}</td>
+                  <td className="px-5 py-3 text-muted-foreground">{po.creator_name}</td>
                   <td className="px-5 py-3 font-medium text-foreground">
                     ${Number(po.total_amount).toLocaleString()}
                   </td>

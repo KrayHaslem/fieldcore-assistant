@@ -768,7 +768,7 @@ export default function CreatePurchaseOrder() {
           <div className="flex items-center gap-3 pt-2">
             <Button
               variant="outline"
-              onClick={() => navigate("/purchase-orders")}
+              onClick={() => navigate("/orders")}
             >
               Cancel
             </Button>

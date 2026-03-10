@@ -45,9 +45,12 @@ function ProtectedRoutes() {
     <Routes>
       <Route element={<AppLayout />}>
         <Route path="/" element={<Dashboard />} />
-        <Route path="/purchase-orders" element={<PurchaseOrders />} />
-        <Route path="/purchase-orders/new" element={<CreatePurchaseOrder />} />
-        <Route path="/purchase-orders/:id" element={<PurchaseOrderDetail />} />
+        <Route path="/orders" element={<PurchaseOrders />} />
+        <Route path="/orders/new" element={<CreatePurchaseOrder />} />
+        <Route path="/orders/:id" element={<PurchaseOrderDetail />} />
+        {/* Redirect old routes */}
+        <Route path="/purchase-orders" element={<Navigate to="/orders" replace />} />
+        <Route path="/purchase-orders/*" element={<Navigate to="/orders" replace />} />
         <Route path="/po-groups" element={<POGroups />} />
         <Route path="/po-groups/new" element={<POGroupDetail />} />
         <Route path="/po-groups/:id" element={<POGroupDetail />} />

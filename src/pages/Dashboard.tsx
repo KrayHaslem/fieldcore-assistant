@@ -336,7 +336,7 @@ export default function Dashboard() {
                   <div
                     key={po.id}
                     className="flex items-center justify-between px-5 py-3 hover:bg-muted/50 cursor-pointer transition-colors"
-                    onClick={() => navigate(`/purchase-orders/${po.id}`)}
+                    onClick={() => navigate(`/orders/${po.id}`)}
                   >
                     <div>
                       <p className="text-sm font-medium text-foreground">{po.po_number}</p>
