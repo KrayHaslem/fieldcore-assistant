@@ -320,7 +320,7 @@ export default function PurchaseOrderDetail() {
     return (
       <div className="p-8 text-center text-muted-foreground">
         Order not found.
-        <Button variant="link" onClick={() => navigate("/purchase-orders")}>Back to list</Button>
+        <Button variant="link" onClick={() => navigate("/orders")}>Back to list</Button>
       </div>
     );
   }
