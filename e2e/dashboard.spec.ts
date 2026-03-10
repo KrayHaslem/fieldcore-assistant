@@ -4,7 +4,7 @@ test.describe("Dashboard", () => {
   test("loads with stat cards", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText(/Welcome back/i)).toBeVisible();
-    await expect(page.getByText("Purchase Orders")).toBeVisible();
+    await expect(page.getByText("Orders")).toBeVisible();
     await expect(page.getByText("Pending Approvals")).toBeVisible();
     await expect(page.getByText("Sales Orders")).toBeVisible();
     await expect(page.getByText("Inventory Items")).toBeVisible();
@@ -14,8 +14,6 @@ test.describe("Dashboard", () => {
     await page.goto("/");
     await expect(page.getByText(/Welcome back/i)).toBeVisible();
 
-    // The reset-e2e function seeds 1 PO, 1 SO, and 3 inventory items
-    // Verify stat cards show non-zero values (at minimum)
     const statCards = page.locator("[class*='stat'], [class*='card']");
     await expect(statCards.first()).toBeVisible();
   });
@@ -62,9 +60,8 @@ test.describe("Dashboard", () => {
     await expect(page.getByText(/Welcome back/i)).toBeVisible();
   });
 
-  test("seeded PO appears in awaiting approval section", async ({ page }) => {
+  test("seeded order appears in awaiting approval section", async ({ page }) => {
     await page.goto("/");
-    // The seeded PO has status "submitted", so it should appear in approval queue
-    await expect(page.getByText("PO-E2E-001").or(page.getByText("Awaiting Your Approval"))).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("ord-E2E-001").or(page.getByText("Awaiting Your Approval"))).toBeVisible({ timeout: 10000 });
   });
 });

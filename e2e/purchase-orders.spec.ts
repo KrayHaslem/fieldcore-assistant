@@ -4,8 +4,7 @@ test.describe("Purchase Orders", () => {
   test("PO list shows seeded test data", async ({ page }) => {
     await page.goto("/purchase-orders");
     await expect(page.getByText("Manage purchasing workflows")).toBeVisible();
-    // Seeded PO should appear
-    await expect(page.getByText("PO-E2E-001")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("ord-E2E-001")).toBeVisible({ timeout: 10000 });
     await expect(page.getByText("E2E Supplier Alpha")).toBeVisible();
   });
 
@@ -17,11 +16,11 @@ test.describe("Purchase Orders", () => {
     await expect(page.getByText("Status")).toBeVisible();
   });
 
-  test("New PO button navigates to create form", async ({ page }) => {
+  test("New Order button navigates to create form", async ({ page }) => {
     await page.goto("/purchase-orders");
-    await page.getByRole("button", { name: /New PO/i }).click();
+    await page.getByRole("button", { name: /New Order/i }).click();
     await expect(page).toHaveURL("/purchase-orders/new");
-    await expect(page.getByText("New Purchase Order")).toBeVisible();
+    await expect(page.getByText("New Order")).toBeVisible();
   });
 
   test("create PO form has required fields", async ({ page }) => {
@@ -40,8 +39,8 @@ test.describe("Purchase Orders", () => {
 
   test("can click seeded PO row to view detail", async ({ page }) => {
     await page.goto("/purchase-orders");
-    await expect(page.getByText("PO-E2E-001")).toBeVisible({ timeout: 10000 });
-    await page.getByText("PO-E2E-001").click();
+    await expect(page.getByText("ord-E2E-001")).toBeVisible({ timeout: 10000 });
+    await page.getByText("ord-E2E-001").click();
     await expect(page).toHaveURL(/\/purchase-orders\/.+/);
   });
 });
