@@ -225,7 +225,7 @@ export default function Dashboard() {
     if (intentType === "record_assembly") return () => navigate("/assemblies", { state: { prefill: data } });
     if (intentType === "navigate") {
       const dest = data.destination?.toLowerCase();
-      if (dest?.includes("purchase")) return () => navigate("/purchase-orders");
+      if (dest?.includes("purchase") || dest?.includes("order")) return () => navigate("/orders");
       if (dest?.includes("inventor")) return () => navigate("/inventory");
       if (dest?.includes("sales")) return () => navigate("/sales");
       if (dest?.includes("assembl")) return () => navigate("/assemblies");
