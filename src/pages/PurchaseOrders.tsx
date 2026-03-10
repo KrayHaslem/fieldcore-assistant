@@ -100,7 +100,7 @@ export default function PurchaseOrders() {
                 <tr
                   key={po.id}
                   className="hover:bg-muted/30 cursor-pointer transition-colors"
-                  onClick={() => navigate(`/purchase-orders/${po.id}`)}
+                  onClick={() => navigate(`/orders/${po.id}`)}
                 >
                   <td className="px-5 py-3 font-medium text-foreground">{po.po_number}</td>
                   <td className="px-5 py-3 text-foreground">{po.suppliers?.name ?? "—"}</td>
