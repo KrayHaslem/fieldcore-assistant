@@ -358,7 +358,7 @@ export default function CreatePurchaseOrder() {
 
       if (!submitForApproval) {
         toast({ title: "Draft Saved", description: `${poNumber} saved as draft.` });
-        navigate("/purchase-orders");
+        navigate("/orders");
       } else if (autoApprove) {
         toast({ title: "Order Created", description: `${poNumber} approved automatically.` });
         navigate(`/purchase-orders/${po.id}`);
