@@ -189,7 +189,7 @@ export default function Dashboard() {
         navigate("/assemblies", { state: { prefill: data } });
       } else if (intent === "navigate") {
         const dest = data?.destination?.toLowerCase();
-        if (dest?.includes("purchase")) navigate("/purchase-orders");
+        if (dest?.includes("purchase") || dest?.includes("order")) navigate("/orders");
         else if (dest?.includes("inventor")) navigate("/inventory");
         else if (dest?.includes("sales")) navigate("/sales");
         else if (dest?.includes("assembl")) navigate("/assemblies");
