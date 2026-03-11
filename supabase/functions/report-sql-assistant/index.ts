@@ -123,7 +123,8 @@ WORKFLOW:
 - You may call the tool with partial fields and fill in more later
 - Always include a conversational reply explaining what you set and why
 
-${reportDescription ? `The user described this report: "${reportDescription}"` : ""}`;
+${reportDescription ? `The user described this report: "${reportDescription}"` : ""}
+${instruction ? `\nIMPORTANT: ${instruction}` : ""}`;
 
     const body: any = {
       model: "google/gemini-2.5-flash",
