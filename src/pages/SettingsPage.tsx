@@ -347,6 +347,20 @@ export default function SettingsPage() {
     name: "", description: "", access_level: "admin", chart_type: "table",
     supports_date_range: true, sql_query: "",
   });
+  const [showTemplateAssistant, setShowTemplateAssistant] = useState(false);
+  const [templateAssistantInitialMsg, setTemplateAssistantInitialMsg] = useState<string | undefined>();
+
+  // Handle command center prefill for create_report_template
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.prefill?.intent === "create_report_template" && searchParams.get("tab") === "report-templates") {
+      setRtNewOpen(true);
+      setShowTemplateAssistant(true);
+      setTemplateAssistantInitialMsg(state.commandText || state.prefill.description || "");
+      // Clear navigation state so it doesn't re-trigger
+      navigate(location.pathname + location.search, { replace: true, state: {} });
+    }
+  }, [location.state]);
 
   const { data: systemTemplates } = useQuery({
     queryKey: ["system-report-templates"],
