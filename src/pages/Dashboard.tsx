@@ -202,6 +202,8 @@ export default function Dashboard() {
         }
       } else if (intent === "reconcile_item") {
         navigate("/reconciliation", { state: { prefill: data } });
+      } else if (intent === "create_report_template") {
+        navigate("/settings?tab=report-templates", { state: { prefill: data, commandText: command.trim() } });
       } else if (intent === "record_assembly") {
         navigate("/assemblies", { state: { prefill: data } });
       } else if (intent === "navigate") {
