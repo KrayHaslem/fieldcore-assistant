@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { FormAssistantPanel, type UnmatchedItem } from "@/components/FormAssistantPanel";
+import { FormAssistantPanel, type UnmatchedItem, type UnmatchedSupplier } from "@/components/FormAssistantPanel";
 import { useAuth } from "@/lib/auth";
 import { PageHeader } from "@/components/PageHeader";
 import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
