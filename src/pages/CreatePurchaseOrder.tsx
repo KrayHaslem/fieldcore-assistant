@@ -925,6 +925,7 @@ export default function CreatePurchaseOrder() {
           onIntentReceived={handleAssistantIntent}
           onClose={() => setShowAssistant(false)}
           unmatchedItems={prefill.unmatched_items as UnmatchedItem[] | undefined}
+          unmatchedSupplier={prefill.unmatched_supplier as UnmatchedSupplier | undefined}
         />
       )}
     </div>
