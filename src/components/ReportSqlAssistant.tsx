@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/hooks/use-toast";
 import { Bot, Send, User, Play, AlertTriangle } from "lucide-react";
 
 interface ChatMessage {
@@ -15,6 +16,22 @@ interface ReportSqlAssistantProps {
   sqlQuery: string;
   onSqlChange: (sql: string) => void;
   accessLevel: string;
+}
+
+/**
+ * Extract raw SQL from markdown code fences as a client-side fallback.
+ */
+function extractSqlFromFences(text: string): string | null {
+  const fenceRegex = /```(?:sql)?\s*\n?([\s\S]*?)```/i;
+  const match = text.match(fenceRegex);
+  if (match) {
+    const inner = match[1].trim().replace(/;$/, "");
+    const upper = inner.toUpperCase();
+    if (upper.startsWith("SELECT") || upper.startsWith("WITH")) {
+      return inner;
+    }
+  }
+  return null;
 }
 
 export function ReportSqlAssistant({ sqlQuery, onSqlChange, accessLevel }: ReportSqlAssistantProps) {
@@ -32,6 +49,17 @@ export function ReportSqlAssistant({ sqlQuery, onSqlChange, accessLevel }: Repor
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
+
+  // Clear stale test results when SQL changes
+  useEffect(() => {
+    setTestResult(null);
+    setTestError(null);
+  }, [sqlQuery]);
+
+  const applySql = (sql: string) => {
+    onSqlChange(sql);
+    toast({ title: "SQL query updated", description: "The assistant filled in the query. You can edit it or preview results." });
+  };
 
   const handleSend = async () => {
     const text = input.trim();
@@ -56,7 +84,13 @@ export function ReportSqlAssistant({ sqlQuery, onSqlChange, accessLevel }: Repor
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
 
       if (data?.sql) {
-        onSqlChange(data.sql);
+        applySql(data.sql);
+      } else {
+        // Client-side fallback: try extracting SQL from markdown fences in the reply
+        const extracted = extractSqlFromFences(reply);
+        if (extracted) {
+          applySql(extracted);
+        }
       }
     } catch (err: any) {
       setMessages((prev) => [...prev, { role: "assistant", content: `Error: ${err.message}` }]);
@@ -81,14 +115,28 @@ export function ReportSqlAssistant({ sqlQuery, onSqlChange, accessLevel }: Repor
           end_date: new Date().toISOString(),
         },
       });
-      if (error) throw error;
+
+      // Edge function may return error in data body even with 200, or throw on non-2xx
       if (data?.error) {
         setTestError(data.error);
+      } else if (error) {
+        // supabase.functions.invoke throws FunctionsHttpError for non-2xx
+        const msg = typeof error === "object" && error.message ? error.message : String(error);
+        setTestError(
+          msg.includes("non-2xx")
+            ? "Query failed. Check your SQL syntax and try again."
+            : msg
+        );
       } else {
         setTestResult(data);
       }
     } catch (err: any) {
-      setTestError(err.message);
+      const msg = err.message || "Unknown error";
+      setTestError(
+        msg.includes("non-2xx")
+          ? "Query failed. Check your SQL syntax and try again."
+          : msg
+      );
     } finally {
       setTesting(false);
     }
@@ -161,7 +209,7 @@ export function ReportSqlAssistant({ sqlQuery, onSqlChange, accessLevel }: Repor
             className="self-start"
           >
             <Play className="h-3.5 w-3.5" />
-            {testing ? "Running..." : "Test Query"}
+            {testing ? "Running..." : "Preview Results"}
           </Button>
         </div>
       </div>

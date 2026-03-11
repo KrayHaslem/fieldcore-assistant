@@ -22,6 +22,24 @@ const SCHEMA_SUMMARY = `Available tables and columns (PostgreSQL):
 - assembly_record_components(id UUID, assembly_record_id UUID, component_item_id UUID, quantity_consumed INT)
 - profiles(id UUID, user_id UUID, organization_id UUID, full_name TEXT, email TEXT, department_id UUID)`;
 
+/**
+ * Extract raw SQL from a response that may contain markdown code fences.
+ * Returns the raw SQL string or null if no SQL block found.
+ */
+function extractSqlFromFences(text: string): string | null {
+  // Match ```sql ... ``` or ``` ... ``` blocks
+  const fenceRegex = /```(?:sql)?\s*\n?([\s\S]*?)```/i;
+  const match = text.match(fenceRegex);
+  if (match) {
+    const inner = match[1].trim().replace(/;$/, "");
+    const upper = inner.toUpperCase();
+    if (upper.startsWith("SELECT") || upper.startsWith("WITH")) {
+      return inner;
+    }
+  }
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -46,7 +64,9 @@ CRITICAL RULES — FOLLOW EVERY TIME:
 4. NEVER use subqueries that access data without organization_id = :org_id filtering.
 5. NEVER use UNION, INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, TRUNCATE, or any DDL/DML. Only SELECT queries.
 6. Do NOT include a semicolon at the end of the query.
-7. Do NOT wrap the query in markdown code fences.
+7. Do NOT wrap the query in markdown code fences (no \`\`\`sql or \`\`\`). Output raw SQL only when providing a final query.
+8. For date arithmetic, use direct subtraction: (CURRENT_DATE - some_timestamp::DATE) returns an integer number of days in PostgreSQL. Do NOT use EXTRACT(DAY FROM ...) on date subtraction results — it does not work as expected because date minus date returns an integer, not an interval.
+9. When calculating "days since" a date, use: (CURRENT_DATE - column_name::DATE) AS days_since_xxx
 
 WORKFLOW:
 - If the user's request is unclear, ask clarifying questions about what data they want, what columns, what filters, etc.
@@ -80,12 +100,17 @@ ${reportDescription ? `The user described this report: "${reportDescription}"` :
     const aiResult = await response.json();
     const content = aiResult.choices?.[0]?.message?.content ?? "";
 
-    // Extract SQL if the response is a pure SQL statement
+    // Extract SQL: first try raw content, then try stripping markdown fences
     const trimmed = content.trim();
     let sql: string | null = null;
-    if (trimmed.toUpperCase().startsWith("SELECT") || trimmed.toUpperCase().startsWith("WITH")) {
-      // It's a SQL query
-      sql = trimmed.replace(/;$/, "");
+
+    const cleanTrimmed = trimmed.replace(/;$/, "");
+    if (cleanTrimmed.toUpperCase().startsWith("SELECT") || cleanTrimmed.toUpperCase().startsWith("WITH")) {
+      // Raw SQL without fences
+      sql = cleanTrimmed;
+    } else {
+      // Try extracting from markdown code fences
+      sql = extractSqlFromFences(trimmed);
     }
 
     return jsonResp({ reply: content, sql });
