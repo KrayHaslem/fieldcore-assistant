@@ -50,7 +50,13 @@ export function TemplateAssistantPanel({ onFieldsUpdate, onClose, initialMessage
     setMessages((prev) => [...prev, { role: "assistant", content: displayReply }]);
 
     if (hasFields) {
-      onFieldsUpdate(fields);
+      // Guard against empty sql_query being set
+      if (fields.sql_query !== undefined && !fields.sql_query.trim()) {
+        delete fields.sql_query;
+      }
+      if (Object.keys(fields).length > 0) {
+        onFieldsUpdate(fields);
+      }
     }
   };
 
