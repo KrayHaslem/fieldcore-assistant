@@ -46,7 +46,7 @@ const actionIcons = {
   help: HelpCircle,
 };
 
-export function FormAssistantPanel({ commandText, formContext, onIntentReceived, onClose, unmatchedItems }: FormAssistantPanelProps) {
+export function FormAssistantPanel({ commandText, formContext, onIntentReceived, onClose, unmatchedItems, unmatchedSupplier }: FormAssistantPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
