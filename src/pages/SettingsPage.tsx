@@ -395,7 +395,6 @@ export default function SettingsPage() {
       access_level: rtEditForm.access_level, chart_type: rtEditForm.chart_type,
       sql_query: rtEditForm.sql_query,
       supports_date_range: rtEditForm.supports_date_range,
-      supports_quarterly: rtEditForm.supports_quarterly,
     } as any).eq("id", rtEditId);
     setRtSaving(false);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
