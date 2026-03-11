@@ -776,6 +776,16 @@ export default function Reports() {
                     </div>
                   </div>
                 )}
+                {selectedCustom.chart_type === "table" && (
+                  <div className="mt-3">
+                    <Input
+                      value={searchFilter}
+                      onChange={(e) => setSearchFilter(e.target.value)}
+                      placeholder="Filter results..."
+                      className="max-w-xs text-sm h-9"
+                    />
+                  </div>
+                )}
               </div>
 
               {loadingCustom ? (
