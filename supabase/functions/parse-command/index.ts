@@ -106,6 +106,7 @@ Always return valid JSON only. No markdown, no explanation. If you cannot determ
         // Enrich item matches
         if (parsed.items && Array.isArray(parsed.items)) {
           const itemMatches: any[] = [];
+          const unmatchedItems: any[] = [];
           for (const item of parsed.items) {
             if (!item.name) continue;
             const { data: items } = await sb
@@ -122,10 +123,29 @@ Always return valid JSON only. No markdown, no explanation. If you cannot determ
                 avg_unit_cost: items[0].avg_unit_cost,
                 default_unit_cost: items[0].default_unit_cost,
               });
+            } else {
+              // No exact match — find closest candidates for the user to pick from
+              const { data: candidates } = await sb
+                .from("inventory_items")
+                .select("id, name, sku")
+                .or(`name.ilike.%${item.name.split(" ")[0]}%`)
+                .limit(5);
+              unmatchedItems.push({
+                parsed_name: item.name,
+                quantity: item.quantity || 1,
+                candidates: (candidates ?? []).map((c: any) => ({
+                  id: c.id,
+                  name: c.name,
+                  sku: c.sku,
+                })),
+              });
             }
           }
           if (itemMatches.length > 0) {
             parsed.item_matches = itemMatches;
+          }
+          if (unmatchedItems.length > 0) {
+            parsed.unmatched_items = unmatchedItems;
           }
         }
       }

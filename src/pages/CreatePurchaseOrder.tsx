@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { FormAssistantPanel } from "@/components/FormAssistantPanel";
+import { FormAssistantPanel, type UnmatchedItem } from "@/components/FormAssistantPanel";
 import { useAuth } from "@/lib/auth";
 import { PageHeader } from "@/components/PageHeader";
 import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
@@ -924,6 +924,7 @@ export default function CreatePurchaseOrder() {
           formContext="Order creation form. Fields include supplier, department, line items with item name, quantity, unit cost, inventory type, and unit number for internal use items."
           onIntentReceived={handleAssistantIntent}
           onClose={() => setShowAssistant(false)}
+          unmatchedItems={prefill.unmatched_items as UnmatchedItem[] | undefined}
         />
       )}
     </div>
