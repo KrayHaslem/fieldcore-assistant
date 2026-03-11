@@ -1133,44 +1133,43 @@ export default function Reports() {
                   )}
 
                   {/* Sales by Salesperson */}
-                  {selectedKey === "sales_by_salesperson" && (
-                    <>
-                      {(!salesPersonData || salesPersonData.length === 0) ? <NoData /> : (
-                        <div className="p-4 space-y-4">
-                          {isSalesOnly && (
-                            <p className="text-sm text-muted-foreground italic">Showing your performance only.</p>
-                          )}
-                          <div className="h-64">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <BarChart data={salesPersonData}>
-                                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                                <XAxis dataKey="salesperson_name" tick={{ fontSize: 12 }} className="text-muted-foreground" />
-                                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v.toLocaleString()}`} />
-                                <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
-                                <Bar dataKey="total_revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                              </BarChart>
-                            </ResponsiveContainer>
-                          </div>
-                          <table className="w-full text-sm">
-                            <thead><tr className="border-b bg-muted/50 text-left">
-                              <th className="px-4 py-2 font-medium text-muted-foreground">Salesperson</th>
-                              <th className="px-4 py-2 font-medium text-muted-foreground text-right">Orders</th>
-                              <th className="px-4 py-2 font-medium text-muted-foreground text-right">Total Revenue</th>
-                            </tr></thead>
-                            <tbody className="divide-y">
-                              {salesPersonData.map((r: any) => (
-                                <tr key={r.salesperson_name}>
-                                  <td className="px-4 py-2 font-medium text-foreground">{r.salesperson_name}</td>
-                                  <td className="px-4 py-2 text-right text-foreground">{r.order_count}</td>
-                                  <td className="px-4 py-2 text-right font-medium text-foreground">${Number(r.total_revenue).toLocaleString()}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                  {selectedKey === "sales_by_salesperson" && (() => {
+                    const filtered = (salesPersonData ?? []).filter((r: any) => !sf || (r.salesperson_name ?? '').toLowerCase().includes(sf));
+                    return filtered.length === 0 ? <NoData /> : (
+                      <div className="p-4 space-y-4">
+                        {isSalesOnly && (
+                          <p className="text-sm text-muted-foreground italic">Showing your performance only.</p>
+                        )}
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={filtered}>
+                              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                              <XAxis dataKey="salesperson_name" tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                              <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v.toLocaleString()}`} />
+                              <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+                              <Bar dataKey="total_revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
                         </div>
-                      )}
-                    </>
-                  )}
+                        <table className="w-full text-sm">
+                          <thead><tr className="border-b bg-muted/50 text-left">
+                            <th className="px-4 py-2 font-medium text-muted-foreground">Salesperson</th>
+                            <th className="px-4 py-2 font-medium text-muted-foreground text-right">Orders</th>
+                            <th className="px-4 py-2 font-medium text-muted-foreground text-right">Total Revenue</th>
+                          </tr></thead>
+                          <tbody className="divide-y">
+                            {filtered.map((r: any) => (
+                              <tr key={r.salesperson_name}>
+                                <td className="px-4 py-2 font-medium text-foreground">{r.salesperson_name}</td>
+                                <td className="px-4 py-2 text-right text-foreground">{r.order_count}</td>
+                                <td className="px-4 py-2 text-right font-medium text-foreground">${Number(r.total_revenue).toLocaleString()}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })()}
 
                   {/* Monthly Purchase Totals */}
                   {selectedKey === "monthly_purchase_totals" && (
