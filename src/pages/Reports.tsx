@@ -1051,7 +1051,7 @@ export default function Reports() {
                               <th className="px-4 py-2 font-medium text-muted-foreground text-right">Total Value</th>
                             </tr></thead>
                             <tbody className="divide-y">
-                              {valuationData.map((i: any) => (
+                              {(valuationData ?? []).filter((i: any) => !sf || `${i.name} ${i.sku ?? ''}`.toLowerCase().includes(sf)).map((i: any) => (
                                 <tr key={i.id}>
                                   <td className="px-4 py-2 font-medium text-foreground">{i.name}</td>
                                   <td className="px-4 py-2 text-muted-foreground">{i.sku ?? "—"}</td>
