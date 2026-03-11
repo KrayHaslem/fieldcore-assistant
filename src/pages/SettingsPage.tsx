@@ -378,6 +378,9 @@ export default function SettingsPage() {
         setRtTestError(msg.includes("non-2xx") ? "Query failed. Check your SQL syntax and try again." : msg);
       } else {
         setRtTestResult(data);
+        if (data?.rows?.length >= 0) {
+          setShowPreviewModal(true);
+        }
       }
     } catch (err: any) {
       const msg = err.message || "Unknown error";
