@@ -1119,7 +1119,7 @@ export default function Reports() {
                             <th className="px-4 py-2 font-medium text-muted-foreground text-right">Total Revenue</th>
                           </tr></thead>
                           <tbody className="divide-y">
-                            {salesItemData.map((r: any) => (
+                            {(salesItemData ?? []).filter((r: any) => !sf || r.name.toLowerCase().includes(sf)).map((r: any) => (
                               <tr key={r.name}>
                                 <td className="px-4 py-2 font-medium text-foreground">{r.name}</td>
                                 <td className="px-4 py-2 text-right text-foreground">{r.units}</td>
