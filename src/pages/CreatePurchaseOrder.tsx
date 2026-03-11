@@ -219,12 +219,36 @@ export default function CreatePurchaseOrder() {
 
   const handleCreateItem = async () => {
     if (!newItemName.trim()) return;
+    const normalized = toTitleCase(newItemName);
+    // Duplicate check
+    const { data: existing } = await supabase
+      .from("inventory_items")
+      .select("id, name, item_type, default_unit_cost, sku")
+      .ilike("name", normalized)
+      .limit(1);
+    if (existing && existing.length > 0) {
+      if (itemModalLineId) {
+        updateLineItem(itemModalLineId, {
+          item: {
+            ...existing[0],
+            label: existing[0].sku ? `${existing[0].name} (${existing[0].sku})` : existing[0].name,
+          },
+          item_type: existing[0].item_type as InventoryType,
+          unit_cost: existing[0].default_unit_cost ? String(existing[0].default_unit_cost) : "",
+        });
+      }
+      setShowItemModal(false);
+      setNewItemName("");
+      setNewItemSku("");
+      toast({ title: "Item Found", description: `"${existing[0].name}" already exists — selected it.` });
+      return;
+    }
     const { data, error: err } = await supabase
       .from("inventory_items")
       .insert({
-        name: newItemName.trim(),
+        name: normalized,
         item_type: newItemType,
-        sku: newItemSku.trim() || null,
+        sku: newItemSku.trim().toUpperCase() || null,
         organization_id: orgId!,
       })
       .select()
