@@ -354,6 +354,7 @@ export default function SettingsPage() {
   const [rtTestResult, setRtTestResult] = useState<{ columns: string[]; rows: Record<string, any>[] } | null>(null);
   const [rtTestError, setRtTestError] = useState<string | null>(null);
   const [rtTesting, setRtTesting] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   const handleTestSql = async (sqlQuery: string, accessLevel: string) => {
     if (!sqlQuery.trim() || !user) return;
