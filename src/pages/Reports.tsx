@@ -1336,7 +1336,7 @@ export default function Reports() {
                               <th className="px-4 py-2 font-medium text-muted-foreground text-right">Net Change</th>
                             </tr></thead>
                             <tbody className="divide-y">
-                              {inventoryPerfData.map((item) => {
+                              {(inventoryPerfData ?? []).filter((item) => !sf || item.name.toLowerCase().includes(sf)).map((item) => {
                                 const net = item.points.length ? item.points[item.points.length - 1].qty : 0;
                                 return (
                                   <tr key={item.name}>
