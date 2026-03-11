@@ -397,7 +397,13 @@ export default function SettingsPage() {
       setRtSubTab("org-templates");
       setRtNewOpen(true);
       setShowTemplateAssistant(true);
-      setTemplateAssistantInitialMsg(state.commandText || state.prefill.description || "");
+      // Build a richer initial message that includes the parsed description context
+      const prefillDesc = state.prefill?.description || "";
+      const cmdText = state.commandText || "";
+      const initialMsg = prefillDesc
+        ? `${cmdText ? cmdText + "\n\n" : ""}Additional context from the user: ${prefillDesc}`
+        : cmdText;
+      setTemplateAssistantInitialMsg(initialMsg || "");
       // Clear navigation state so it doesn't re-trigger
       navigate(location.pathname + location.search, { replace: true, state: {} });
     }

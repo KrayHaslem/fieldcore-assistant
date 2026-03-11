@@ -50,7 +50,13 @@ export function TemplateAssistantPanel({ onFieldsUpdate, onClose, initialMessage
     setMessages((prev) => [...prev, { role: "assistant", content: displayReply }]);
 
     if (hasFields) {
-      onFieldsUpdate(fields);
+      // Guard against empty sql_query being set
+      if (fields.sql_query !== undefined && !fields.sql_query.trim()) {
+        delete fields.sql_query;
+      }
+      if (Object.keys(fields).length > 0) {
+        onFieldsUpdate(fields);
+      }
     }
   };
 
@@ -68,6 +74,7 @@ export function TemplateAssistantPanel({ onFieldsUpdate, onClose, initialMessage
           messages: updated.map((m) => ({ role: m.role, content: m.content })),
           reportDescription: initialMessage,
           mode: "template",
+          instruction: "The user navigated here from a command center. Analyze their request carefully, suggest ALL template fields including a valid SQL query, and explain what you set.",
         },
       }).then(({ data, error }) => {
         if (error) {
