@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { FormAssistantPanel, type UnmatchedItem, type UnmatchedSupplier } from "@/components/FormAssistantPanel";
+import { FormAssistantPanel, type UnmatchedItem, type UnmatchedSupplier, type DirectAction } from "@/components/FormAssistantPanel";
 import { useAuth } from "@/lib/auth";
 import { PageHeader } from "@/components/PageHeader";
 import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
@@ -513,6 +513,94 @@ export default function CreatePurchaseOrder() {
       ? `I've updated the form: ${updates.join(". ")}.`
       : "I couldn't find specific fields to update from that request.";
   };
+
+  // Direct action handler — each action does exactly one thing, no AI
+  const handleDirectAction = async (action: DirectAction): Promise<string> => {
+    switch (action.type) {
+      case "use_supplier": {
+        // Look up full supplier data to populate contact info
+        const { data } = await supabase
+          .from("suppliers")
+          .select("id, name, contact_email, contact_name")
+          .eq("id", action.supplierId)
+          .single();
+        if (data) {
+          setSupplier({ ...data, label: data.name });
+          return `Set supplier to "${data.name}".`;
+        }
+        return `Could not find supplier "${action.supplierName}".`;
+      }
+
+      case "create_supplier": {
+        const { data, error: err } = await supabase
+          .from("suppliers")
+          .insert({ name: action.supplierName, organization_id: orgId! })
+          .select()
+          .single();
+        if (err) throw new Error(err.message);
+        setSupplier({ ...data, label: data.name });
+        return `Created supplier "${data.name}" and set it on this order.`;
+      }
+
+      case "use_item": {
+        // Fetch full item data
+        const { data } = await supabase
+          .from("inventory_items")
+          .select("id, name, item_type, default_unit_cost, sku, avg_unit_cost")
+          .eq("id", action.itemId)
+          .single();
+        if (data) {
+          const costStr = data.avg_unit_cost != null
+            ? String(data.avg_unit_cost)
+            : data.default_unit_cost != null
+            ? String(data.default_unit_cost)
+            : "";
+          setItems((prev) => {
+            const empty = prev.find((li) => !li.item);
+            const newLi: LineItem = {
+              id: empty?.id || String(Date.now()),
+              item: { ...data, label: data.sku ? `${data.name} (${data.sku})` : data.name },
+              quantity: String(action.quantity),
+              unit_cost: costStr,
+              item_type: (data.item_type || "resale") as InventoryType,
+              unit: null,
+            };
+            if (empty) return prev.map((li) => (li.id === empty.id ? newLi : li));
+            return [...prev, newLi];
+          });
+          return `Added ${action.quantity}× "${data.name}" to line items.`;
+        }
+        return `Could not find item "${action.itemName}".`;
+      }
+
+      case "create_item": {
+        const { data, error: err } = await supabase
+          .from("inventory_items")
+          .insert({ name: action.itemName, organization_id: orgId!, item_type: "resale" })
+          .select()
+          .single();
+        if (err) throw new Error(err.message);
+        setItems((prev) => {
+          const empty = prev.find((li) => !li.item);
+          const newLi: LineItem = {
+            id: empty?.id || String(Date.now()),
+            item: { ...data, label: data.name },
+            quantity: String(action.quantity),
+            unit_cost: "",
+            item_type: "resale",
+            unit: null,
+          };
+          if (empty) return prev.map((li) => (li.id === empty.id ? newLi : li));
+          return [...prev, newLi];
+        });
+        return `Created "${data.name}" in inventory and added ${action.quantity} to line items.`;
+      }
+
+      default:
+        return "Unknown action.";
+    }
+  };
+
   // Apply prefill data from navigation state on mount
   const prefillApplied = useRef(false);
   useEffect(() => {
@@ -923,6 +1011,7 @@ export default function CreatePurchaseOrder() {
           commandText={commandText || prefill.raw || prefill.command || "AI command"}
           formContext="Order creation form. Fields include supplier, department, line items with item name, quantity, unit cost, inventory type, and unit number for internal use items."
           onIntentReceived={handleAssistantIntent}
+          onDirectAction={handleDirectAction}
           onClose={() => setShowAssistant(false)}
           unmatchedItems={prefill.unmatched_items as UnmatchedItem[] | undefined}
           unmatchedSupplier={prefill.unmatched_supplier as UnmatchedSupplier | undefined}
