@@ -448,7 +448,6 @@ export default function SettingsPage() {
       chart_type: rtNewForm.chart_type,
       sql_query: rtNewForm.sql_query,
       supports_date_range: rtNewForm.supports_date_range,
-      supports_quarterly: rtNewForm.supports_quarterly,
     } as any);
     setRtSaving(false);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
