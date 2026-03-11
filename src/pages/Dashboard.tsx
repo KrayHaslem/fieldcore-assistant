@@ -29,6 +29,8 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const [command, setCommand] = useState("");
   const [isParsingCommand, setIsParsingCommand] = useState(false);
+  const [reportCandidates, setReportCandidates] = useState<{ id: string; name: string; description: string | null }[]>([]);
+  const [pendingReportData, setPendingReportData] = useState<any>(null);
 
   // Pending POs awaiting YOUR approval via RPC
   const { data: approvalQueueIds } = useQuery({
