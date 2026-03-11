@@ -951,33 +951,32 @@ export default function Reports() {
               ) : (
                 <div className="fieldcore-card overflow-hidden">
                   {/* Spending by Supplier */}
-                  {selectedKey === "spending_supplier" && (
-                    <>
-                      {(!spendingData || spendingData.length === 0) ? <NoData /> : (
-                        <div className="p-4 space-y-4">
-                          <div className="h-64">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <BarChart data={spendingData}>
-                                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                                <XAxis dataKey="name" tick={{ fontSize: 12 }} className="text-muted-foreground" />
-                                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v.toLocaleString()}`} />
-                                <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
-                                <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                              </BarChart>
-                            </ResponsiveContainer>
-                          </div>
-                          <table className="w-full text-sm">
-                            <thead><tr className="border-b bg-muted/50"><th className="px-4 py-2 text-left font-medium text-muted-foreground">Supplier</th><th className="px-4 py-2 text-right font-medium text-muted-foreground">Total Spend</th></tr></thead>
-                            <tbody className="divide-y">
-                              {spendingData.map((r) => (
-                                <tr key={r.name}><td className="px-4 py-2 text-foreground">{r.name}</td><td className="px-4 py-2 text-right font-medium text-foreground">${r.total.toLocaleString()}</td></tr>
-                              ))}
-                            </tbody>
-                          </table>
+                  {selectedKey === "spending_supplier" && (() => {
+                    const filtered = (spendingData ?? []).filter(r => !sf || r.name.toLowerCase().includes(sf));
+                    return filtered.length === 0 ? <NoData /> : (
+                      <div className="p-4 space-y-4">
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={filtered}>
+                              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                              <XAxis dataKey="name" tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                              <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v.toLocaleString()}`} />
+                              <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+                              <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
                         </div>
-                      )}
-                    </>
-                  )}
+                        <table className="w-full text-sm">
+                          <thead><tr className="border-b bg-muted/50"><th className="px-4 py-2 text-left font-medium text-muted-foreground">Supplier</th><th className="px-4 py-2 text-right font-medium text-muted-foreground">Total Spend</th></tr></thead>
+                          <tbody className="divide-y">
+                            {filtered.map((r) => (
+                              <tr key={r.name}><td className="px-4 py-2 text-foreground">{r.name}</td><td className="px-4 py-2 text-right font-medium text-foreground">${r.total.toLocaleString()}</td></tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })()}
 
                   {/* Open POs */}
                   {selectedKey === "open_pos" && (
