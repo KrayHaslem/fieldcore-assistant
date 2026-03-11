@@ -848,7 +848,16 @@ export default function Reports() {
                           </tr>
                         </thead>
                         <tbody className="divide-y">
-                          {customReportData.rows.map((row, i) => (
+                          {customReportData.rows
+                            .filter((row) => {
+                              if (!searchFilter) return true;
+                              const term = searchFilter.toLowerCase();
+                              return customReportData.columns.some((col) => {
+                                const val = row[col];
+                                return val != null && String(val).toLowerCase().includes(term);
+                              });
+                            })
+                            .map((row, i) => (
                             <tr key={i}>
                               {customReportData.columns.map((col) => {
                                 const val = row[col];
