@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FormAssistantPanel, type UnmatchedItem, type UnmatchedSupplier, type DirectAction } from "@/components/FormAssistantPanel";
 import { useAuth } from "@/lib/auth";
+import { toTitleCase } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
 import { Button } from "@/components/ui/button";
