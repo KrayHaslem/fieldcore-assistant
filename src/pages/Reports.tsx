@@ -776,6 +776,16 @@ export default function Reports() {
                     </div>
                   </div>
                 )}
+                {selectedCustom.chart_type === "table" && (
+                  <div className="mt-3">
+                    <Input
+                      value={searchFilter}
+                      onChange={(e) => setSearchFilter(e.target.value)}
+                      placeholder="Filter results..."
+                      className="max-w-xs text-sm h-9"
+                    />
+                  </div>
+                )}
               </div>
 
               {loadingCustom ? (
@@ -838,7 +848,16 @@ export default function Reports() {
                           </tr>
                         </thead>
                         <tbody className="divide-y">
-                          {customReportData.rows.map((row, i) => (
+                          {customReportData.rows
+                            .filter((row) => {
+                              if (!searchFilter) return true;
+                              const term = searchFilter.toLowerCase();
+                              return customReportData.columns.some((col) => {
+                                const val = row[col];
+                                return val != null && String(val).toLowerCase().includes(term);
+                              });
+                            })
+                            .map((row, i) => (
                             <tr key={i}>
                               {customReportData.columns.map((col) => {
                                 const val = row[col];
