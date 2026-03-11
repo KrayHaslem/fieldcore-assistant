@@ -138,6 +138,8 @@ ${instruction ? `\nIMPORTANT: ${instruction}` : ""}`;
 
     if (isTemplateMode) {
       body.tools = TEMPLATE_TOOLS;
+      // Force tool call to ensure SQL and all fields are always generated
+      body.tool_choice = { type: "function", function: { name: "update_template_fields" } };
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
