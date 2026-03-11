@@ -349,6 +349,7 @@ export default function SettingsPage() {
   });
   const [showTemplateAssistant, setShowTemplateAssistant] = useState(false);
   const [templateAssistantInitialMsg, setTemplateAssistantInitialMsg] = useState<string | undefined>();
+  const [rtSubTab, setRtSubTab] = useState("system-templates");
 
   // Handle command center prefill for create_report_template
   useEffect(() => {
