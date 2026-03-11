@@ -1519,6 +1519,16 @@ export default function Reports() {
             </div>
           )}
         </div>
+        </div>
+
+        {/* Report Assistant Panel */}
+        {showAssistant && (
+          <ReportAssistantPanel
+            availableReports={availableReportsForAssistant}
+            onSelectReport={handleAssistantSelectReport}
+            onClose={() => setShowAssistant(false)}
+          />
+        )}
       </div>
     </div>
   );
