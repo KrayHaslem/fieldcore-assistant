@@ -29,6 +29,66 @@ ENUM VALUES — use these EXACT strings (any other value will cause a runtime er
 - po_status: 'draft', 'submitted', 'approved', 'ordered', 'partially_received', 'received', 'closed'
 - so_status: 'quote', 'order', 'fulfilled', 'invoiced', 'paid', 'closed'`;
 
+const EXAMPLE_REPORTS = \`
+REFERENCE EXAMPLES — Study these existing system reports to match their quality, style, and level of detail:
+
+EXAMPLE 1 — Inventory Valuation (table, access: procurement):
+SELECT ii.name, ii.sku, ii.item_type,
+  COALESCE(SUM(im.quantity), 0) AS on_hand,
+  ii.default_unit_cost AS unit_cost,
+  COALESCE(SUM(im.quantity), 0) * COALESCE(ii.default_unit_cost, 0) AS total_value
+FROM inventory_items ii
+LEFT JOIN inventory_movements im ON im.item_id = ii.id
+WHERE ii.organization_id = :org_id
+GROUP BY ii.id, ii.name, ii.sku, ii.item_type, ii.default_unit_cost
+ORDER BY ii.item_type, ii.name
+
+EXAMPLE 2 — Spending by Supplier (bar, access: procurement):
+SELECT s.name AS supplier, SUM(po.total_amount) AS total_spent
+FROM purchase_orders po
+JOIN suppliers s ON s.id = po.supplier_id
+WHERE po.organization_id = :org_id AND po.status != 'draft'
+  AND po.created_at >= :start_date AND po.created_at <= :end_date
+GROUP BY s.name ORDER BY total_spent DESC
+
+EXAMPLE 3 — Margin by Item (table, access: finance):
+SELECT ii.name AS item_name,
+  SUM(soi.quantity)::BIGINT AS units_sold,
+  SUM(soi.quantity * soi.unit_price) AS revenue,
+  SUM(soi.quantity * soi.cost_per_unit) AS cogs,
+  SUM(soi.quantity * soi.unit_price) - SUM(soi.quantity * soi.cost_per_unit) AS gross_margin,
+  CASE WHEN SUM(soi.quantity * soi.unit_price) > 0
+    THEN ((SUM(soi.quantity * soi.unit_price) - SUM(soi.quantity * soi.cost_per_unit)) / SUM(soi.quantity * soi.unit_price)) * 100
+    ELSE 0 END AS margin_pct
+FROM sales_order_items soi
+JOIN sales_orders so ON so.id = soi.sales_order_id
+JOIN inventory_items ii ON ii.id = soi.item_id
+WHERE so.organization_id = :org_id
+  AND so.status IN ('fulfilled', 'invoiced', 'paid', 'closed')
+  AND so.created_at >= :start_date AND so.created_at <= :end_date
+GROUP BY ii.name ORDER BY revenue DESC
+
+EXAMPLE 4 — Inventory Loss Summary (table, access: procurement):
+SELECT ii.name AS item_name,
+  SUM(ABS(r.variance)) AS total_units_lost,
+  SUM(ABS(r.variance) * COALESCE(ii.default_unit_cost, 0)) AS estimated_value_lost
+FROM reconciliations r
+JOIN inventory_items ii ON ii.id = r.item_id
+WHERE r.organization_id = :org_id AND r.variance < 0
+  AND r.created_at >= :start_date AND r.created_at <= :end_date
+GROUP BY ii.name, ii.default_unit_cost
+ORDER BY estimated_value_lost DESC
+
+KEY PATTERNS to follow:
+- Use descriptive column aliases (item_name, total_spent, units_sold, etc.)
+- Include multiple useful columns — not just 2-3 sparse columns
+- Add calculated/derived columns when helpful (percentages, totals, costs)
+- Use COALESCE for nullable numeric fields
+- Use LEFT JOIN when items might have no related records
+- Cast counts with ::BIGINT when needed
+- Order results meaningfully (DESC by important metric)
+\`;
+
 /**
  * Extract raw SQL from a response that may contain markdown code fences.
  */
@@ -86,6 +146,8 @@ serve(async (req) => {
 
 ${SCHEMA_SUMMARY}
 
+${EXAMPLE_REPORTS}
+
 CRITICAL RULES — FOLLOW EVERY TIME:
 1. EVERY query MUST include WHERE organization_id = :org_id on the primary table being queried. For JOINs, always ensure the main table or a joined table filters by organization_id = :org_id. NEVER write a query without :org_id filtering. This is a multi-tenant system and violating this rule leaks data between organizations.
 2. Use :start_date and :end_date as date range placeholders where appropriate (e.g. WHERE created_at >= :start_date AND created_at <= :end_date).
@@ -94,8 +156,9 @@ CRITICAL RULES — FOLLOW EVERY TIME:
 5. NEVER use UNION, INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, TRUNCATE, or any DDL/DML. Only SELECT queries.
 6. Do NOT include a semicolon at the end of the query.
 7. Do NOT wrap the query in markdown code fences (no \`\`\`sql or \`\`\`). Output raw SQL only when providing a final query.
-8. For date arithmetic, use direct subtraction: (CURRENT_DATE - some_timestamp::DATE) returns an integer number of days in PostgreSQL. Do NOT use EXTRACT(DAY FROM ...) on date subtraction results — it does not work as expected because date minus date returns an integer, not an interval.
+8. CRITICAL DATE ARITHMETIC: Use direct subtraction (CURRENT_DATE - some_timestamp::DATE) which returns an integer number of days. NEVER use EXTRACT(DAY FROM ...) on date subtraction — it does NOT work because date minus date returns an integer, not an interval.
 9. When calculating "days since" a date, use: (CURRENT_DATE - column_name::DATE) AS days_since_xxx
+10. Study the REFERENCE EXAMPLES above and match their quality — include multiple useful columns, calculated fields, COALESCE for nullables, and meaningful ordering.
 
 WORKFLOW:
 - If the user's request is unclear, ask clarifying questions about what data they want, what columns, what filters, etc.
@@ -108,6 +171,8 @@ ${reportDescription ? `The user described this report: "${reportDescription}"` :
 
 ${SCHEMA_SUMMARY}
 
+${EXAMPLE_REPORTS}
+
 You have a tool called update_template_fields. You MUST call it to set template fields.
 
 CRITICAL BEHAVIOR:
@@ -115,11 +180,12 @@ CRITICAL BEHAVIOR:
 - The user can always refine later. It is much better to provide a complete template that can be tweaked than to ask questions and leave fields empty.
 - ALWAYS include sql_query in your tool call. Never call the tool without sql_query.
 - If asked to refine or add SQL later, call the tool again with the updated sql_query.
+- Study the REFERENCE EXAMPLES above carefully and match their quality, column count, and style.
 
 Guidelines for each field:
 - name: Short descriptive title (e.g. "Monthly Spending by Department")
 - description: One sentence explaining what the report shows
-- access_level: Who should see this report? "admin" for sensitive data, "finance" for financial data, "employee" for general visibility
+- access_level: DEFAULT to "employee" (visible to everyone) unless the report contains sensitive financial data (use "finance") or admin-only data (use "admin"). Do NOT pick "procurement" or "sales" unless the user explicitly requests role-restricted access.
 - chart_type: "table" for detailed data, "bar" for comparisons, "line" for trends over time
 - supports_date_range: true if the report benefits from date filtering, false for point-in-time snapshots
 - sql_query: PostgreSQL SELECT query following these CRITICAL RULES:
@@ -128,7 +194,12 @@ Guidelines for each field:
   3. PostgreSQL-compatible SQL only
   4. No semicolons, no markdown code fences
   5. Only SELECT queries — no DDL/DML
-  6. For date arithmetic use direct subtraction: (CURRENT_DATE - column::DATE)
+  6. CRITICAL: For date arithmetic use direct subtraction: (CURRENT_DATE - column::DATE) returns an integer. NEVER use EXTRACT(DAY FROM ...) on date subtraction.
+  7. Include 4-6+ meaningful columns with descriptive aliases — not just 2-3 sparse columns
+  8. Add calculated/derived columns (percentages, costs, totals) when they add value
+  9. Use COALESCE for nullable numeric fields
+  10. Use LEFT JOIN when items might have no matching records (so they still appear)
+  11. Order results by the most meaningful metric DESC
 
 After calling the tool, include a conversational reply explaining what you set and why, and invite the user to refine any fields.
 
