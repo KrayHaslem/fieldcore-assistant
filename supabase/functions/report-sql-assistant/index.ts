@@ -29,7 +29,7 @@ ENUM VALUES — use these EXACT strings (any other value will cause a runtime er
 - po_status: 'draft', 'submitted', 'approved', 'ordered', 'partially_received', 'received', 'closed'
 - so_status: 'quote', 'order', 'fulfilled', 'invoiced', 'paid', 'closed'`;
 
-const EXAMPLE_REPORTS = \`
+const EXAMPLE_REPORTS = `
 REFERENCE EXAMPLES — Study these existing system reports to match their quality, style, and level of detail:
 
 EXAMPLE 1 — Inventory Valuation (table, access: procurement):
@@ -87,7 +87,7 @@ KEY PATTERNS to follow:
 - Use LEFT JOIN when items might have no related records
 - Cast counts with ::BIGINT when needed
 - Order results meaningfully (DESC by important metric)
-\`;
+`;
 
 /**
  * Extract raw SQL from a response that may contain markdown code fences.
