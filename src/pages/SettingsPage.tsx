@@ -349,11 +349,13 @@ export default function SettingsPage() {
   });
   const [showTemplateAssistant, setShowTemplateAssistant] = useState(false);
   const [templateAssistantInitialMsg, setTemplateAssistantInitialMsg] = useState<string | undefined>();
+  const [rtSubTab, setRtSubTab] = useState("system-templates");
 
   // Handle command center prefill for create_report_template
   useEffect(() => {
     const state = location.state as any;
     if (state?.prefill?.intent === "create_report_template" && searchParams.get("tab") === "report-templates") {
+      setRtSubTab("org-templates");
       setRtNewOpen(true);
       setShowTemplateAssistant(true);
       setTemplateAssistantInitialMsg(state.commandText || state.prefill.description || "");
@@ -682,7 +684,7 @@ export default function SettingsPage() {
           {/* Report Templates (admin only) */}
           {isAdmin && (
             <TabsContent value="report-templates">
-              <Tabs defaultValue="system-templates">
+              <Tabs value={rtSubTab} onValueChange={setRtSubTab}>
                 <TabsList className="mb-4">
                   <TabsTrigger value="system-templates">System Templates</TabsTrigger>
                   <TabsTrigger value="org-templates">Organization Templates</TabsTrigger>
