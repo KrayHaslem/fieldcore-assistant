@@ -821,8 +821,8 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     <div className="flex gap-4">
-                      <div className="flex items-center gap-2"><Checkbox checked={rtNewForm.supports_date_range} onCheckedChange={(v) => setRtNewForm({ ...rtNewForm, supports_date_range: !!v })} /><Label>Date Range</Label></div>
-                      <div className="flex items-center gap-2"><Checkbox checked={rtNewForm.supports_quarterly} onCheckedChange={(v) => setRtNewForm({ ...rtNewForm, supports_quarterly: !!v })} /><Label>Quarterly</Label></div>
+                      <div className="flex items-center gap-2"><Checkbox checked={rtNewForm.supports_date_range} onCheckedChange={(v) => setRtNewForm({ ...rtNewForm, supports_date_range: !!v })} /><Label>Supports Date Filtering</Label></div>
+                      <p className="text-xs text-muted-foreground self-center">Enables date range picker and quarterly presets on the report</p>
                     </div>
                     <ReportSqlAssistant
                       sqlQuery={rtNewForm.sql_query}
