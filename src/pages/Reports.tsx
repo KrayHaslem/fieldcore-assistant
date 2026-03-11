@@ -1231,11 +1231,47 @@ export default function Reports() {
                     </>
                   )}
 
-                  {/* Purchase History by Item */}
                   {selectedKey === "purchase_history_item" && (
                     <>
                       {!selectedItemId ? (
-                        <div className="p-8 text-center text-muted-foreground">Select an item above to view its purchase history.</div>
+                        <div className="p-4 space-y-3">
+                          <h3 className="text-sm font-semibold text-foreground">Select an item to view its purchase history</h3>
+                          <Input
+                            value={purchaseHistorySearch}
+                            onChange={(e) => setPurchaseHistorySearch(e.target.value)}
+                            placeholder="Search items..."
+                            className="max-w-xs text-sm h-9"
+                          />
+                          {allItemsData && allItemsData.length > 0 ? (
+                            <table className="w-full text-sm">
+                              <thead><tr className="border-b bg-muted/50 text-left">
+                                <th className="px-4 py-2 font-medium text-muted-foreground">Item</th>
+                                <th className="px-4 py-2 font-medium text-muted-foreground">SKU</th>
+                              </tr></thead>
+                              <tbody className="divide-y">
+                                {allItemsData
+                                  .filter((item) => {
+                                    if (!purchaseHistorySearch) return true;
+                                    const q = purchaseHistorySearch.toLowerCase();
+                                    return item.name.toLowerCase().includes(q) || (item.sku ?? '').toLowerCase().includes(q);
+                                  })
+                                  .slice(0, 50)
+                                  .map((item) => (
+                                    <tr
+                                      key={item.id}
+                                      className="cursor-pointer hover:bg-primary/5 transition-colors"
+                                      onClick={() => { setSelectedItemId(item.id); setSelectedItemName(item.name); }}
+                                    >
+                                      <td className="px-4 py-2 font-medium text-foreground">{item.name}</td>
+                                      <td className="px-4 py-2 text-muted-foreground">{item.sku ?? "—"}</td>
+                                    </tr>
+                                  ))}
+                              </tbody>
+                            </table>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Loading items...</p>
+                          )}
+                        </div>
                       ) : (!purchaseHistoryData || purchaseHistoryData.rows.length === 0) ? <NoData /> : (
                         <div className="p-4 space-y-4">
                           <p className="text-sm font-medium text-foreground">Avg Unit Cost: <span className="text-primary">${purchaseHistoryData.avgCost.toFixed(2)}</span></p>
