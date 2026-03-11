@@ -218,6 +218,42 @@ export default function Reports() {
   const quickSelect = (start: Date, end: Date) => { setStartDate(start); setEndDate(end); };
   const now = new Date();
 
+  // Build available reports list for the assistant
+  const availableReportsForAssistant = useMemo(() => {
+    const reports: { name: string; description: string; category: string }[] = [];
+    for (const cat of LOCAL_CATEGORIES) {
+      for (const reportName of cat.reports) {
+        const r = allReports.find((ar) => ar.name === reportName);
+        if (r && canAccessReport(r)) {
+          reports.push({ name: r.name, description: r.description, category: cat.title });
+        }
+      }
+    }
+    for (const ct of customTemplates) {
+      reports.push({ name: ct.name, description: ct.description || "", category: "Custom" });
+    }
+    return reports;
+  }, [allReports, customTemplates, roles]);
+
+  const handleAssistantSelectReport = useCallback((reportName: string, startDateStr?: string | null, endDateStr?: string | null) => {
+    // Try built-in reports first
+    const key = REPORT_KEY_MAP[reportName];
+    if (key) {
+      setSelectedKey(key);
+      setSelectedCustomId(null);
+    } else {
+      // Try custom templates
+      const custom = customTemplates.find((t) => t.name.toLowerCase() === reportName.toLowerCase());
+      if (custom) {
+        setSelectedCustomId(custom.id);
+        setSelectedKey(null);
+      }
+    }
+    // Set date range if provided
+    if (startDateStr) setStartDate(new Date(startDateStr));
+    if (endDateStr) setEndDate(new Date(endDateStr));
+  }, [customTemplates]);
+
   // ---- Custom Report Execution ----
   const startISO = startDate?.toISOString();
   const endISO = endDate?.toISOString();
