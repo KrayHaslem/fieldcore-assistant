@@ -320,80 +320,101 @@ serve(async (req) => {
     for (const c of asmComponents) await sb.from("assembly_record_components").insert(c);
 
     // ===== STEP 11: INVENTORY MOVEMENTS =====
-    const mv = (item_id: string, movement_type: string, quantity: number, source_type: string, source_id: string | null, created_by: string) =>
-      ({ item_id, movement_type, quantity, source_type, source_id, created_by, organization_id: ORG_ID });
+    const mv = (item_id: string, movement_type: string, quantity: number, source_type: string, source_id: string | null, created_by: string, created_at?: string) =>
+      ({ item_id, movement_type, quantity, source_type, source_id, created_by, organization_id: ORG_ID, ...(created_at ? { created_at } : {}) });
 
     const movements = [
-      // Received from closed/received POs
-      mv(I(7), "received", 12, "purchase_order", PO(1), james),   // MIG wire from PO-001
-      mv(I(13), "received", 5, "purchase_order", PO(1), james),   // Weld rod from PO-001
-      mv(I(6), "received", 30, "purchase_order", PO(2), james),   // Steel plates from PO-002
-      mv(I(2), "received", 2, "purchase_order", PO(7), sarah),    // Triplex pumps from PO-007
-      mv(I(6), "received", 20, "purchase_order", PO(8), james),   // Steel plates from PO-008
-      mv(I(12), "received", 2, "purchase_order", PO(11), james),  // Hydraulic fittings from PO-011
       // Historical stock received from closed POs (full audit trail)
-      mv(I(3), "received", 20, "purchase_order", PO(13), sarah),   // Gate valves from PO-H01
-      mv(I(4), "received", 15, "purchase_order", PO(13), sarah),   // Check valves from PO-H01
-      mv(I(11), "received", 30, "purchase_order", PO(13), james),  // O-rings from PO-H01
-      mv(I(5), "received", 8, "purchase_order", PO(14), sarah),    // Safety valves from PO-H02
-      mv(I(8), "received", 15, "purchase_order", PO(15), james),   // Pump shafts from PO-H03
-      mv(I(9), "received", 15, "purchase_order", PO(15), james),   // Impellers from PO-H03
-      mv(I(10), "received", 15, "purchase_order", PO(15), james),  // Seal kits from PO-H03
-      mv(I(20), "received", 100, "purchase_order", PO(16), maria), // Safety glasses from PO-H04
-      mv(I(21), "received", 50, "purchase_order", PO(16), maria),  // Gloves from PO-H04
-      mv(I(22), "received", 15, "purchase_order", PO(16), maria),  // Hard hats from PO-H04
-      mv(I(23), "received", 60, "purchase_order", PO(17), maria),  // Paper towels from PO-H05
-      mv(I(24), "received", 8, "purchase_order", PO(17), maria),   // Coffee from PO-H05
-      mv(I(25), "received", 10, "purchase_order", PO(18), maria),  // Printer paper from PO-H06
-      mv(I(14), "received", 20, "purchase_order", PO(19), james),  // Engine oil from PO-H07
-      mv(I(15), "received", 12, "purchase_order", PO(19), james),  // Hydraulic fluid from PO-H07
-      mv(I(16), "received", 10, "purchase_order", PO(19), james),  // Air filters from PO-H07
-      mv(I(17), "received", 8, "purchase_order", PO(19), james),   // Brake pads from PO-H07
-      mv(I(18), "received", 6, "purchase_order", PO(19), james),   // Trans filters from PO-H07
-      mv(I(19), "received", 6, "purchase_order", PO(19), james),   // V-belts from PO-H07
+      mv(I(3), "received", 20, "purchase_order", PO(13), sarah, "2025-06-18T14:00:00Z"),   // Gate valves from PO-H01
+      mv(I(4), "received", 15, "purchase_order", PO(13), sarah, "2025-06-18T14:30:00Z"),   // Check valves from PO-H01
+      mv(I(11), "received", 30, "purchase_order", PO(13), james, "2025-06-18T15:00:00Z"),  // O-rings from PO-H01
+      mv(I(5), "received", 8, "purchase_order", PO(14), sarah, "2025-07-04T14:00:00Z"),    // Safety valves from PO-H02
+      mv(I(8), "received", 15, "purchase_order", PO(15), james, "2025-06-26T10:00:00Z"),   // Pump shafts from PO-H03
+      mv(I(9), "received", 15, "purchase_order", PO(15), james, "2025-06-26T10:30:00Z"),   // Impellers from PO-H03
+      mv(I(10), "received", 15, "purchase_order", PO(15), james, "2025-06-26T11:00:00Z"),  // Seal kits from PO-H03
+      mv(I(20), "received", 100, "purchase_order", PO(16), maria, "2025-07-04T10:00:00Z"), // Safety glasses from PO-H04
+      mv(I(21), "received", 50, "purchase_order", PO(16), maria, "2025-07-04T10:30:00Z"),  // Gloves from PO-H04
+      mv(I(22), "received", 15, "purchase_order", PO(16), maria, "2025-07-04T11:00:00Z"),  // Hard hats from PO-H04
+      mv(I(23), "received", 60, "purchase_order", PO(17), maria, "2025-07-08T11:00:00Z"),  // Paper towels from PO-H05
+      mv(I(24), "received", 8, "purchase_order", PO(17), maria, "2025-07-08T11:30:00Z"),   // Coffee from PO-H05
+      mv(I(25), "received", 10, "purchase_order", PO(18), maria, "2025-07-08T12:00:00Z"),  // Printer paper from PO-H06
+      mv(I(14), "received", 20, "purchase_order", PO(19), james, "2025-07-16T10:00:00Z"),  // Engine oil from PO-H07
+      mv(I(15), "received", 12, "purchase_order", PO(19), james, "2025-07-16T10:30:00Z"),  // Hydraulic fluid from PO-H07
+      mv(I(16), "received", 10, "purchase_order", PO(19), james, "2025-07-16T11:00:00Z"),  // Air filters from PO-H07
+      mv(I(17), "received", 8, "purchase_order", PO(19), james, "2025-07-16T11:30:00Z"),   // Brake pads from PO-H07
+      mv(I(18), "received", 6, "purchase_order", PO(19), james, "2025-07-16T12:00:00Z"),   // Trans filters from PO-H07
+      mv(I(19), "received", 6, "purchase_order", PO(19), james, "2025-07-16T12:30:00Z"),   // V-belts from PO-H07
+
+      // Received from active/recent closed POs
+      mv(I(7), "received", 12, "purchase_order", PO(1), james, "2025-10-15T09:00:00Z"),   // MIG wire from PO-001
+      mv(I(13), "received", 5, "purchase_order", PO(1), james, "2025-10-15T09:30:00Z"),   // Weld rod from PO-001
+      mv(I(6), "received", 30, "purchase_order", PO(2), james, "2025-11-01T10:00:00Z"),   // Steel plates from PO-002
+      mv(I(2), "received", 2, "purchase_order", PO(7), sarah, "2026-01-29T14:00:00Z"),    // Triplex pumps from PO-007
+      mv(I(6), "received", 20, "purchase_order", PO(8), james, "2026-02-05T10:00:00Z"),   // Steel plates from PO-008
+      mv(I(12), "received", 2, "purchase_order", PO(11), james, "2026-03-02T14:00:00Z"),  // Hydraulic fittings from PO-011
 
       // Assembly production: +12 pump housings total
-      mv(I(1), "assembled", 5, "assembly_record", AR(1), maria),
-      mv(I(1), "assembled", 3, "assembly_record", AR(2), maria),
-      mv(I(1), "assembled", 2, "assembly_record", AR(3), maria),
-      mv(I(1), "assembled", 2, "assembly_record", AR(4), maria),
+      mv(I(1), "assembled", 5, "assembly_record", AR(1), maria, "2025-11-01T14:00:00Z"),
+      mv(I(1), "assembled", 3, "assembly_record", AR(2), maria, "2025-12-15T14:00:00Z"),
+      mv(I(1), "assembled", 2, "assembly_record", AR(3), maria, "2026-01-20T14:00:00Z"),
+      mv(I(1), "assembled", 2, "assembly_record", AR(4), maria, "2026-02-10T14:00:00Z"),
 
-      // Assembly consumption: steel(24), shaft(12), impeller(12), seal(12)
-      mv(I(6), "consumption", -10, "assembly_record", AR(1), maria),
-      mv(I(8), "consumption", -5, "assembly_record", AR(1), maria),
-      mv(I(9), "consumption", -5, "assembly_record", AR(1), maria),
-      mv(I(10), "consumption", -5, "assembly_record", AR(1), maria),
-      mv(I(6), "consumption", -6, "assembly_record", AR(2), maria),
-      mv(I(8), "consumption", -3, "assembly_record", AR(2), maria),
-      mv(I(9), "consumption", -3, "assembly_record", AR(2), maria),
-      mv(I(10), "consumption", -3, "assembly_record", AR(2), maria),
-      mv(I(6), "consumption", -4, "assembly_record", AR(3), maria),
-      mv(I(8), "consumption", -2, "assembly_record", AR(3), maria),
-      mv(I(9), "consumption", -2, "assembly_record", AR(3), maria),
-      mv(I(10), "consumption", -2, "assembly_record", AR(3), maria),
-      mv(I(6), "consumption", -4, "assembly_record", AR(4), maria),
-      mv(I(8), "consumption", -2, "assembly_record", AR(4), maria),
-      mv(I(9), "consumption", -2, "assembly_record", AR(4), maria),
-      mv(I(10), "consumption", -2, "assembly_record", AR(4), maria),
+      // Assembly consumption
+      mv(I(6), "consumption", -10, "assembly_record", AR(1), maria, "2025-11-01T08:00:00Z"),
+      mv(I(8), "consumption", -5, "assembly_record", AR(1), maria, "2025-11-01T09:00:00Z"),
+      mv(I(9), "consumption", -5, "assembly_record", AR(1), maria, "2025-11-01T10:00:00Z"),
+      mv(I(10), "consumption", -5, "assembly_record", AR(1), maria, "2025-11-01T11:00:00Z"),
+      mv(I(6), "consumption", -6, "assembly_record", AR(2), maria, "2025-12-15T08:00:00Z"),
+      mv(I(8), "consumption", -3, "assembly_record", AR(2), maria, "2025-12-15T09:00:00Z"),
+      mv(I(9), "consumption", -3, "assembly_record", AR(2), maria, "2025-12-15T10:00:00Z"),
+      mv(I(10), "consumption", -3, "assembly_record", AR(2), maria, "2025-12-15T11:00:00Z"),
+      mv(I(6), "consumption", -4, "assembly_record", AR(3), maria, "2026-01-20T08:00:00Z"),
+      mv(I(8), "consumption", -2, "assembly_record", AR(3), maria, "2026-01-20T09:00:00Z"),
+      mv(I(9), "consumption", -2, "assembly_record", AR(3), maria, "2026-01-20T10:00:00Z"),
+      mv(I(10), "consumption", -2, "assembly_record", AR(3), maria, "2026-01-20T11:00:00Z"),
+      mv(I(6), "consumption", -4, "assembly_record", AR(4), maria, "2026-02-10T08:00:00Z"),
+      mv(I(8), "consumption", -2, "assembly_record", AR(4), maria, "2026-02-10T09:00:00Z"),
+      mv(I(9), "consumption", -2, "assembly_record", AR(4), maria, "2026-02-10T10:00:00Z"),
+      mv(I(10), "consumption", -2, "assembly_record", AR(4), maria, "2026-02-10T11:00:00Z"),
 
       // Sales deductions (closed + fulfilled SOs)
-      mv(I(1), "sale", -5, "sales_order", SO(1), dana),    // SO-001
-      mv(I(3), "sale", -3, "sales_order", SO(2), dana),    // SO-002
-      mv(I(4), "sale", -3, "sales_order", SO(2), dana),
-      mv(I(1), "sale", -2, "sales_order", SO(2), dana),
-      mv(I(3), "sale", -5, "sales_order", SO(4), dana),    // SO-004
-      mv(I(4), "sale", -5, "sales_order", SO(4), dana),
+      mv(I(1), "sale", -5, "sales_order", SO(1), dana, "2025-11-12T10:00:00Z"),    // SO-001
+      mv(I(3), "sale", -3, "sales_order", SO(2), dana, "2025-12-10T14:00:00Z"),    // SO-002
+      mv(I(4), "sale", -3, "sales_order", SO(2), dana, "2025-12-10T14:30:00Z"),
+      mv(I(1), "sale", -2, "sales_order", SO(2), dana, "2025-12-10T15:00:00Z"),
+      mv(I(3), "sale", -5, "sales_order", SO(4), dana, "2026-02-05T11:00:00Z"),    // SO-004
+      mv(I(4), "sale", -5, "sales_order", SO(4), dana, "2026-02-05T11:30:00Z"),
 
-      // Consumable usage
-      mv(I(20), "consumption", -15, "manual", null, maria),
-      mv(I(21), "consumption", -20, "manual", null, maria),
-      mv(I(23), "consumption", -25, "manual", null, maria),
-      mv(I(24), "consumption", -3, "manual", null, maria),
+      // Consumable usage (spread across time)
+      mv(I(20), "consumption", -15, "manual", null, maria, "2025-09-15T08:00:00Z"),
+      mv(I(21), "consumption", -20, "manual", null, maria, "2025-10-01T08:00:00Z"),
+      mv(I(23), "consumption", -25, "manual", null, maria, "2025-11-20T08:00:00Z"),
+      mv(I(24), "consumption", -3, "manual", null, maria, "2025-12-01T08:00:00Z"),
+      // Additional consumable usage for variety
+      mv(I(20), "consumption", -10, "manual", null, maria, "2026-01-10T08:00:00Z"),
+      mv(I(21), "consumption", -8, "manual", null, maria, "2026-01-15T08:00:00Z"),
+      mv(I(22), "consumption", -3, "manual", null, maria, "2025-10-20T08:00:00Z"),
+      mv(I(23), "consumption", -15, "manual", null, maria, "2026-02-01T08:00:00Z"),
+      mv(I(25), "consumption", -4, "manual", null, maria, "2026-01-20T08:00:00Z"),
+      // Internal use consumption (fleet maintenance)
+      mv(I(14), "consumption", -6, "manual", null, james, "2025-09-01T07:00:00Z"),
+      mv(I(14), "consumption", -4, "manual", null, james, "2025-12-15T07:00:00Z"),
+      mv(I(14), "consumption", -5, "manual", null, james, "2026-02-20T07:00:00Z"),
+      mv(I(15), "consumption", -3, "manual", null, james, "2025-10-15T07:00:00Z"),
+      mv(I(15), "consumption", -4, "manual", null, james, "2026-01-10T07:00:00Z"),
+      mv(I(16), "consumption", -3, "manual", null, james, "2025-11-01T07:00:00Z"),
+      mv(I(16), "consumption", -2, "manual", null, james, "2026-02-15T07:00:00Z"),
+      mv(I(17), "consumption", -2, "manual", null, james, "2025-10-01T07:00:00Z"),
+      mv(I(17), "consumption", -2, "manual", null, james, "2026-01-20T07:00:00Z"),
+      mv(I(18), "consumption", -2, "manual", null, james, "2025-11-15T07:00:00Z"),
+      mv(I(18), "consumption", -1, "manual", null, james, "2026-02-28T07:00:00Z"),
+      mv(I(19), "consumption", -2, "manual", null, james, "2025-12-01T07:00:00Z"),
+      mv(I(19), "consumption", -1, "manual", null, james, "2026-03-01T07:00:00Z"),
 
       // Reconciliation adjustments
-      mv(I(7), "reconciliation", -2, "reconciliation", null, james),
-      mv(I(1), "reconciliation", 1, "reconciliation", null, james),
-      mv(I(20), "reconciliation", -5, "reconciliation", null, james),
+      mv(I(7), "reconciliation", -2, "reconciliation", null, james, "2026-01-05T10:00:00Z"),
+      mv(I(1), "reconciliation", 1, "reconciliation", null, james, "2026-01-05T10:30:00Z"),
+      mv(I(20), "reconciliation", -5, "reconciliation", null, james, "2026-01-05T11:00:00Z"),
     ];
     for (const m of movements) await sb.from("inventory_movements").insert(m);
 
