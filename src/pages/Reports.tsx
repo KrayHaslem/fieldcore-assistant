@@ -1090,7 +1090,7 @@ export default function Reports() {
                             <th className="px-4 py-2 font-medium text-muted-foreground">Notes</th>
                           </tr></thead>
                           <tbody className="divide-y">
-                            {reconData.map((r: any) => (
+                            {(reconData ?? []).filter((r: any) => !sf || (r.inventory_items?.name ?? '').toLowerCase().includes(sf)).map((r: any) => (
                               <tr key={r.id}>
                                 <td className="px-4 py-2 text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</td>
                                 <td className="px-4 py-2 text-foreground">{r.inventory_items?.name ?? "—"}</td>
