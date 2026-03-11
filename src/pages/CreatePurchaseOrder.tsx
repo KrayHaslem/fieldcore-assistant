@@ -920,7 +920,7 @@ export default function CreatePurchaseOrder() {
       {/* Assistant Panel */}
       {showAssistant && prefill && (
         <FormAssistantPanel
-          commandText={prefill.raw || prefill.command || "AI command"}
+          commandText={commandText || prefill.raw || prefill.command || "AI command"}
           formContext="Order creation form. Fields include supplier, department, line items with item name, quantity, unit cost, inventory type, and unit number for internal use items."
           onIntentReceived={handleAssistantIntent}
           onClose={() => setShowAssistant(false)}
