@@ -924,6 +924,7 @@ export default function CreatePurchaseOrder() {
           formContext="Order creation form. Fields include supplier, department, line items with item name, quantity, unit cost, inventory type, and unit number for internal use items."
           onIntentReceived={handleAssistantIntent}
           onClose={() => setShowAssistant(false)}
+          unmatchedItems={prefill.unmatched_items as UnmatchedItem[] | undefined}
         />
       )}
     </div>
