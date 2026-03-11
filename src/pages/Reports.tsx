@@ -1429,7 +1429,7 @@ export default function Reports() {
                             <th className="px-4 py-2 font-medium text-muted-foreground text-right">Qty Produced</th>
                           </tr></thead>
                           <tbody className="divide-y">
-                            {assemblyHistData.map((r: any) => (
+                            {(assemblyHistData ?? []).filter((r: any) => !sf || r.finishedItem.toLowerCase().includes(sf)).map((r: any) => (
                               <>
                                 <tr key={r.id} className="cursor-pointer hover:bg-muted/50" onClick={() => toggleAssemblyExpand(r.id)}>
                                   <td className="px-4 py-2">
