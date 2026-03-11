@@ -633,6 +633,7 @@ export default function Reports() {
   });
 
   const isSalesOnly = roles.includes("sales") && !roles.includes("admin") && !roles.includes("finance");
+  const sf = searchFilter.toLowerCase();
 
   const isLoading =
     selectedCustomId ? loadingCustom :
