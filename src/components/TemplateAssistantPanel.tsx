@@ -38,12 +38,18 @@ export function TemplateAssistantPanel({ onFieldsUpdate, onClose, initialMessage
   }, [messages]);
 
   const processResponse = (data: any) => {
-    const reply = data?.reply || "I couldn't process that request.";
-    setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
-
-    // Check for structured field updates
+    const reply = data?.reply || "";
     const fields = data?.fields as TemplateFieldUpdates | undefined;
-    if (fields && Object.keys(fields).length > 0) {
+    const hasFields = fields && Object.keys(fields).length > 0;
+
+    // Build a meaningful reply even if AI returned empty content (common with tool calls)
+    const displayReply = reply || (hasFields
+      ? "I've updated the template fields based on your description."
+      : "I couldn't process that request.");
+
+    setMessages((prev) => [...prev, { role: "assistant", content: displayReply }]);
+
+    if (hasFields) {
       onFieldsUpdate(fields);
     }
   };
