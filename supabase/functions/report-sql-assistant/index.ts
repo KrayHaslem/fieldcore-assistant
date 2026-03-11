@@ -87,7 +87,7 @@ KEY PATTERNS to follow:
 - Use LEFT JOIN when items might have no related records
 - Cast counts with ::BIGINT when needed
 - Order results meaningfully (DESC by important metric)
-\`;
+`;
 
 /**
  * Extract raw SQL from a response that may contain markdown code fences.
