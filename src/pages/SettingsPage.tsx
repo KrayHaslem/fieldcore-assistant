@@ -1233,6 +1233,18 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Report Preview Modal */}
+      {rtTestResult && (
+        <ReportPreviewModal
+          open={showPreviewModal}
+          onOpenChange={setShowPreviewModal}
+          templateName={rtNewOpen ? rtNewForm.name : rtEditForm.name || ""}
+          templateDescription={rtNewOpen ? rtNewForm.description : rtEditForm.description || ""}
+          chartType={rtNewOpen ? rtNewForm.chart_type : rtEditForm.chart_type || "table"}
+          data={rtTestResult}
+        />
+      )}
     </div>
   );
 }
