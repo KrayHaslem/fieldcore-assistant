@@ -146,6 +146,8 @@ serve(async (req) => {
 
 ${SCHEMA_SUMMARY}
 
+${EXAMPLE_REPORTS}
+
 CRITICAL RULES — FOLLOW EVERY TIME:
 1. EVERY query MUST include WHERE organization_id = :org_id on the primary table being queried. For JOINs, always ensure the main table or a joined table filters by organization_id = :org_id. NEVER write a query without :org_id filtering. This is a multi-tenant system and violating this rule leaks data between organizations.
 2. Use :start_date and :end_date as date range placeholders where appropriate (e.g. WHERE created_at >= :start_date AND created_at <= :end_date).
@@ -154,8 +156,9 @@ CRITICAL RULES — FOLLOW EVERY TIME:
 5. NEVER use UNION, INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, TRUNCATE, or any DDL/DML. Only SELECT queries.
 6. Do NOT include a semicolon at the end of the query.
 7. Do NOT wrap the query in markdown code fences (no \`\`\`sql or \`\`\`). Output raw SQL only when providing a final query.
-8. For date arithmetic, use direct subtraction: (CURRENT_DATE - some_timestamp::DATE) returns an integer number of days in PostgreSQL. Do NOT use EXTRACT(DAY FROM ...) on date subtraction results — it does not work as expected because date minus date returns an integer, not an interval.
+8. CRITICAL DATE ARITHMETIC: Use direct subtraction (CURRENT_DATE - some_timestamp::DATE) which returns an integer number of days. NEVER use EXTRACT(DAY FROM ...) on date subtraction — it does NOT work because date minus date returns an integer, not an interval.
 9. When calculating "days since" a date, use: (CURRENT_DATE - column_name::DATE) AS days_since_xxx
+10. Study the REFERENCE EXAMPLES above and match their quality — include multiple useful columns, calculated fields, COALESCE for nullables, and meaningful ordering.
 
 WORKFLOW:
 - If the user's request is unclear, ask clarifying questions about what data they want, what columns, what filters, etc.
