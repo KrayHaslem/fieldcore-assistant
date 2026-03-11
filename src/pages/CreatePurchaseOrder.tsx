@@ -572,9 +572,20 @@ export default function CreatePurchaseOrder() {
       }
 
       case "create_supplier": {
+        const normalized = toTitleCase(action.supplierName);
+        // Duplicate check
+        const { data: existingSupplier } = await supabase
+          .from("suppliers")
+          .select("id, name, contact_email, contact_name")
+          .ilike("name", normalized)
+          .limit(1);
+        if (existingSupplier && existingSupplier.length > 0) {
+          setSupplier({ ...existingSupplier[0], label: existingSupplier[0].name });
+          return `"${existingSupplier[0].name}" already exists — selected it.`;
+        }
         const { data, error: err } = await supabase
           .from("suppliers")
-          .insert({ name: action.supplierName, organization_id: orgId! })
+          .insert({ name: normalized, organization_id: orgId! })
           .select()
           .single();
         if (err) throw new Error(err.message);
@@ -583,7 +594,6 @@ export default function CreatePurchaseOrder() {
       }
 
       case "use_item": {
-        // Fetch full item data
         const { data } = await supabase
           .from("inventory_items")
           .select("id, name, item_type, default_unit_cost, sku, avg_unit_cost")
@@ -614,9 +624,38 @@ export default function CreatePurchaseOrder() {
       }
 
       case "create_item": {
+        const normalized = toTitleCase(action.itemName);
+        // Duplicate check
+        const { data: existingItem } = await supabase
+          .from("inventory_items")
+          .select("id, name, item_type, default_unit_cost, sku, avg_unit_cost")
+          .ilike("name", normalized)
+          .limit(1);
+        if (existingItem && existingItem.length > 0) {
+          const match = existingItem[0];
+          const costStr = match.avg_unit_cost != null
+            ? String(match.avg_unit_cost)
+            : match.default_unit_cost != null
+            ? String(match.default_unit_cost)
+            : "";
+          setItems((prev) => {
+            const empty = prev.find((li) => !li.item);
+            const newLi: LineItem = {
+              id: empty?.id || String(Date.now()),
+              item: { ...match, label: match.sku ? `${match.name} (${match.sku})` : match.name },
+              quantity: String(action.quantity),
+              unit_cost: costStr,
+              item_type: (match.item_type || "resale") as InventoryType,
+              unit: null,
+            };
+            if (empty) return prev.map((li) => (li.id === empty.id ? newLi : li));
+            return [...prev, newLi];
+          });
+          return `"${match.name}" already exists — added ${action.quantity} to line items.`;
+        }
         const { data, error: err } = await supabase
           .from("inventory_items")
-          .insert({ name: action.itemName, organization_id: orgId!, item_type: "resale" })
+          .insert({ name: normalized, organization_id: orgId!, item_type: "resale" })
           .select()
           .single();
         if (err) throw new Error(err.message);
