@@ -684,7 +684,7 @@ export default function SettingsPage() {
           {/* Report Templates (admin only) */}
           {isAdmin && (
             <TabsContent value="report-templates">
-              <Tabs defaultValue="system-templates">
+              <Tabs value={rtSubTab} onValueChange={setRtSubTab}>
                 <TabsList className="mb-4">
                   <TabsTrigger value="system-templates">System Templates</TabsTrigger>
                   <TabsTrigger value="org-templates">Organization Templates</TabsTrigger>
