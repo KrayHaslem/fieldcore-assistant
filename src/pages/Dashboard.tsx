@@ -213,8 +213,13 @@ export default function Dashboard() {
         else if (dest?.includes("report")) navigate("/reports");
         else if (dest?.includes("setting")) navigate("/settings");
         else toast({ title: "Command Parsed", description: `Intent: ${intent}` });
+      } else if (intent === "unknown") {
+        toast({
+          title: "I didn't understand that",
+          description: "Try commands like \"Order 5 filters from Logan Supply\", \"Show quarterly spending\", or \"Reconcile hydraulic hoses\".",
+        });
       } else {
-        toast({ title: "Command Parsed", description: `Intent: ${intent || "unknown"}. Check command history for details.` });
+        toast({ title: "Command Parsed", description: `Intent: ${intent}. Check command history for details.` });
       }
 
       setCommand("");
