@@ -24,6 +24,11 @@ export interface UnmatchedItem {
   candidates: { id: string; name: string; sku?: string | null }[];
 }
 
+export interface UnmatchedSupplier {
+  parsed_name: string;
+  candidates: { id: string; name: string; avg_lead_time_days?: number | null }[];
+}
+
 interface FormAssistantPanelProps {
   commandText: string;
   formContext: string;
@@ -31,6 +36,8 @@ interface FormAssistantPanelProps {
   onClose: () => void;
   /** Unmatched items from parse-command to surface on mount */
   unmatchedItems?: UnmatchedItem[];
+  /** Unmatched supplier from parse-command to surface on mount */
+  unmatchedSupplier?: UnmatchedSupplier;
 }
 
 const actionIcons = {

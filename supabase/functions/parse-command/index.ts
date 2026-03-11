@@ -100,6 +100,22 @@ Always return valid JSON only. No markdown, no explanation. If you cannot determ
               name: suppliers[0].name,
               avg_lead_time_days: suppliers[0].avg_lead_time_days,
             };
+          } else {
+            // No exact match — find closest candidates for the user to pick from
+            const firstWord = parsed.supplier.split(" ")[0];
+            const { data: candidates } = await sb
+              .from("suppliers")
+              .select("id, name, avg_lead_time_days")
+              .or(`name.ilike.%${firstWord}%`)
+              .limit(5);
+            parsed.unmatched_supplier = {
+              parsed_name: parsed.supplier,
+              candidates: (candidates ?? []).map((c: any) => ({
+                id: c.id,
+                name: c.name,
+                avg_lead_time_days: c.avg_lead_time_days,
+              })),
+            };
           }
         }
 
