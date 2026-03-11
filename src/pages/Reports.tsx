@@ -875,16 +875,13 @@ export default function Reports() {
                 <h2 className="text-lg font-semibold text-foreground">{selected.name}</h2>
                 <p className="text-sm text-muted-foreground">{selected.description}</p>
 
-                {selectedKey === "purchase_history_item" && (
-                  <div className="mt-3 max-w-sm">
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Select Item</label>
-                    <ComboBox
-                      value={selectedItemId ? { id: selectedItemId, label: selectedItemName } : null}
-                      onChange={(v) => { setSelectedItemId(v?.id ?? null); setSelectedItemName(v?.label ?? ""); }}
-                      onSearch={handleItemSearch}
-                      placeholder="Search items..."
-                    />
-                  </div>
+                {selectedKey === "purchase_history_item" && selectedItemId && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Viewing: <span className="font-medium text-foreground">{selectedItemName}</span>
+                    <Button variant="link" size="sm" className="text-xs h-auto p-0 ml-2" onClick={() => { setSelectedItemId(null); setSelectedItemName(""); }}>
+                      Change
+                    </Button>
+                  </p>
                 )}
 
                 {selectedKey === "margins_by_timeframe" && (
