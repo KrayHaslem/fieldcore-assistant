@@ -15,7 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
-import { Plus, Trash2, Pencil, FlaskConical, RotateCcw, AlertTriangle, Copy } from "lucide-react";
+import { Plus, Trash2, Pencil, FlaskConical, RotateCcw, AlertTriangle, Copy, ArrowLeft } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ReportSqlAssistant } from "@/components/ReportSqlAssistant";
 
 const ALL_ROLES = ["admin", "procurement", "sales", "finance", "employee"] as const;
