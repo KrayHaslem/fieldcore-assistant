@@ -930,6 +930,18 @@ export default function Reports() {
                     </div>
                   </div>
                 )}
+
+                {/* Search filter for table reports */}
+                {selectedKey && !["monthly_purchase_totals", "quarterly_spending", "quarterly_revenue", "margins_by_timeframe", "open_pos", "purchase_history_item"].includes(selectedKey) && (
+                  <div className="mt-3">
+                    <Input
+                      value={searchFilter}
+                      onChange={(e) => setSearchFilter(e.target.value)}
+                      placeholder="Filter results..."
+                      className="max-w-xs text-sm h-9"
+                    />
+                  </div>
+                )}
               </div>
 
               {isLoading ? (
