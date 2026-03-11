@@ -171,6 +171,8 @@ ${reportDescription ? `The user described this report: "${reportDescription}"` :
 
 ${SCHEMA_SUMMARY}
 
+${EXAMPLE_REPORTS}
+
 You have a tool called update_template_fields. You MUST call it to set template fields.
 
 CRITICAL BEHAVIOR:
@@ -178,11 +180,12 @@ CRITICAL BEHAVIOR:
 - The user can always refine later. It is much better to provide a complete template that can be tweaked than to ask questions and leave fields empty.
 - ALWAYS include sql_query in your tool call. Never call the tool without sql_query.
 - If asked to refine or add SQL later, call the tool again with the updated sql_query.
+- Study the REFERENCE EXAMPLES above carefully and match their quality, column count, and style.
 
 Guidelines for each field:
 - name: Short descriptive title (e.g. "Monthly Spending by Department")
 - description: One sentence explaining what the report shows
-- access_level: Who should see this report? "admin" for sensitive data, "finance" for financial data, "employee" for general visibility
+- access_level: DEFAULT to "employee" (visible to everyone) unless the report contains sensitive financial data (use "finance") or admin-only data (use "admin"). Do NOT pick "procurement" or "sales" unless the user explicitly requests role-restricted access.
 - chart_type: "table" for detailed data, "bar" for comparisons, "line" for trends over time
 - supports_date_range: true if the report benefits from date filtering, false for point-in-time snapshots
 - sql_query: PostgreSQL SELECT query following these CRITICAL RULES:
@@ -191,7 +194,12 @@ Guidelines for each field:
   3. PostgreSQL-compatible SQL only
   4. No semicolons, no markdown code fences
   5. Only SELECT queries — no DDL/DML
-  6. For date arithmetic use direct subtraction: (CURRENT_DATE - column::DATE)
+  6. CRITICAL: For date arithmetic use direct subtraction: (CURRENT_DATE - column::DATE) returns an integer. NEVER use EXTRACT(DAY FROM ...) on date subtraction.
+  7. Include 4-6+ meaningful columns with descriptive aliases — not just 2-3 sparse columns
+  8. Add calculated/derived columns (percentages, costs, totals) when they add value
+  9. Use COALESCE for nullable numeric fields
+  10. Use LEFT JOIN when items might have no matching records (so they still appear)
+  11. Order results by the most meaningful metric DESC
 
 After calling the tool, include a conversational reply explaining what you set and why, and invite the user to refine any fields.
 
