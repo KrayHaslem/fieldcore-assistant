@@ -183,10 +183,25 @@ export default function CreatePurchaseOrder() {
       setSupplierModalError("Supplier name is required");
       return;
     }
+    const normalized = toTitleCase(newSupplierName);
+    // Duplicate check
+    const { data: existing } = await supabase
+      .from("suppliers")
+      .select("id, name")
+      .ilike("name", normalized)
+      .limit(1);
+    if (existing && existing.length > 0) {
+      setSupplier({ ...existing[0], label: existing[0].name });
+      setShowSupplierModal(false);
+      setNewSupplierName("");
+      setNewSupplierEmail("");
+      toast({ title: "Supplier Found", description: `"${existing[0].name}" already exists — selected it.` });
+      return;
+    }
     const { data, error: err } = await supabase
       .from("suppliers")
       .insert({
-        name: newSupplierName.trim(),
+        name: normalized,
         contact_email: newSupplierEmail.trim() || null,
         organization_id: orgId!,
       })
