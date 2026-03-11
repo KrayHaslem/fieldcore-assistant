@@ -24,10 +24,8 @@ const SCHEMA_SUMMARY = `Available tables and columns (PostgreSQL):
 
 /**
  * Extract raw SQL from a response that may contain markdown code fences.
- * Returns the raw SQL string or null if no SQL block found.
  */
 function extractSqlFromFences(text: string): string | null {
-  // Match ```sql ... ``` or ``` ... ``` blocks
   const fenceRegex = /```(?:sql)?\s*\n?([\s\S]*?)```/i;
   const match = text.match(fenceRegex);
   if (match) {
@@ -40,11 +38,33 @@ function extractSqlFromFences(text: string): string | null {
   return null;
 }
 
+const TEMPLATE_TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "update_template_fields",
+      description: "Update report template fields. Call this when you have determined one or more template fields from the user's description. All parameters are optional — only include fields you can confidently determine.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "A short, descriptive report name (e.g. 'Monthly Spending by Department')" },
+          description: { type: "string", description: "A one-sentence description of what the report shows" },
+          access_level: { type: "string", enum: ["admin", "procurement", "sales", "finance", "employee"], description: "Minimum role required to view this report" },
+          chart_type: { type: "string", enum: ["table", "bar", "line"], description: "How to visualize the data" },
+          supports_date_range: { type: "boolean", description: "Whether the report should show date range filters" },
+          sql_query: { type: "string", description: "The PostgreSQL SELECT query. Must include WHERE organization_id = :org_id. Use :start_date and :end_date as date placeholders. No semicolons." },
+        },
+        required: [],
+      },
+    },
+  },
+];
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, reportDescription } = await req.json();
+    const { messages, reportDescription, mode } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
       return jsonResp({ error: "messages array is required" }, 400);
@@ -53,7 +73,9 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const systemPrompt = `You are a FieldCore report SQL assistant. You help users write PostgreSQL SELECT queries for custom reports.
+    const isTemplateMode = mode === "template";
+
+    const sqlOnlyPrompt = `You are a FieldCore report SQL assistant. You help users write PostgreSQL SELECT queries for custom reports.
 
 ${SCHEMA_SUMMARY}
 
@@ -75,19 +97,53 @@ WORKFLOW:
 
 ${reportDescription ? `The user described this report: "${reportDescription}"` : ""}`;
 
+    const templatePrompt = `You are a FieldCore report template assistant. You help users create complete report templates by suggesting all template fields: name, description, access level, chart type, date filtering support, and the SQL query.
+
+${SCHEMA_SUMMARY}
+
+You have a tool called update_template_fields. Use it to set template fields when you can determine them from the conversation. You can call it multiple times as the conversation progresses.
+
+Guidelines for each field:
+- name: Short descriptive title (e.g. "Monthly Spending by Department")
+- description: One sentence explaining what the report shows
+- access_level: Who should see this report? "admin" for sensitive data, "finance" for financial data, "employee" for general visibility
+- chart_type: "table" for detailed data, "bar" for comparisons, "line" for trends over time
+- supports_date_range: true if the report benefits from date filtering, false for point-in-time snapshots
+- sql_query: PostgreSQL SELECT query following these CRITICAL RULES:
+  1. MUST include WHERE organization_id = :org_id
+  2. Use :start_date and :end_date as date range placeholders where appropriate
+  3. PostgreSQL-compatible SQL only
+  4. No semicolons, no markdown code fences
+  5. Only SELECT queries — no DDL/DML
+  6. For date arithmetic use direct subtraction: (CURRENT_DATE - column::DATE)
+
+WORKFLOW:
+- Analyze the user's description and call update_template_fields with all fields you can determine
+- If the request is ambiguous, ask clarifying questions BEFORE calling the tool
+- You may call the tool with partial fields and fill in more later
+- Always include a conversational reply explaining what you set and why
+
+${reportDescription ? `The user described this report: "${reportDescription}"` : ""}`;
+
+    const body: any = {
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: isTemplateMode ? templatePrompt : sqlOnlyPrompt },
+        ...messages,
+      ],
+    };
+
+    if (isTemplateMode) {
+      body.tools = TEMPLATE_TOOLS;
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages,
-        ],
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -98,22 +154,42 @@ ${reportDescription ? `The user described this report: "${reportDescription}"` :
     }
 
     const aiResult = await response.json();
-    const content = aiResult.choices?.[0]?.message?.content ?? "";
+    const choice = aiResult.choices?.[0];
+    const message = choice?.message;
+    const content = message?.content ?? "";
 
-    // Extract SQL: first try raw content, then try stripping markdown fences
-    const trimmed = content.trim();
-    let sql: string | null = null;
-
-    const cleanTrimmed = trimmed.replace(/;$/, "");
-    if (cleanTrimmed.toUpperCase().startsWith("SELECT") || cleanTrimmed.toUpperCase().startsWith("WITH")) {
-      // Raw SQL without fences
-      sql = cleanTrimmed;
-    } else {
-      // Try extracting from markdown code fences
-      sql = extractSqlFromFences(trimmed);
+    // Handle tool calls (template mode)
+    let fields: Record<string, any> | null = null;
+    if (message?.tool_calls && Array.isArray(message.tool_calls)) {
+      for (const tc of message.tool_calls) {
+        if (tc.function?.name === "update_template_fields") {
+          try {
+            fields = JSON.parse(tc.function.arguments);
+          } catch {
+            // ignore parse errors
+          }
+        }
+      }
     }
 
-    return jsonResp({ reply: content, sql });
+    // Fallback: extract SQL from content (for sql-only mode or if tool calling didn't fire)
+    let sql: string | null = null;
+    if (!isTemplateMode || !fields) {
+      const trimmed = content.trim();
+      const cleanTrimmed = trimmed.replace(/;$/, "");
+      if (cleanTrimmed.toUpperCase().startsWith("SELECT") || cleanTrimmed.toUpperCase().startsWith("WITH")) {
+        sql = cleanTrimmed;
+      } else {
+        sql = extractSqlFromFences(trimmed);
+      }
+    }
+
+    // If we got fields with sql_query, also set sql for backward compat
+    if (fields?.sql_query) {
+      sql = fields.sql_query;
+    }
+
+    return jsonResp({ reply: content, sql, fields: fields || undefined });
   } catch (error: any) {
     console.error("report-sql-assistant error:", error);
     return jsonResp({ error: error.message }, 500);

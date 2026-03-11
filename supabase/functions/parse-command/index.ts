@@ -30,6 +30,8 @@ Supported intents:
 - create_sales_order: { intent, customer?, items: [{ name, quantity }] }
 - show_report: { intent, report_name?, search_term?: string (any qualifier like an item name, supplier name, or keyword to filter results by, e.g. "welding rods" or "Logan Supply"), date_range?: { start: string (ISO date), end: string (ISO date), label: string } }
   When the user references a quarter ("Q3 spending", "quarterly revenue for Q1 last year"), parse it into explicit ISO start and end date strings. For example "Q3 2025" becomes start: "2025-07-01", end: "2025-09-30". When the user references a year ("spending last year"), parse it into the full year range.
+- create_report_template: { intent, description?, report_name? }
+  Use this when the user wants to CREATE or BUILD a new report template (e.g. "create a report that shows monthly spending by department", "build me a supplier lead time report")
 - reconcile_item: { intent, item_name? }
 - record_assembly: { intent, item_name?, quantity? }
 - navigate: { intent, destination } (for general navigation like "show purchase orders")
