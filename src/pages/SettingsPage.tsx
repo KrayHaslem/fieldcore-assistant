@@ -18,6 +18,7 @@ import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
 import { Plus, Trash2, Pencil, FlaskConical, RotateCcw, AlertTriangle, Copy, ArrowLeft, Bot, Play } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TemplateAssistantPanel, type TemplateFieldUpdates } from "@/components/TemplateAssistantPanel";
+import { ReportPreviewModal } from "@/components/ReportPreviewModal";
 
 const ALL_ROLES = ["admin", "procurement", "sales", "finance", "employee"] as const;
 
