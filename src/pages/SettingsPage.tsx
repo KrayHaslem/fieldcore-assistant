@@ -344,7 +344,7 @@ export default function SettingsPage() {
   const [rtNewOpen, setRtNewOpen] = useState(false);
   const [rtNewForm, setRtNewForm] = useState({
     name: "", description: "", access_level: "admin", chart_type: "table",
-    supports_date_range: true, supports_quarterly: false, sql_query: "",
+    supports_date_range: true, sql_query: "",
   });
 
   const { data: systemTemplates } = useQuery({
