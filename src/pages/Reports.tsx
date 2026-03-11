@@ -9,8 +9,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths, subQuarters, subYears } from "date-fns";
-import { CalendarIcon, ShoppingCart, Package, DollarSign, BarChart3, ChevronDown, ChevronRight, Wrench } from "lucide-react";
+import { CalendarIcon, ShoppingCart, Package, DollarSign, BarChart3, ChevronDown, ChevronRight, Wrench, Bot } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { ReportAssistantPanel } from "@/components/ReportAssistantPanel";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 type ReportKey =
@@ -120,6 +121,7 @@ export default function Reports() {
   const [selectedItemName, setSelectedItemName] = useState<string>("");
   const [marginGrouping, setMarginGrouping] = useState<"weekly" | "monthly" | "quarterly">("monthly");
   const [expandedAssemblyIds, setExpandedAssemblyIds] = useState<Set<string>>(new Set());
+  const [showAssistant, setShowAssistant] = useState(false);
 
   // Fetch report templates from database
   const { data: templatesData } = useQuery({
@@ -215,6 +217,42 @@ export default function Reports() {
 
   const quickSelect = (start: Date, end: Date) => { setStartDate(start); setEndDate(end); };
   const now = new Date();
+
+  // Build available reports list for the assistant
+  const availableReportsForAssistant = useMemo(() => {
+    const reports: { name: string; description: string; category: string }[] = [];
+    for (const cat of LOCAL_CATEGORIES) {
+      for (const reportName of cat.reports) {
+        const r = allReports.find((ar) => ar.name === reportName);
+        if (r && canAccessReport(r)) {
+          reports.push({ name: r.name, description: r.description, category: cat.title });
+        }
+      }
+    }
+    for (const ct of customTemplates) {
+      reports.push({ name: ct.name, description: ct.description || "", category: "Custom" });
+    }
+    return reports;
+  }, [allReports, customTemplates, roles]);
+
+  const handleAssistantSelectReport = useCallback((reportName: string, startDateStr?: string | null, endDateStr?: string | null) => {
+    // Try built-in reports first
+    const key = REPORT_KEY_MAP[reportName];
+    if (key) {
+      setSelectedKey(key);
+      setSelectedCustomId(null);
+    } else {
+      // Try custom templates
+      const custom = customTemplates.find((t) => t.name.toLowerCase() === reportName.toLowerCase());
+      if (custom) {
+        setSelectedCustomId(custom.id);
+        setSelectedKey(null);
+      }
+    }
+    // Set date range if provided
+    if (startDateStr) setStartDate(new Date(startDateStr));
+    if (endDateStr) setEndDate(new Date(endDateStr));
+  }, [customTemplates]);
 
   // ---- Custom Report Execution ----
   const startISO = startDate?.toISOString();
@@ -622,8 +660,24 @@ export default function Reports() {
 
   return (
     <div>
-      <PageHeader title="Reports" description="Data-driven insights from your operations" />
-      <div className="flex p-8 gap-6 max-w-7xl">
+      <PageHeader
+        title="Reports"
+        description="Data-driven insights from your operations"
+        actions={
+          <Button
+            variant={showAssistant ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowAssistant((v) => !v)}
+            className="gap-2"
+          >
+            <Bot className="h-4 w-4" />
+            {showAssistant ? "Hide Assistant" : "Report Assistant"}
+          </Button>
+        }
+      />
+      <div className="flex p-8 gap-6">
+        {/* Main content area */}
+        <div className="flex gap-6 flex-1 min-w-0 max-w-7xl">
         {/* Left — Report Selector */}
         <div className="w-64 shrink-0 space-y-6">
           {reportCategories.map((cat) => {
@@ -1469,6 +1523,16 @@ export default function Reports() {
             </div>
           )}
         </div>
+        </div>
+
+        {/* Report Assistant Panel */}
+        {showAssistant && (
+          <ReportAssistantPanel
+            availableReports={availableReportsForAssistant}
+            onSelectReport={handleAssistantSelectReport}
+            onClose={() => setShowAssistant(false)}
+          />
+        )}
       </div>
     </div>
   );
