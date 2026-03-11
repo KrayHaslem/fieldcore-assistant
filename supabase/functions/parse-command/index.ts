@@ -28,7 +28,7 @@ Today's date is ${new Date().toISOString().split("T")[0]}.
 Supported intents:
 - create_purchase_order: { intent, supplier?, items: [{ name, quantity }], department? }
 - create_sales_order: { intent, customer?, items: [{ name, quantity }] }
-- show_report: { intent, report_name?, date_range?: { start: string (ISO date), end: string (ISO date), label: string } }
+- show_report: { intent, report_name?, search_term?: string (any qualifier like an item name, supplier name, or keyword to filter results by, e.g. "welding rods" or "Logan Supply"), date_range?: { start: string (ISO date), end: string (ISO date), label: string } }
   When the user references a quarter ("Q3 spending", "quarterly revenue for Q1 last year"), parse it into explicit ISO start and end date strings. For example "Q3 2025" becomes start: "2025-07-01", end: "2025-09-30". When the user references a year ("spending last year"), parse it into the full year range.
 - reconcile_item: { intent, item_name? }
 - record_assembly: { intent, item_name?, quantity? }

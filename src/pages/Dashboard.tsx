@@ -194,6 +194,7 @@ export default function Dashboard() {
           navigate("/reports", {
             state: {
               prefill: data,
+              commandText: command.trim(),
               startDate: data.date_range?.start ?? null,
               endDate: data.date_range?.end ?? null,
             },
@@ -241,7 +242,7 @@ export default function Dashboard() {
 
     if (intentType === "create_purchase_order") return () => navigate("/orders/new", { state: { prefill: data, commandText: cmd.command_text } });
     if (intentType === "create_sales_order") return () => navigate("/sales", { state: { prefill: data } });
-    if (intentType === "show_report") return () => navigate("/reports", { state: { prefill: data, startDate: data.date_range?.start ?? null, endDate: data.date_range?.end ?? null } });
+    if (intentType === "show_report") return () => navigate("/reports", { state: { prefill: data, commandText: cmd.command_text, startDate: data.date_range?.start ?? null, endDate: data.date_range?.end ?? null } });
     if (intentType === "reconcile_item") return () => navigate("/reconciliation", { state: { prefill: data } });
     if (intentType === "record_assembly") return () => navigate("/assemblies", { state: { prefill: data } });
     if (intentType === "navigate") {

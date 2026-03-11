@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Send, Bot, User, BarChart3 } from "lucide-react";
+import { X, Send, Bot, User } from "lucide-react";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -20,25 +20,61 @@ interface ReportAction {
   report_name: string;
   start_date: string | null;
   end_date: string | null;
+  search_term?: string | null;
 }
 
 interface ReportAssistantPanelProps {
   availableReports: AvailableReport[];
-  onSelectReport: (reportName: string, startDate?: string | null, endDate?: string | null) => void;
+  onSelectReport: (reportName: string, startDate?: string | null, endDate?: string | null, searchTerm?: string | null) => void;
   onClose: () => void;
+  initialMessage?: string;
 }
 
-export function ReportAssistantPanel({ availableReports, onSelectReport, onClose }: ReportAssistantPanelProps) {
+export function ReportAssistantPanel({ availableReports, onSelectReport, onClose, initialMessage }: ReportAssistantPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: "assistant", content: "What data are you looking for? I can help you find the right report and set up date ranges." },
   ]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const initialSent = useRef(false);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
+
+  // Auto-send initial message from Command Center
+  useEffect(() => {
+    if (initialMessage && !initialSent.current) {
+      initialSent.current = true;
+      const userMsg: ChatMessage = { role: "user", content: initialMessage };
+      const updated = [messages[0], userMsg];
+      setMessages(updated);
+      setSending(true);
+
+      supabase.functions.invoke("report-assistant", {
+        body: {
+          messages: updated.map((m) => ({ role: m.role, content: m.content })),
+          available_reports: availableReports,
+        },
+      }).then(({ data, error }) => {
+        if (error) {
+          setMessages((prev) => [...prev, { role: "assistant", content: `Sorry, I couldn't process that: ${error.message}` }]);
+        } else {
+          const reply = data?.reply || "I couldn't process that request.";
+          setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+          if (data?.action?.type === "select_report") {
+            const action = data.action as ReportAction;
+            onSelectReport(action.report_name, action.start_date, action.end_date, action.search_term);
+          }
+        }
+      }).catch((err) => {
+        setMessages((prev) => [...prev, { role: "assistant", content: `Sorry, I couldn't process that: ${err.message}` }]);
+      }).finally(() => {
+        setSending(false);
+      });
+    }
+  }, [initialMessage, availableReports]);
 
   const handleSend = async () => {
     const text = input.trim();
@@ -66,7 +102,7 @@ export function ReportAssistantPanel({ availableReports, onSelectReport, onClose
       // Handle action
       if (data?.action?.type === "select_report") {
         const action = data.action as ReportAction;
-        onSelectReport(action.report_name, action.start_date, action.end_date);
+        onSelectReport(action.report_name, action.start_date, action.end_date, action.search_term);
       }
     } catch (err: any) {
       setMessages((prev) => [

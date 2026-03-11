@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
@@ -122,6 +123,9 @@ export default function Reports() {
   const [marginGrouping, setMarginGrouping] = useState<"weekly" | "monthly" | "quarterly">("monthly");
   const [expandedAssemblyIds, setExpandedAssemblyIds] = useState<Set<string>>(new Set());
   const [showAssistant, setShowAssistant] = useState(false);
+  const [searchFilter, setSearchFilter] = useState("");
+  const [initialMessage, setInitialMessage] = useState<string | undefined>(undefined);
+  const [purchaseHistorySearch, setPurchaseHistorySearch] = useState("");
 
   // Fetch report templates from database
   const { data: templatesData } = useQuery({
@@ -190,19 +194,28 @@ export default function Reports() {
 
   useEffect(() => {
     const state = location.state as any;
-    if (state?.startDate) {
-      setStartDate(new Date(state.startDate));
-    }
-    if (state?.endDate) {
-      setEndDate(new Date(state.endDate));
-    }
+    if (state?.startDate) setStartDate(new Date(state.startDate));
+    if (state?.endDate) setEndDate(new Date(state.endDate));
     if (state?.prefill?.report_name && allReports.length > 0) {
       const match = allReports.find((r) =>
         r.name.toLowerCase().includes(state.prefill.report_name.toLowerCase())
       );
       if (match) setSelectedKey(match.key);
     }
+    if (state?.prefill?.search_term) {
+      setSearchFilter(state.prefill.search_term);
+    }
+    if (state?.commandText) {
+      setShowAssistant(true);
+      setInitialMessage(state.commandText);
+    }
   }, [allReports]);
+
+  // Reset search filter when report changes
+  useEffect(() => {
+    setSearchFilter("");
+    setPurchaseHistorySearch("");
+  }, [selectedKey, selectedCustomId]);
 
   const canAccessReport = (report: ReportDef) =>
     roles.includes("admin") || report.accessRoles.some((r) => roles.includes(r));
@@ -235,23 +248,21 @@ export default function Reports() {
     return reports;
   }, [allReports, customTemplates, roles]);
 
-  const handleAssistantSelectReport = useCallback((reportName: string, startDateStr?: string | null, endDateStr?: string | null) => {
-    // Try built-in reports first
+  const handleAssistantSelectReport = useCallback((reportName: string, startDateStr?: string | null, endDateStr?: string | null, searchTerm?: string | null) => {
     const key = REPORT_KEY_MAP[reportName];
     if (key) {
       setSelectedKey(key);
       setSelectedCustomId(null);
     } else {
-      // Try custom templates
       const custom = customTemplates.find((t) => t.name.toLowerCase() === reportName.toLowerCase());
       if (custom) {
         setSelectedCustomId(custom.id);
         setSelectedKey(null);
       }
     }
-    // Set date range if provided
     if (startDateStr) setStartDate(new Date(startDateStr));
     if (endDateStr) setEndDate(new Date(endDateStr));
+    if (searchTerm) setSearchFilter(searchTerm);
   }, [customTemplates]);
 
   // ---- Custom Report Execution ----
@@ -447,6 +458,16 @@ export default function Reports() {
     },
   });
 
+  // All inventory items for purchase history browsable list
+  const { data: allItemsData } = useQuery({
+    queryKey: ["all-items-browse", orgId],
+    enabled: selectedKey === "purchase_history_item" && !!orgId,
+    queryFn: async () => {
+      const { data } = await supabase.from("inventory_items").select("id, name, sku").order("name");
+      return data ?? [];
+    },
+  });
+
   const { data: inventoryPerfData, isLoading: loadingInvPerf } = useQuery({
     queryKey: ["report-inv-perf", orgId, startISO, endISO],
     enabled: selectedKey === "inventory_performance" && !!orgId && canAccessKey("inventory_performance"),
@@ -612,6 +633,7 @@ export default function Reports() {
   });
 
   const isSalesOnly = roles.includes("sales") && !roles.includes("admin") && !roles.includes("finance");
+  const sf = searchFilter.toLowerCase();
 
   const isLoading =
     selectedCustomId ? loadingCustom :
@@ -853,16 +875,13 @@ export default function Reports() {
                 <h2 className="text-lg font-semibold text-foreground">{selected.name}</h2>
                 <p className="text-sm text-muted-foreground">{selected.description}</p>
 
-                {selectedKey === "purchase_history_item" && (
-                  <div className="mt-3 max-w-sm">
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Select Item</label>
-                    <ComboBox
-                      value={selectedItemId ? { id: selectedItemId, label: selectedItemName } : null}
-                      onChange={(v) => { setSelectedItemId(v?.id ?? null); setSelectedItemName(v?.label ?? ""); }}
-                      onSearch={handleItemSearch}
-                      placeholder="Search items..."
-                    />
-                  </div>
+                {selectedKey === "purchase_history_item" && selectedItemId && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Viewing: <span className="font-medium text-foreground">{selectedItemName}</span>
+                    <Button variant="link" size="sm" className="text-xs h-auto p-0 ml-2" onClick={() => { setSelectedItemId(null); setSelectedItemName(""); }}>
+                      Change
+                    </Button>
+                  </p>
                 )}
 
                 {selectedKey === "margins_by_timeframe" && (
@@ -911,6 +930,18 @@ export default function Reports() {
                     </div>
                   </div>
                 )}
+
+                {/* Search filter for table reports */}
+                {selectedKey && !["monthly_purchase_totals", "quarterly_spending", "quarterly_revenue", "margins_by_timeframe", "open_pos", "purchase_history_item"].includes(selectedKey) && (
+                  <div className="mt-3">
+                    <Input
+                      value={searchFilter}
+                      onChange={(e) => setSearchFilter(e.target.value)}
+                      placeholder="Filter results..."
+                      className="max-w-xs text-sm h-9"
+                    />
+                  </div>
+                )}
               </div>
 
               {isLoading ? (
@@ -920,33 +951,32 @@ export default function Reports() {
               ) : (
                 <div className="fieldcore-card overflow-hidden">
                   {/* Spending by Supplier */}
-                  {selectedKey === "spending_supplier" && (
-                    <>
-                      {(!spendingData || spendingData.length === 0) ? <NoData /> : (
-                        <div className="p-4 space-y-4">
-                          <div className="h-64">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <BarChart data={spendingData}>
-                                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                                <XAxis dataKey="name" tick={{ fontSize: 12 }} className="text-muted-foreground" />
-                                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v.toLocaleString()}`} />
-                                <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
-                                <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                              </BarChart>
-                            </ResponsiveContainer>
-                          </div>
-                          <table className="w-full text-sm">
-                            <thead><tr className="border-b bg-muted/50"><th className="px-4 py-2 text-left font-medium text-muted-foreground">Supplier</th><th className="px-4 py-2 text-right font-medium text-muted-foreground">Total Spend</th></tr></thead>
-                            <tbody className="divide-y">
-                              {spendingData.map((r) => (
-                                <tr key={r.name}><td className="px-4 py-2 text-foreground">{r.name}</td><td className="px-4 py-2 text-right font-medium text-foreground">${r.total.toLocaleString()}</td></tr>
-                              ))}
-                            </tbody>
-                          </table>
+                  {selectedKey === "spending_supplier" && (() => {
+                    const filtered = (spendingData ?? []).filter(r => !sf || r.name.toLowerCase().includes(sf));
+                    return filtered.length === 0 ? <NoData /> : (
+                      <div className="p-4 space-y-4">
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={filtered}>
+                              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                              <XAxis dataKey="name" tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                              <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v.toLocaleString()}`} />
+                              <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+                              <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
                         </div>
-                      )}
-                    </>
-                  )}
+                        <table className="w-full text-sm">
+                          <thead><tr className="border-b bg-muted/50"><th className="px-4 py-2 text-left font-medium text-muted-foreground">Supplier</th><th className="px-4 py-2 text-right font-medium text-muted-foreground">Total Spend</th></tr></thead>
+                          <tbody className="divide-y">
+                            {filtered.map((r) => (
+                              <tr key={r.name}><td className="px-4 py-2 text-foreground">{r.name}</td><td className="px-4 py-2 text-right font-medium text-foreground">${r.total.toLocaleString()}</td></tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })()}
 
                   {/* Open POs */}
                   {selectedKey === "open_pos" && (
@@ -991,7 +1021,7 @@ export default function Reports() {
                             <th className="px-4 py-2 font-medium text-muted-foreground text-right">Days Pending</th>
                           </tr></thead>
                           <tbody className="divide-y">
-                            {pendingData.map((po: any) => (
+                            {(pendingData ?? []).filter((po: any) => !sf || `${po.po_number} ${po.suppliers?.name ?? ''} ${po.departments?.name ?? ''}`.toLowerCase().includes(sf)).map((po: any) => (
                               <tr key={po.po_number}>
                                 <td className="px-4 py-2 font-medium text-foreground">{po.po_number}</td>
                                 <td className="px-4 py-2 text-foreground">{po.suppliers?.name ?? "—"}</td>
@@ -1021,7 +1051,7 @@ export default function Reports() {
                               <th className="px-4 py-2 font-medium text-muted-foreground text-right">Total Value</th>
                             </tr></thead>
                             <tbody className="divide-y">
-                              {valuationData.map((i: any) => (
+                              {(valuationData ?? []).filter((i: any) => !sf || `${i.name} ${i.sku ?? ''}`.toLowerCase().includes(sf)).map((i: any) => (
                                 <tr key={i.id}>
                                   <td className="px-4 py-2 font-medium text-foreground">{i.name}</td>
                                   <td className="px-4 py-2 text-muted-foreground">{i.sku ?? "—"}</td>
@@ -1060,7 +1090,7 @@ export default function Reports() {
                             <th className="px-4 py-2 font-medium text-muted-foreground">Notes</th>
                           </tr></thead>
                           <tbody className="divide-y">
-                            {reconData.map((r: any) => (
+                            {(reconData ?? []).filter((r: any) => !sf || (r.inventory_items?.name ?? '').toLowerCase().includes(sf)).map((r: any) => (
                               <tr key={r.id}>
                                 <td className="px-4 py-2 text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</td>
                                 <td className="px-4 py-2 text-foreground">{r.inventory_items?.name ?? "—"}</td>
@@ -1089,7 +1119,7 @@ export default function Reports() {
                             <th className="px-4 py-2 font-medium text-muted-foreground text-right">Total Revenue</th>
                           </tr></thead>
                           <tbody className="divide-y">
-                            {salesItemData.map((r: any) => (
+                            {(salesItemData ?? []).filter((r: any) => !sf || r.name.toLowerCase().includes(sf)).map((r: any) => (
                               <tr key={r.name}>
                                 <td className="px-4 py-2 font-medium text-foreground">{r.name}</td>
                                 <td className="px-4 py-2 text-right text-foreground">{r.units}</td>
@@ -1103,44 +1133,43 @@ export default function Reports() {
                   )}
 
                   {/* Sales by Salesperson */}
-                  {selectedKey === "sales_by_salesperson" && (
-                    <>
-                      {(!salesPersonData || salesPersonData.length === 0) ? <NoData /> : (
-                        <div className="p-4 space-y-4">
-                          {isSalesOnly && (
-                            <p className="text-sm text-muted-foreground italic">Showing your performance only.</p>
-                          )}
-                          <div className="h-64">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <BarChart data={salesPersonData}>
-                                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                                <XAxis dataKey="salesperson_name" tick={{ fontSize: 12 }} className="text-muted-foreground" />
-                                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v.toLocaleString()}`} />
-                                <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
-                                <Bar dataKey="total_revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                              </BarChart>
-                            </ResponsiveContainer>
-                          </div>
-                          <table className="w-full text-sm">
-                            <thead><tr className="border-b bg-muted/50 text-left">
-                              <th className="px-4 py-2 font-medium text-muted-foreground">Salesperson</th>
-                              <th className="px-4 py-2 font-medium text-muted-foreground text-right">Orders</th>
-                              <th className="px-4 py-2 font-medium text-muted-foreground text-right">Total Revenue</th>
-                            </tr></thead>
-                            <tbody className="divide-y">
-                              {salesPersonData.map((r: any) => (
-                                <tr key={r.salesperson_name}>
-                                  <td className="px-4 py-2 font-medium text-foreground">{r.salesperson_name}</td>
-                                  <td className="px-4 py-2 text-right text-foreground">{r.order_count}</td>
-                                  <td className="px-4 py-2 text-right font-medium text-foreground">${Number(r.total_revenue).toLocaleString()}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                  {selectedKey === "sales_by_salesperson" && (() => {
+                    const filtered = (salesPersonData ?? []).filter((r: any) => !sf || (r.salesperson_name ?? '').toLowerCase().includes(sf));
+                    return filtered.length === 0 ? <NoData /> : (
+                      <div className="p-4 space-y-4">
+                        {isSalesOnly && (
+                          <p className="text-sm text-muted-foreground italic">Showing your performance only.</p>
+                        )}
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={filtered}>
+                              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                              <XAxis dataKey="salesperson_name" tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                              <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v.toLocaleString()}`} />
+                              <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+                              <Bar dataKey="total_revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
                         </div>
-                      )}
-                    </>
-                  )}
+                        <table className="w-full text-sm">
+                          <thead><tr className="border-b bg-muted/50 text-left">
+                            <th className="px-4 py-2 font-medium text-muted-foreground">Salesperson</th>
+                            <th className="px-4 py-2 font-medium text-muted-foreground text-right">Orders</th>
+                            <th className="px-4 py-2 font-medium text-muted-foreground text-right">Total Revenue</th>
+                          </tr></thead>
+                          <tbody className="divide-y">
+                            {filtered.map((r: any) => (
+                              <tr key={r.salesperson_name}>
+                                <td className="px-4 py-2 font-medium text-foreground">{r.salesperson_name}</td>
+                                <td className="px-4 py-2 text-right text-foreground">{r.order_count}</td>
+                                <td className="px-4 py-2 text-right font-medium text-foreground">${Number(r.total_revenue).toLocaleString()}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })()}
 
                   {/* Monthly Purchase Totals */}
                   {selectedKey === "monthly_purchase_totals" && (
@@ -1202,11 +1231,47 @@ export default function Reports() {
                     </>
                   )}
 
-                  {/* Purchase History by Item */}
                   {selectedKey === "purchase_history_item" && (
                     <>
                       {!selectedItemId ? (
-                        <div className="p-8 text-center text-muted-foreground">Select an item above to view its purchase history.</div>
+                        <div className="p-4 space-y-3">
+                          <h3 className="text-sm font-semibold text-foreground">Select an item to view its purchase history</h3>
+                          <Input
+                            value={purchaseHistorySearch}
+                            onChange={(e) => setPurchaseHistorySearch(e.target.value)}
+                            placeholder="Search items..."
+                            className="max-w-xs text-sm h-9"
+                          />
+                          {allItemsData && allItemsData.length > 0 ? (
+                            <table className="w-full text-sm">
+                              <thead><tr className="border-b bg-muted/50 text-left">
+                                <th className="px-4 py-2 font-medium text-muted-foreground">Item</th>
+                                <th className="px-4 py-2 font-medium text-muted-foreground">SKU</th>
+                              </tr></thead>
+                              <tbody className="divide-y">
+                                {allItemsData
+                                  .filter((item) => {
+                                    if (!purchaseHistorySearch) return true;
+                                    const q = purchaseHistorySearch.toLowerCase();
+                                    return item.name.toLowerCase().includes(q) || (item.sku ?? '').toLowerCase().includes(q);
+                                  })
+                                  .slice(0, 50)
+                                  .map((item) => (
+                                    <tr
+                                      key={item.id}
+                                      className="cursor-pointer hover:bg-primary/5 transition-colors"
+                                      onClick={() => { setSelectedItemId(item.id); setSelectedItemName(item.name); }}
+                                    >
+                                      <td className="px-4 py-2 font-medium text-foreground">{item.name}</td>
+                                      <td className="px-4 py-2 text-muted-foreground">{item.sku ?? "—"}</td>
+                                    </tr>
+                                  ))}
+                              </tbody>
+                            </table>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Loading items...</p>
+                          )}
+                        </div>
                       ) : (!purchaseHistoryData || purchaseHistoryData.rows.length === 0) ? <NoData /> : (
                         <div className="p-4 space-y-4">
                           <p className="text-sm font-medium text-foreground">Avg Unit Cost: <span className="text-primary">${purchaseHistoryData.avgCost.toFixed(2)}</span></p>
@@ -1271,7 +1336,7 @@ export default function Reports() {
                               <th className="px-4 py-2 font-medium text-muted-foreground text-right">Net Change</th>
                             </tr></thead>
                             <tbody className="divide-y">
-                              {inventoryPerfData.map((item) => {
+                              {(inventoryPerfData ?? []).filter((item) => !sf || item.name.toLowerCase().includes(sf)).map((item) => {
                                 const net = item.points.length ? item.points[item.points.length - 1].qty : 0;
                                 return (
                                   <tr key={item.name}>
@@ -1305,7 +1370,7 @@ export default function Reports() {
                               <th className="px-4 py-2 font-medium text-muted-foreground text-right">Lead Time (days)</th>
                             </tr></thead>
                             <tbody className="divide-y">
-                              {recommendedStockData.map((i: any) => (
+                              {(recommendedStockData ?? []).filter((i: any) => !sf || `${i.name} ${i.sku ?? ''} ${i.supplier}`.toLowerCase().includes(sf)).map((i: any) => (
                                 <tr key={i.id}>
                                   <td className="px-4 py-2 font-medium text-foreground">{i.name}</td>
                                   <td className="px-4 py-2 text-muted-foreground">{i.sku ?? "—"}</td>
@@ -1335,7 +1400,7 @@ export default function Reports() {
                             <th className="px-4 py-2 font-medium text-muted-foreground text-right">Est. Value Lost</th>
                           </tr></thead>
                           <tbody className="divide-y">
-                            {inventoryLossData.map((i: any) => (
+                            {(inventoryLossData ?? []).filter((i: any) => !sf || i.name.toLowerCase().includes(sf)).map((i: any) => (
                               <tr key={i.name}>
                                 <td className="px-4 py-2 font-medium text-foreground">{i.name}</td>
                                 <td className="px-4 py-2 text-right text-foreground">{i.totalLoss}</td>
@@ -1364,7 +1429,7 @@ export default function Reports() {
                             <th className="px-4 py-2 font-medium text-muted-foreground text-right">Qty Produced</th>
                           </tr></thead>
                           <tbody className="divide-y">
-                            {assemblyHistData.map((r: any) => (
+                            {(assemblyHistData ?? []).filter((r: any) => !sf || r.finishedItem.toLowerCase().includes(sf)).map((r: any) => (
                               <>
                                 <tr key={r.id} className="cursor-pointer hover:bg-muted/50" onClick={() => toggleAssemblyExpand(r.id)}>
                                   <td className="px-4 py-2">
@@ -1423,7 +1488,7 @@ export default function Reports() {
                               <th className="px-4 py-2 font-medium text-muted-foreground text-right">Margin %</th>
                             </tr></thead>
                             <tbody className="divide-y">
-                              {marginItemData.map((i: any) => (
+                              {(marginItemData ?? []).filter((i: any) => !sf || i.name.toLowerCase().includes(sf)).map((i: any) => (
                                 <tr key={i.name}>
                                   <td className="px-4 py-2 font-medium text-foreground">{i.name}</td>
                                   <td className="px-4 py-2 text-right text-foreground">{i.units}</td>
@@ -1531,6 +1596,7 @@ export default function Reports() {
             availableReports={availableReportsForAssistant}
             onSelectReport={handleAssistantSelectReport}
             onClose={() => setShowAssistant(false)}
+            initialMessage={initialMessage}
           />
         )}
       </div>
