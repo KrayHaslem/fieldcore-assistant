@@ -70,6 +70,7 @@ export default function CreatePurchaseOrder() {
   const navigate = useNavigate();
   const location = useLocation();
   const prefill = (location.state as any)?.prefill;
+  const commandText = (location.state as any)?.commandText || "";
   const { orgId, user } = useAuth();
   const { toast } = useToast();
   const [showAssistant, setShowAssistant] = useState(!!prefill);

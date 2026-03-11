@@ -172,7 +172,7 @@ export default function Dashboard() {
       // Route based on intent
       const intent = data?.intent;
       if (intent === "create_purchase_order") {
-        navigate("/orders/new", { state: { prefill: data } });
+        navigate("/orders/new", { state: { prefill: data, commandText: command.trim() } });
       } else if (intent === "create_sales_order") {
         navigate("/sales", { state: { prefill: data } });
       } else if (intent === "show_report") {
