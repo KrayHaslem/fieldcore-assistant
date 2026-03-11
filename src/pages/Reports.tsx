@@ -123,6 +123,9 @@ export default function Reports() {
   const [marginGrouping, setMarginGrouping] = useState<"weekly" | "monthly" | "quarterly">("monthly");
   const [expandedAssemblyIds, setExpandedAssemblyIds] = useState<Set<string>>(new Set());
   const [showAssistant, setShowAssistant] = useState(false);
+  const [searchFilter, setSearchFilter] = useState("");
+  const [initialMessage, setInitialMessage] = useState<string | undefined>(undefined);
+  const [purchaseHistorySearch, setPurchaseHistorySearch] = useState("");
 
   // Fetch report templates from database
   const { data: templatesData } = useQuery({
