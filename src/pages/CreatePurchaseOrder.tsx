@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,6 +70,7 @@ export default function CreatePurchaseOrder() {
   const navigate = useNavigate();
   const location = useLocation();
   const prefill = (location.state as any)?.prefill;
+  const commandText = (location.state as any)?.commandText || "";
   const { orgId, user } = useAuth();
   const { toast } = useToast();
   const [showAssistant, setShowAssistant] = useState(!!prefill);
@@ -512,6 +513,15 @@ export default function CreatePurchaseOrder() {
       ? `I've updated the form: ${updates.join(". ")}.`
       : "I couldn't find specific fields to update from that request.";
   };
+  // Apply prefill data from navigation state on mount
+  const prefillApplied = useRef(false);
+  useEffect(() => {
+    if (prefill && !prefillApplied.current) {
+      prefillApplied.current = true;
+      handleAssistantIntent(prefill);
+    }
+  }, [prefill]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   return (
     <div className="flex h-full">
@@ -910,7 +920,7 @@ export default function CreatePurchaseOrder() {
       {/* Assistant Panel */}
       {showAssistant && prefill && (
         <FormAssistantPanel
-          commandText={prefill.raw || prefill.command || "AI command"}
+          commandText={commandText || prefill.raw || prefill.command || "AI command"}
           formContext="Order creation form. Fields include supplier, department, line items with item name, quantity, unit cost, inventory type, and unit number for internal use items."
           onIntentReceived={handleAssistantIntent}
           onClose={() => setShowAssistant(false)}
