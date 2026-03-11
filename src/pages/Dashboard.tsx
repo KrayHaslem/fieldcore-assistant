@@ -176,13 +176,27 @@ export default function Dashboard() {
       } else if (intent === "create_sales_order") {
         navigate("/sales", { state: { prefill: data } });
       } else if (intent === "show_report") {
-        navigate("/reports", {
-          state: {
-            prefill: data,
-            startDate: data.date_range?.start ?? null,
-            endDate: data.date_range?.end ?? null,
-          },
-        });
+        if (data?.unmatched_report) {
+          // No exact match — show resolution
+          const candidates = data.unmatched_report.candidates ?? [];
+          if (candidates.length > 0) {
+            setReportCandidates(candidates);
+            setPendingReportData(data);
+          } else {
+            toast({
+              title: "Report Not Found",
+              description: `No reports matching "${data.unmatched_report.parsed_name}". Try "Show quarterly spending" or "Sales by item report".`,
+            });
+          }
+        } else {
+          navigate("/reports", {
+            state: {
+              prefill: data,
+              startDate: data.date_range?.start ?? null,
+              endDate: data.date_range?.end ?? null,
+            },
+          });
+        }
       } else if (intent === "reconcile_item") {
         navigate("/reconciliation", { state: { prefill: data } });
       } else if (intent === "record_assembly") {

@@ -166,6 +166,44 @@ Always return valid JSON only. No markdown, no explanation. If you cannot determ
         }
       }
 
+      // Enrich show_report with fuzzy report matching
+      if (parsed.intent === "show_report" && parsed.report_name) {
+        const reportName = parsed.report_name as string;
+        // Try exact-ish match first (case-insensitive contains)
+        const { data: exactMatches } = await sb
+          .from("report_templates")
+          .select("id, name, description, access_level, supports_date_range")
+          .ilike("name", `%${reportName}%`)
+          .limit(1);
+
+        if (exactMatches && exactMatches.length > 0) {
+          parsed.report_match = {
+            id: exactMatches[0].id,
+            name: exactMatches[0].name,
+            description: exactMatches[0].description,
+          };
+        } else {
+          // No match — grab all report names as candidates for fuzzy resolution
+          // Use individual keywords for broader matching
+          const keywords = reportName.split(/\s+/).filter((w: string) => w.length > 2);
+          const orClauses = keywords.map((kw: string) => `name.ilike.%${kw}%`).join(",");
+          const { data: candidates } = await sb
+            .from("report_templates")
+            .select("id, name, description")
+            .or(orClauses || `name.ilike.%${reportName}%`)
+            .limit(8);
+
+          parsed.unmatched_report = {
+            parsed_name: reportName,
+            candidates: (candidates ?? []).map((c: any) => ({
+              id: c.id,
+              name: c.name,
+              description: c.description,
+            })),
+          };
+        }
+      }
+
       if (parsed.intent === "create_sales_order") {
         if (parsed.items && Array.isArray(parsed.items)) {
           const itemMatches: any[] = [];
