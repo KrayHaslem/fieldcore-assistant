@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -15,9 +15,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
-import { Plus, Trash2, Pencil, FlaskConical, RotateCcw, AlertTriangle, Copy, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, Pencil, FlaskConical, RotateCcw, AlertTriangle, Copy, ArrowLeft, Bot } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ReportSqlAssistant } from "@/components/ReportSqlAssistant";
+import { TemplateAssistantPanel, type TemplateFieldUpdates } from "@/components/TemplateAssistantPanel";
 
 const ALL_ROLES = ["admin", "procurement", "sales", "finance", "employee"] as const;
 
