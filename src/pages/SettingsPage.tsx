@@ -355,6 +355,7 @@ export default function SettingsPage() {
   useEffect(() => {
     const state = location.state as any;
     if (state?.prefill?.intent === "create_report_template" && searchParams.get("tab") === "report-templates") {
+      setRtSubTab("org-templates");
       setRtNewOpen(true);
       setShowTemplateAssistant(true);
       setTemplateAssistantInitialMsg(state.commandText || state.prefill.description || "");
