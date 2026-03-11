@@ -1011,6 +1011,7 @@ export default function CreatePurchaseOrder() {
           commandText={commandText || prefill.raw || prefill.command || "AI command"}
           formContext="Order creation form. Fields include supplier, department, line items with item name, quantity, unit cost, inventory type, and unit number for internal use items."
           onIntentReceived={handleAssistantIntent}
+          onDirectAction={handleDirectAction}
           onClose={() => setShowAssistant(false)}
           unmatchedItems={prefill.unmatched_items as UnmatchedItem[] | undefined}
           unmatchedSupplier={prefill.unmatched_supplier as UnmatchedSupplier | undefined}
