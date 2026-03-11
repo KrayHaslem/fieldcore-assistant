@@ -194,6 +194,7 @@ export default function Dashboard() {
           navigate("/reports", {
             state: {
               prefill: data,
+              commandText: command.trim(),
               startDate: data.date_range?.start ?? null,
               endDate: data.date_range?.end ?? null,
             },
