@@ -29,6 +29,66 @@ ENUM VALUES — use these EXACT strings (any other value will cause a runtime er
 - po_status: 'draft', 'submitted', 'approved', 'ordered', 'partially_received', 'received', 'closed'
 - so_status: 'quote', 'order', 'fulfilled', 'invoiced', 'paid', 'closed'`;
 
+const EXAMPLE_REPORTS = \`
+REFERENCE EXAMPLES — Study these existing system reports to match their quality, style, and level of detail:
+
+EXAMPLE 1 — Inventory Valuation (table, access: procurement):
+SELECT ii.name, ii.sku, ii.item_type,
+  COALESCE(SUM(im.quantity), 0) AS on_hand,
+  ii.default_unit_cost AS unit_cost,
+  COALESCE(SUM(im.quantity), 0) * COALESCE(ii.default_unit_cost, 0) AS total_value
+FROM inventory_items ii
+LEFT JOIN inventory_movements im ON im.item_id = ii.id
+WHERE ii.organization_id = :org_id
+GROUP BY ii.id, ii.name, ii.sku, ii.item_type, ii.default_unit_cost
+ORDER BY ii.item_type, ii.name
+
+EXAMPLE 2 — Spending by Supplier (bar, access: procurement):
+SELECT s.name AS supplier, SUM(po.total_amount) AS total_spent
+FROM purchase_orders po
+JOIN suppliers s ON s.id = po.supplier_id
+WHERE po.organization_id = :org_id AND po.status != 'draft'
+  AND po.created_at >= :start_date AND po.created_at <= :end_date
+GROUP BY s.name ORDER BY total_spent DESC
+
+EXAMPLE 3 — Margin by Item (table, access: finance):
+SELECT ii.name AS item_name,
+  SUM(soi.quantity)::BIGINT AS units_sold,
+  SUM(soi.quantity * soi.unit_price) AS revenue,
+  SUM(soi.quantity * soi.cost_per_unit) AS cogs,
+  SUM(soi.quantity * soi.unit_price) - SUM(soi.quantity * soi.cost_per_unit) AS gross_margin,
+  CASE WHEN SUM(soi.quantity * soi.unit_price) > 0
+    THEN ((SUM(soi.quantity * soi.unit_price) - SUM(soi.quantity * soi.cost_per_unit)) / SUM(soi.quantity * soi.unit_price)) * 100
+    ELSE 0 END AS margin_pct
+FROM sales_order_items soi
+JOIN sales_orders so ON so.id = soi.sales_order_id
+JOIN inventory_items ii ON ii.id = soi.item_id
+WHERE so.organization_id = :org_id
+  AND so.status IN ('fulfilled', 'invoiced', 'paid', 'closed')
+  AND so.created_at >= :start_date AND so.created_at <= :end_date
+GROUP BY ii.name ORDER BY revenue DESC
+
+EXAMPLE 4 — Inventory Loss Summary (table, access: procurement):
+SELECT ii.name AS item_name,
+  SUM(ABS(r.variance)) AS total_units_lost,
+  SUM(ABS(r.variance) * COALESCE(ii.default_unit_cost, 0)) AS estimated_value_lost
+FROM reconciliations r
+JOIN inventory_items ii ON ii.id = r.item_id
+WHERE r.organization_id = :org_id AND r.variance < 0
+  AND r.created_at >= :start_date AND r.created_at <= :end_date
+GROUP BY ii.name, ii.default_unit_cost
+ORDER BY estimated_value_lost DESC
+
+KEY PATTERNS to follow:
+- Use descriptive column aliases (item_name, total_spent, units_sold, etc.)
+- Include multiple useful columns — not just 2-3 sparse columns
+- Add calculated/derived columns when helpful (percentages, totals, costs)
+- Use COALESCE for nullable numeric fields
+- Use LEFT JOIN when items might have no related records
+- Cast counts with ::BIGINT when needed
+- Order results meaningfully (DESC by important metric)
+\`;
+
 /**
  * Extract raw SQL from a response that may contain markdown code fences.
  */
