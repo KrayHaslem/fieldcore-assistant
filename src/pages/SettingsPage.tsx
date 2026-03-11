@@ -383,7 +383,7 @@ export default function SettingsPage() {
     } as any);
     setRtSaving(false);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Template customized for your organization" });
+    toast({ title: "Override created", description: "You can now edit this template from the Organization Templates tab." });
     qc.invalidateQueries({ queryKey: ["org-report-templates"] });
   };
 
