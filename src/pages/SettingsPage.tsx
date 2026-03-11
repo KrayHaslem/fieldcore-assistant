@@ -18,6 +18,7 @@ import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
 import { Plus, Trash2, Pencil, FlaskConical, RotateCcw, AlertTriangle, Copy, ArrowLeft, Bot, Play } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TemplateAssistantPanel, type TemplateFieldUpdates } from "@/components/TemplateAssistantPanel";
+import { ReportPreviewModal } from "@/components/ReportPreviewModal";
 
 const ALL_ROLES = ["admin", "procurement", "sales", "finance", "employee"] as const;
 
@@ -353,6 +354,7 @@ export default function SettingsPage() {
   const [rtTestResult, setRtTestResult] = useState<{ columns: string[]; rows: Record<string, any>[] } | null>(null);
   const [rtTestError, setRtTestError] = useState<string | null>(null);
   const [rtTesting, setRtTesting] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   const handleTestSql = async (sqlQuery: string, accessLevel: string) => {
     if (!sqlQuery.trim() || !user) return;
@@ -376,6 +378,9 @@ export default function SettingsPage() {
         setRtTestError(msg.includes("non-2xx") ? "Query failed. Check your SQL syntax and try again." : msg);
       } else {
         setRtTestResult(data);
+        if (data?.rows?.length >= 0) {
+          setShowPreviewModal(true);
+        }
       }
     } catch (err: any) {
       const msg = err.message || "Unknown error";
@@ -1228,6 +1233,18 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Report Preview Modal */}
+      {rtTestResult && (
+        <ReportPreviewModal
+          open={showPreviewModal}
+          onOpenChange={setShowPreviewModal}
+          templateName={rtNewOpen ? rtNewForm.name : rtEditForm.name || ""}
+          templateDescription={rtNewOpen ? rtNewForm.description : rtEditForm.description || ""}
+          chartType={rtNewOpen ? rtNewForm.chart_type : rtEditForm.chart_type || "table"}
+          data={rtTestResult}
+        />
+      )}
     </div>
   );
 }
