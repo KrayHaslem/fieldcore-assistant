@@ -1370,7 +1370,7 @@ export default function Reports() {
                               <th className="px-4 py-2 font-medium text-muted-foreground text-right">Lead Time (days)</th>
                             </tr></thead>
                             <tbody className="divide-y">
-                              {recommendedStockData.map((i: any) => (
+                              {(recommendedStockData ?? []).filter((i: any) => !sf || `${i.name} ${i.sku ?? ''} ${i.supplier}`.toLowerCase().includes(sf)).map((i: any) => (
                                 <tr key={i.id}>
                                   <td className="px-4 py-2 font-medium text-foreground">{i.name}</td>
                                   <td className="px-4 py-2 text-muted-foreground">{i.sku ?? "—"}</td>
