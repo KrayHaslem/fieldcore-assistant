@@ -458,6 +458,16 @@ export default function Reports() {
     },
   });
 
+  // All inventory items for purchase history browsable list
+  const { data: allItemsData } = useQuery({
+    queryKey: ["all-items-browse", orgId],
+    enabled: selectedKey === "purchase_history_item" && !!orgId,
+    queryFn: async () => {
+      const { data } = await supabase.from("inventory_items").select("id, name, sku").order("name");
+      return data ?? [];
+    },
+  });
+
   const { data: inventoryPerfData, isLoading: loadingInvPerf } = useQuery({
     queryKey: ["report-inv-perf", orgId, startISO, endISO],
     enabled: selectedKey === "inventory_performance" && !!orgId && canAccessKey("inventory_performance"),
