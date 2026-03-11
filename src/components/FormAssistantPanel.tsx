@@ -13,10 +13,18 @@ interface ChatMessage {
 
 export interface ChatAction {
   label: string;
-  /** The text that gets sent as a user message when clicked */
+  /** The text that gets sent as a user message when clicked (for AI-routed actions) */
   message: string;
   icon?: "package" | "plus" | "help";
+  /** If set, the action is handled directly by the parent — no AI call */
+  directAction?: DirectAction;
 }
+
+export type DirectAction =
+  | { type: "use_supplier"; supplierId: string; supplierName: string }
+  | { type: "create_supplier"; supplierName: string }
+  | { type: "use_item"; itemId: string; itemName: string; quantity: number }
+  | { type: "create_item"; itemName: string; quantity: number };
 
 export interface UnmatchedItem {
   parsed_name: string;
@@ -34,9 +42,9 @@ interface FormAssistantPanelProps {
   formContext: string;
   onIntentReceived: (intent: Record<string, any>) => string;
   onClose: () => void;
-  /** Unmatched items from parse-command to surface on mount */
+  /** Direct action handler — parent creates records and updates form */
+  onDirectAction?: (action: DirectAction) => Promise<string>;
   unmatchedItems?: UnmatchedItem[];
-  /** Unmatched supplier from parse-command to surface on mount */
   unmatchedSupplier?: UnmatchedSupplier;
 }
 
@@ -46,7 +54,7 @@ const actionIcons = {
   help: HelpCircle,
 };
 
-export function FormAssistantPanel({ commandText, formContext, onIntentReceived, onClose, unmatchedItems, unmatchedSupplier }: FormAssistantPanelProps) {
+export function FormAssistantPanel({ commandText, formContext, onIntentReceived, onClose, onDirectAction, unmatchedItems, unmatchedSupplier }: FormAssistantPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -57,7 +65,7 @@ export function FormAssistantPanel({ commandText, formContext, onIntentReceived,
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  // Surface unmatched items as a proactive assistant message on mount
+  // Surface unmatched items/supplier as proactive assistant messages on mount
   useEffect(() => {
     if (unmatchedHandled.current) return;
     const hasUnmatchedItems = unmatchedItems && unmatchedItems.length > 0;
@@ -78,23 +86,21 @@ export function FormAssistantPanel({ commandText, formContext, onIntentReceived,
             : "";
           actions.push({
             label: `Use "${candidate.name}"${leadInfo}`,
-            message: `Use supplier "${candidate.name}" instead of "${unmatchedSupplier.parsed_name}"`,
+            message: "",
             icon: "package",
+            directAction: { type: "use_supplier", supplierId: candidate.id, supplierName: candidate.name },
           });
         }
       }
 
       actions.push({
         label: `Add new supplier "${unmatchedSupplier.parsed_name}"`,
-        message: `Create a new supplier called "${unmatchedSupplier.parsed_name}" and use it for this order`,
+        message: "",
         icon: "plus",
+        directAction: { type: "create_supplier", supplierName: unmatchedSupplier.parsed_name },
       });
 
-      actions.push({
-        label: "Something else",
-        message: "",
-        icon: "help",
-      });
+      actions.push({ label: "Something else", message: "", icon: "help" });
 
       const candidateNames = unmatchedSupplier.candidates.slice(0, 3).map(c => `"${c.name}"`).join(", ");
       const explanation = unmatchedSupplier.candidates.length > 0
@@ -116,16 +122,18 @@ export function FormAssistantPanel({ commandText, formContext, onIntentReceived,
               : `Order ${item.quantity} "${candidate.name}"`;
             actions.push({
               label,
-              message: `Use "${candidate.name}" instead of "${item.parsed_name}", quantity ${item.quantity}`,
+              message: "",
               icon: "package",
+              directAction: { type: "use_item", itemId: candidate.id, itemName: candidate.name, quantity: item.quantity },
             });
           }
         }
 
         actions.push({
           label: `Add new part "${item.parsed_name}" and order ${item.quantity}`,
-          message: `Create a new inventory item called "${item.parsed_name}" and add ${item.quantity} to this order`,
+          message: "",
           icon: "plus",
+          directAction: { type: "create_item", itemName: item.parsed_name, quantity: item.quantity },
         });
 
         actions.push({ label: "Something else", message: "", icon: "help" });
@@ -186,14 +194,36 @@ export function FormAssistantPanel({ commandText, formContext, onIntentReceived,
     }
   };
 
-  const handleActionClick = (action: ChatAction) => {
-    if (action.icon === "help" && !action.message) {
-      // Focus the input for free-text entry
+  const handleActionClick = async (action: ChatAction) => {
+    // "Something else" — focus the input
+    if (action.icon === "help" && !action.message && !action.directAction) {
       setInput("");
       const inputEl = document.querySelector<HTMLInputElement>('[data-assistant-input]');
       inputEl?.focus();
       return;
     }
+
+    // Direct action — handled by parent, no AI round-trip
+    if (action.directAction && onDirectAction) {
+      setSending(true);
+      try {
+        const summary = await onDirectAction(action.directAction);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: `✅ ${summary}` },
+        ]);
+      } catch (err: any) {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: `❌ ${err.message}` },
+        ]);
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+
+    // Fallback: send as AI message
     handleSend(action.message);
   };
 
