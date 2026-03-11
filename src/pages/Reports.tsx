@@ -660,8 +660,20 @@ export default function Reports() {
 
   return (
     <div>
-      <PageHeader title="Reports" description="Data-driven insights from your operations" />
-      <div className="flex p-8 gap-6 max-w-7xl">
+      <PageHeader title="Reports" description="Data-driven insights from your operations">
+        <Button
+          variant={showAssistant ? "default" : "outline"}
+          size="sm"
+          onClick={() => setShowAssistant((v) => !v)}
+          className="gap-2"
+        >
+          <Bot className="h-4 w-4" />
+          {showAssistant ? "Hide Assistant" : "Report Assistant"}
+        </Button>
+      </PageHeader>
+      <div className="flex p-8 gap-6">
+        {/* Main content area */}
+        <div className="flex gap-6 flex-1 min-w-0 max-w-7xl">
         {/* Left — Report Selector */}
         <div className="w-64 shrink-0 space-y-6">
           {reportCategories.map((cat) => {
