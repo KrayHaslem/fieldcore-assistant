@@ -120,7 +120,7 @@ export default function Reports() {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedItemName, setSelectedItemName] = useState<string>("");
   const [marginGrouping, setMarginGrouping] = useState<"weekly" | "monthly" | "quarterly">("monthly");
-  const [expandedAssemblyIds, setExpandedAssemblyIds] = useState<Set<string>>(new Set());
+  const [showAssistant, setShowAssistant] = useState(false);
 
   // Fetch report templates from database
   const { data: templatesData } = useQuery({
