@@ -59,7 +59,7 @@ export function ReportPreviewModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-primary" />
@@ -79,6 +79,7 @@ export function ReportPreviewModal({
             <div className="py-12 text-center text-muted-foreground">
               <BarChart3 className="mx-auto h-10 w-10 mb-3 opacity-40" />
               <p className="text-sm">Query returned no rows.</p>
+              <p className="text-xs mt-1">This could mean there's no matching data yet, or the query needs adjustment.</p>
             </div>
           ) : (
             <>
@@ -123,13 +124,22 @@ export function ReportPreviewModal({
                 </div>
               )}
 
-              {/* Filter */}
-              <Input
-                value={searchFilter}
-                onChange={(e) => setSearchFilter(e.target.value)}
-                placeholder="Filter results..."
-                className="max-w-xs text-sm h-9"
-              />
+              {/* Filter + row count summary */}
+              <div className="flex items-center justify-between gap-4">
+                <Input
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
+                  placeholder="Filter results..."
+                  className="max-w-xs text-sm h-9"
+                />
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {filteredRows.length === data.rows.length
+                    ? `${data.rows.length} row${data.rows.length !== 1 ? "s" : ""}`
+                    : `${filteredRows.length} of ${data.rows.length} rows`
+                  }
+                  {" · "}{data.columns.length} column{data.columns.length !== 1 ? "s" : ""}
+                </span>
+              </div>
 
               {/* Table */}
               <div className="border rounded-lg overflow-hidden bg-card">
@@ -138,7 +148,7 @@ export function ReportPreviewModal({
                     <thead>
                       <tr className="border-b bg-muted/50">
                         {data.columns.map((col) => (
-                          <th key={col} className="px-4 py-2 text-left font-medium text-muted-foreground whitespace-nowrap">
+                          <th key={col} className="px-4 py-2.5 text-left font-medium text-muted-foreground whitespace-nowrap capitalize">
                             {col.replace(/_/g, " ")}
                           </th>
                         ))}
@@ -146,13 +156,28 @@ export function ReportPreviewModal({
                     </thead>
                     <tbody className="divide-y">
                       {filteredRows.map((row, i) => (
-                        <tr key={i}>
+                        <tr key={i} className="hover:bg-muted/30 transition-colors">
                           {data.columns.map((col) => {
                             const val = row[col];
                             const isNum = typeof val === "number" || (typeof val === "string" && !isNaN(Number(val)) && val.trim() !== "");
+                            // Format dates nicely
+                            const isDate = typeof val === "string" && /^\d{4}-\d{2}-\d{2}T/.test(val);
+                            let display: string;
+                            if (isDate) {
+                              display = new Date(val).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+                            } else if (isNum) {
+                              const n = Number(val);
+                              display = col.toLowerCase().includes("pct") || col.toLowerCase().includes("percent")
+                                ? `${n.toFixed(1)}%`
+                                : col.toLowerCase().includes("cost") || col.toLowerCase().includes("value") || col.toLowerCase().includes("amount") || col.toLowerCase().includes("revenue") || col.toLowerCase().includes("margin") || col.toLowerCase().includes("spent") || col.toLowerCase().includes("price")
+                                  ? `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                  : n.toLocaleString();
+                            } else {
+                              display = String(val ?? "—");
+                            }
                             return (
-                              <td key={col} className={cn("px-4 py-2 text-foreground whitespace-nowrap", isNum && "text-right")}>
-                                {isNum ? Number(val).toLocaleString() : String(val ?? "—")}
+                              <td key={col} className={cn("px-4 py-2.5 text-foreground whitespace-nowrap", isNum && "text-right tabular-nums")}>
+                                {display}
                               </td>
                             );
                           })}
@@ -161,16 +186,6 @@ export function ReportPreviewModal({
                     </tbody>
                   </table>
                 </div>
-                {data.rows.length > filteredRows.length && (
-                  <div className="px-4 py-2 text-xs text-muted-foreground bg-muted/30 border-t">
-                    Showing {filteredRows.length} of {data.rows.length} rows (filtered)
-                  </div>
-                )}
-                {!searchFilter && data.rows.length > 0 && (
-                  <div className="px-4 py-2 text-xs text-muted-foreground bg-muted/30 border-t">
-                    {data.rows.length} row{data.rows.length !== 1 ? "s" : ""}
-                  </div>
-                )}
               </div>
             </>
           )}
