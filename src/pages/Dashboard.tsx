@@ -29,6 +29,8 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const [command, setCommand] = useState("");
   const [isParsingCommand, setIsParsingCommand] = useState(false);
+  const [reportCandidates, setReportCandidates] = useState<{ id: string; name: string; description: string | null }[]>([]);
+  const [pendingReportData, setPendingReportData] = useState<any>(null);
 
   // Pending POs awaiting YOUR approval via RPC
   const { data: approvalQueueIds } = useQuery({
@@ -176,13 +178,27 @@ export default function Dashboard() {
       } else if (intent === "create_sales_order") {
         navigate("/sales", { state: { prefill: data } });
       } else if (intent === "show_report") {
-        navigate("/reports", {
-          state: {
-            prefill: data,
-            startDate: data.date_range?.start ?? null,
-            endDate: data.date_range?.end ?? null,
-          },
-        });
+        if (data?.unmatched_report) {
+          // No exact match — show resolution
+          const candidates = data.unmatched_report.candidates ?? [];
+          if (candidates.length > 0) {
+            setReportCandidates(candidates);
+            setPendingReportData(data);
+          } else {
+            toast({
+              title: "Report Not Found",
+              description: `No reports matching "${data.unmatched_report.parsed_name}". Try "Show quarterly spending" or "Sales by item report".`,
+            });
+          }
+        } else {
+          navigate("/reports", {
+            state: {
+              prefill: data,
+              startDate: data.date_range?.start ?? null,
+              endDate: data.date_range?.end ?? null,
+            },
+          });
+        }
       } else if (intent === "reconcile_item") {
         navigate("/reconciliation", { state: { prefill: data } });
       } else if (intent === "record_assembly") {
@@ -197,8 +213,13 @@ export default function Dashboard() {
         else if (dest?.includes("report")) navigate("/reports");
         else if (dest?.includes("setting")) navigate("/settings");
         else toast({ title: "Command Parsed", description: `Intent: ${intent}` });
+      } else if (intent === "unknown") {
+        toast({
+          title: "I didn't understand that",
+          description: "Try commands like \"Order 5 filters from Logan Supply\", \"Show quarterly spending\", or \"Reconcile hydraulic hoses\".",
+        });
       } else {
-        toast({ title: "Command Parsed", description: `Intent: ${intent || "unknown"}. Check command history for details.` });
+        toast({ title: "Command Parsed", description: `Intent: ${intent}. Check command history for details.` });
       }
 
       setCommand("");
@@ -264,6 +285,48 @@ export default function Dashboard() {
               {isParsingCommand ? <Loader2 className="h-4 w-4 animate-spin" /> : "Run"}
             </Button>
           </form>
+
+          {/* Report resolution candidates */}
+          {reportCandidates.length > 0 && (
+            <div className="mt-3 rounded-md border border-accent/30 bg-accent/5 p-3">
+              <p className="text-sm font-medium text-foreground mb-2">
+                Did you mean one of these reports?
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {reportCandidates.map((r) => (
+                  <Button
+                    key={r.id}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => {
+                      const data = pendingReportData ?? {};
+                      data.report_name = r.name;
+                      navigate("/reports", {
+                        state: {
+                          prefill: data,
+                          startDate: data.date_range?.start ?? null,
+                          endDate: data.date_range?.end ?? null,
+                        },
+                      });
+                      setReportCandidates([]);
+                      setPendingReportData(null);
+                    }}
+                  >
+                    {r.name}
+                  </Button>
+                ))}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground"
+                  onClick={() => { setReportCandidates([]); setPendingReportData(null); }}
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats */}
