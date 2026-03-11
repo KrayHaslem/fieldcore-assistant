@@ -1021,7 +1021,7 @@ export default function Reports() {
                             <th className="px-4 py-2 font-medium text-muted-foreground text-right">Days Pending</th>
                           </tr></thead>
                           <tbody className="divide-y">
-                            {pendingData.map((po: any) => (
+                            {(pendingData ?? []).filter((po: any) => !sf || `${po.po_number} ${po.suppliers?.name ?? ''} ${po.departments?.name ?? ''}`.toLowerCase().includes(sf)).map((po: any) => (
                               <tr key={po.po_number}>
                                 <td className="px-4 py-2 font-medium text-foreground">{po.po_number}</td>
                                 <td className="px-4 py-2 text-foreground">{po.suppliers?.name ?? "—"}</td>
