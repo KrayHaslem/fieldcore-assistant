@@ -194,19 +194,28 @@ export default function Reports() {
 
   useEffect(() => {
     const state = location.state as any;
-    if (state?.startDate) {
-      setStartDate(new Date(state.startDate));
-    }
-    if (state?.endDate) {
-      setEndDate(new Date(state.endDate));
-    }
+    if (state?.startDate) setStartDate(new Date(state.startDate));
+    if (state?.endDate) setEndDate(new Date(state.endDate));
     if (state?.prefill?.report_name && allReports.length > 0) {
       const match = allReports.find((r) =>
         r.name.toLowerCase().includes(state.prefill.report_name.toLowerCase())
       );
       if (match) setSelectedKey(match.key);
     }
+    if (state?.prefill?.search_term) {
+      setSearchFilter(state.prefill.search_term);
+    }
+    if (state?.commandText) {
+      setShowAssistant(true);
+      setInitialMessage(state.commandText);
+    }
   }, [allReports]);
+
+  // Reset search filter when report changes
+  useEffect(() => {
+    setSearchFilter("");
+    setPurchaseHistorySearch("");
+  }, [selectedKey, selectedCustomId]);
 
   const canAccessReport = (report: ReportDef) =>
     roles.includes("admin") || report.accessRoles.some((r) => roles.includes(r));
