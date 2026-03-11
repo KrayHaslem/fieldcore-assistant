@@ -59,58 +59,90 @@ export function FormAssistantPanel({ commandText, formContext, onIntentReceived,
 
   // Surface unmatched items as a proactive assistant message on mount
   useEffect(() => {
-    if (!unmatchedItems || unmatchedItems.length === 0 || unmatchedHandled.current) return;
+    if (unmatchedHandled.current) return;
+    const hasUnmatchedItems = unmatchedItems && unmatchedItems.length > 0;
+    const hasUnmatchedSupplier = unmatchedSupplier && unmatchedSupplier.parsed_name;
+    if (!hasUnmatchedItems && !hasUnmatchedSupplier) return;
     unmatchedHandled.current = true;
 
     const newMessages: ChatMessage[] = [];
 
-    for (const item of unmatchedItems) {
+    // Surface unmatched supplier
+    if (hasUnmatchedSupplier) {
       const actions: ChatAction[] = [];
 
-      // Option A: suggest closest candidates
-      if (item.candidates.length > 0) {
-        for (const candidate of item.candidates.slice(0, 3)) {
-          const label = candidate.sku
-            ? `Order ${item.quantity} "${candidate.name}" (${candidate.sku})`
-            : `Order ${item.quantity} "${candidate.name}"`;
+      if (unmatchedSupplier.candidates.length > 0) {
+        for (const candidate of unmatchedSupplier.candidates.slice(0, 3)) {
+          const leadInfo = candidate.avg_lead_time_days != null
+            ? ` (avg ${candidate.avg_lead_time_days}d lead time)`
+            : "";
           actions.push({
-            label,
-            message: `Use "${candidate.name}" instead of "${item.parsed_name}", quantity ${item.quantity}`,
+            label: `Use "${candidate.name}"${leadInfo}`,
+            message: `Use supplier "${candidate.name}" instead of "${unmatchedSupplier.parsed_name}"`,
             icon: "package",
           });
         }
       }
 
-      // Option B: create new part
       actions.push({
-        label: `Add new part "${item.parsed_name}" and order ${item.quantity}`,
-        message: `Create a new inventory item called "${item.parsed_name}" and add ${item.quantity} to this order`,
+        label: `Add new supplier "${unmatchedSupplier.parsed_name}"`,
+        message: `Create a new supplier called "${unmatchedSupplier.parsed_name}" and use it for this order`,
         icon: "plus",
       });
 
-      // Option C: something else
       actions.push({
         label: "Something else",
         message: "",
         icon: "help",
       });
 
-      const candidateNames = item.candidates.slice(0, 3).map(c => `"${c.name}"`).join(", ");
-      const explanation = item.candidates.length > 0
-        ? `I couldn't find an exact match for **"${item.parsed_name}"** in your inventory. I found some similar items (${candidateNames}). What would you like to do?`
-        : `I couldn't find **"${item.parsed_name}"** in your inventory and there are no similar items. Would you like to create it as a new part?`;
+      const candidateNames = unmatchedSupplier.candidates.slice(0, 3).map(c => `"${c.name}"`).join(", ");
+      const explanation = unmatchedSupplier.candidates.length > 0
+        ? `I couldn't find an exact match for supplier **"${unmatchedSupplier.parsed_name}"**. I found some similar suppliers (${candidateNames}). What would you like to do?`
+        : `I couldn't find supplier **"${unmatchedSupplier.parsed_name}"** and there are no similar suppliers. Would you like to create it?`;
 
-      newMessages.push({
-        role: "assistant",
-        content: explanation,
-        actions,
-      });
+      newMessages.push({ role: "assistant", content: explanation, actions });
+    }
+
+    // Surface unmatched items
+    if (hasUnmatchedItems) {
+      for (const item of unmatchedItems) {
+        const actions: ChatAction[] = [];
+
+        if (item.candidates.length > 0) {
+          for (const candidate of item.candidates.slice(0, 3)) {
+            const label = candidate.sku
+              ? `Order ${item.quantity} "${candidate.name}" (${candidate.sku})`
+              : `Order ${item.quantity} "${candidate.name}"`;
+            actions.push({
+              label,
+              message: `Use "${candidate.name}" instead of "${item.parsed_name}", quantity ${item.quantity}`,
+              icon: "package",
+            });
+          }
+        }
+
+        actions.push({
+          label: `Add new part "${item.parsed_name}" and order ${item.quantity}`,
+          message: `Create a new inventory item called "${item.parsed_name}" and add ${item.quantity} to this order`,
+          icon: "plus",
+        });
+
+        actions.push({ label: "Something else", message: "", icon: "help" });
+
+        const candidateNames = item.candidates.slice(0, 3).map(c => `"${c.name}"`).join(", ");
+        const explanation = item.candidates.length > 0
+          ? `I couldn't find an exact match for **"${item.parsed_name}"** in your inventory. I found some similar items (${candidateNames}). What would you like to do?`
+          : `I couldn't find **"${item.parsed_name}"** in your inventory and there are no similar items. Would you like to create it as a new part?`;
+
+        newMessages.push({ role: "assistant", content: explanation, actions });
+      }
     }
 
     if (newMessages.length > 0) {
       setMessages(newMessages);
     }
-  }, [unmatchedItems]);
+  }, [unmatchedItems, unmatchedSupplier]);
 
   const handleSend = async (overrideText?: string) => {
     const text = (overrideText ?? input).trim();
