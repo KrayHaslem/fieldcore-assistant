@@ -746,48 +746,79 @@ export default function SettingsPage() {
                 <TabsContent value="org-templates">
                   <div className="fieldcore-card overflow-hidden">
                     {/* Show form (create or edit) OR list, never both */}
-                    {rtNewOpen ? (
+                  {rtNewOpen ? (
                       /* New Custom Template Form */
-                      <div className="p-6 space-y-4">
-                        <div className="flex items-center gap-3">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setRtNewOpen(false)}><ArrowLeft className="h-4 w-4" /></Button>
-                          <h3 className="text-sm font-semibold text-foreground">New Custom Template</h3>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div><Label>Name *</Label><Input value={rtNewForm.name} onChange={(e) => setRtNewForm({ ...rtNewForm, name: e.target.value })} placeholder="e.g. Custom Spending Report" /></div>
-                          <div><Label>Description</Label><Input value={rtNewForm.description} onChange={(e) => setRtNewForm({ ...rtNewForm, description: e.target.value })} /></div>
-                          <div>
-                            <Label>Access Level</Label>
-                            <Select value={rtNewForm.access_level} onValueChange={(v) => setRtNewForm({ ...rtNewForm, access_level: v })}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
-                              <SelectContent>{ALL_ROLES.map((r) => <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>)}</SelectContent>
-                            </Select>
+                      <div className="flex h-full">
+                        <div className="p-6 space-y-4 flex-1 min-w-0">
+                          <div className="flex items-center gap-3">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setRtNewOpen(false); setShowTemplateAssistant(false); }}><ArrowLeft className="h-4 w-4" /></Button>
+                            <h3 className="text-sm font-semibold text-foreground flex-1">New Custom Template</h3>
+                            <Button variant="outline" size="sm" onClick={() => setShowTemplateAssistant(!showTemplateAssistant)}>
+                              <Bot className="h-4 w-4" />
+                              {showTemplateAssistant ? "Hide Assistant" : "AI Assistant"}
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div><Label>Name *</Label><Input value={rtNewForm.name} onChange={(e) => setRtNewForm({ ...rtNewForm, name: e.target.value })} placeholder="e.g. Custom Spending Report" /></div>
+                            <div><Label>Description</Label><Input value={rtNewForm.description} onChange={(e) => setRtNewForm({ ...rtNewForm, description: e.target.value })} /></div>
+                            <div>
+                              <Label>Access Level</Label>
+                              <Select value={rtNewForm.access_level} onValueChange={(v) => setRtNewForm({ ...rtNewForm, access_level: v })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>{ALL_ROLES.map((r) => <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>)}</SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>Chart Type</Label>
+                              <Select value={rtNewForm.chart_type} onValueChange={(v) => setRtNewForm({ ...rtNewForm, chart_type: v })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="table">Table</SelectItem>
+                                  <SelectItem value="bar">Bar Chart</SelectItem>
+                                  <SelectItem value="line">Line Chart</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="flex gap-4">
+                            <div className="flex items-center gap-2"><Checkbox checked={rtNewForm.supports_date_range} onCheckedChange={(v) => setRtNewForm({ ...rtNewForm, supports_date_range: !!v })} /><Label>Supports Date Filtering</Label></div>
+                            <p className="text-xs text-muted-foreground self-center">Enables date range picker and quarterly presets on the report</p>
                           </div>
                           <div>
-                            <Label>Chart Type</Label>
-                            <Select value={rtNewForm.chart_type} onValueChange={(v) => setRtNewForm({ ...rtNewForm, chart_type: v })}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="table">Table</SelectItem>
-                                <SelectItem value="bar">Bar Chart</SelectItem>
-                                <SelectItem value="line">Line Chart</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <Label>SQL Query *</Label>
+                            <Textarea
+                              value={rtNewForm.sql_query}
+                              onChange={(e) => setRtNewForm({ ...rtNewForm, sql_query: e.target.value })}
+                              rows={10}
+                              className="font-mono text-xs mt-1"
+                              placeholder="SELECT ..."
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button onClick={saveNewTemplate} disabled={rtSaving || !rtNewForm.name.trim() || !rtNewForm.sql_query.trim()}>{rtSaving ? "Creating..." : "Create Template"}</Button>
+                            <Button variant="outline" onClick={() => { setRtNewOpen(false); setShowTemplateAssistant(false); }}>Cancel</Button>
                           </div>
                         </div>
-                        <div className="flex gap-4">
-                          <div className="flex items-center gap-2"><Checkbox checked={rtNewForm.supports_date_range} onCheckedChange={(v) => setRtNewForm({ ...rtNewForm, supports_date_range: !!v })} /><Label>Supports Date Filtering</Label></div>
-                          <p className="text-xs text-muted-foreground self-center">Enables date range picker and quarterly presets on the report</p>
-                        </div>
-                        <ReportSqlAssistant
-                          sqlQuery={rtNewForm.sql_query}
-                          onSqlChange={(sql) => setRtNewForm({ ...rtNewForm, sql_query: sql })}
-                          accessLevel={rtNewForm.access_level}
-                        />
-                        <div className="flex gap-2">
-                          <Button onClick={saveNewTemplate} disabled={rtSaving || !rtNewForm.name.trim() || !rtNewForm.sql_query.trim()}>{rtSaving ? "Creating..." : "Create Template"}</Button>
-                          <Button variant="outline" onClick={() => setRtNewOpen(false)}>Cancel</Button>
-                        </div>
+                        {showTemplateAssistant && (
+                          <TemplateAssistantPanel
+                            initialMessage={templateAssistantInitialMsg}
+                            onClose={() => setShowTemplateAssistant(false)}
+                            onFieldsUpdate={(fields) => {
+                              setRtNewForm((prev: any) => {
+                                const updated = { ...prev };
+                                if (fields.name !== undefined) updated.name = fields.name;
+                                if (fields.description !== undefined) updated.description = fields.description;
+                                if (fields.access_level !== undefined) updated.access_level = fields.access_level;
+                                if (fields.chart_type !== undefined) updated.chart_type = fields.chart_type;
+                                if (fields.supports_date_range !== undefined) updated.supports_date_range = fields.supports_date_range;
+                                if (fields.sql_query !== undefined) updated.sql_query = fields.sql_query;
+                                return updated;
+                              });
+                              const updatedFields = Object.keys(fields).filter(k => (fields as any)[k] !== undefined);
+                              toast({ title: "Fields updated by assistant", description: `Updated: ${updatedFields.join(", ")}` });
+                            }}
+                          />
+                        )}
                       </div>
                     ) : rtEditId ? (
                       /* Edit Template Form */
