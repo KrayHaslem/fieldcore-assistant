@@ -44,7 +44,8 @@ Always respond with valid JSON only. No markdown, no explanation outside the JSO
     "type": "select_report",
     "report_name": "exact report name from available list",
     "start_date": "ISO date string or null",
-    "end_date": "ISO date string or null"
+    "end_date": "ISO date string or null",
+    "search_term": "optional qualifier to filter results (e.g. item name, supplier name) or null"
   }
 }
 
