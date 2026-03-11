@@ -9,8 +9,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths, subQuarters, subYears } from "date-fns";
-import { CalendarIcon, ShoppingCart, Package, DollarSign, BarChart3, ChevronDown, ChevronRight, Wrench } from "lucide-react";
+import { CalendarIcon, ShoppingCart, Package, DollarSign, BarChart3, ChevronDown, ChevronRight, Wrench, Bot } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { ReportAssistantPanel } from "@/components/ReportAssistantPanel";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 type ReportKey =
