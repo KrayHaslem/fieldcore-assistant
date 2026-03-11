@@ -285,6 +285,48 @@ export default function Dashboard() {
               {isParsingCommand ? <Loader2 className="h-4 w-4 animate-spin" /> : "Run"}
             </Button>
           </form>
+
+          {/* Report resolution candidates */}
+          {reportCandidates.length > 0 && (
+            <div className="mt-3 rounded-md border border-accent/30 bg-accent/5 p-3">
+              <p className="text-sm font-medium text-foreground mb-2">
+                Did you mean one of these reports?
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {reportCandidates.map((r) => (
+                  <Button
+                    key={r.id}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => {
+                      const data = pendingReportData ?? {};
+                      data.report_name = r.name;
+                      navigate("/reports", {
+                        state: {
+                          prefill: data,
+                          startDate: data.date_range?.start ?? null,
+                          endDate: data.date_range?.end ?? null,
+                        },
+                      });
+                      setReportCandidates([]);
+                      setPendingReportData(null);
+                    }}
+                  >
+                    {r.name}
+                  </Button>
+                ))}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground"
+                  onClick={() => { setReportCandidates([]); setPendingReportData(null); }}
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats */}
