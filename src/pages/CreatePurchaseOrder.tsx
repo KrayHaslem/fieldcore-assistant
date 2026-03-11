@@ -513,8 +513,16 @@ export default function CreatePurchaseOrder() {
       ? `I've updated the form: ${updates.join(". ")}.`
       : "I couldn't find specific fields to update from that request.";
   };
+  // Apply prefill data from navigation state on mount
+  const prefillApplied = useRef(false);
+  useEffect(() => {
+    if (prefill && !prefillApplied.current) {
+      prefillApplied.current = true;
+      handleAssistantIntent(prefill);
+    }
+  }, [prefill]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return (
+
     <div className="flex h-full">
       <div className="flex-1 min-w-0">
       <PageHeader
