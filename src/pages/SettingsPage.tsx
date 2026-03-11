@@ -350,6 +350,40 @@ export default function SettingsPage() {
   const [showTemplateAssistant, setShowTemplateAssistant] = useState(false);
   const [templateAssistantInitialMsg, setTemplateAssistantInitialMsg] = useState<string | undefined>();
   const [rtSubTab, setRtSubTab] = useState("system-templates");
+  const [rtTestResult, setRtTestResult] = useState<{ columns: string[]; rows: Record<string, any>[] } | null>(null);
+  const [rtTestError, setRtTestError] = useState<string | null>(null);
+  const [rtTesting, setRtTesting] = useState(false);
+
+  const handleTestSql = async (sqlQuery: string, accessLevel: string) => {
+    if (!sqlQuery.trim() || !user) return;
+    setRtTesting(true);
+    setRtTestResult(null);
+    setRtTestError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("run-report", {
+        body: {
+          inline_sql: sqlQuery,
+          inline_access_level: accessLevel,
+          user_id: user.id,
+          start_date: new Date(new Date().getFullYear(), 0, 1).toISOString(),
+          end_date: new Date().toISOString(),
+        },
+      });
+      if (data?.error) {
+        setRtTestError(data.error);
+      } else if (error) {
+        const msg = typeof error === "object" && error.message ? error.message : String(error);
+        setRtTestError(msg.includes("non-2xx") ? "Query failed. Check your SQL syntax and try again." : msg);
+      } else {
+        setRtTestResult(data);
+      }
+    } catch (err: any) {
+      const msg = err.message || "Unknown error";
+      setRtTestError(msg.includes("non-2xx") ? "Query failed. Check your SQL syntax and try again." : msg);
+    } finally {
+      setRtTesting(false);
+    }
+  };
 
   // Handle command center prefill for create_report_template
   useEffect(() => {
