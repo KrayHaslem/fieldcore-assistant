@@ -830,6 +830,48 @@ export default function SettingsPage() {
                               placeholder="SELECT ..."
                             />
                           </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { setRtTestResult(null); setRtTestError(null); handleTestSql(rtNewForm.sql_query, rtNewForm.access_level); }}
+                            disabled={rtTesting || !rtNewForm.sql_query.trim()}
+                            className="self-start"
+                          >
+                            <Play className="h-3.5 w-3.5" />
+                            {rtTesting ? "Running..." : "Preview Results"}
+                          </Button>
+                          {rtTestError && (
+                            <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive">{rtTestError}</div>
+                          )}
+                          {rtTestResult && (
+                            <div className="border rounded-md overflow-hidden max-h-[200px] overflow-y-auto">
+                              {rtTestResult.rows.length === 0 ? (
+                                <div className="p-3 text-xs text-muted-foreground text-center">Query returned no rows.</div>
+                              ) : (
+                                <table className="w-full text-xs">
+                                  <thead><tr className="border-b bg-muted/50">
+                                    {rtTestResult.columns.map((col) => (
+                                      <th key={col} className="px-2 py-1.5 text-left font-medium text-muted-foreground">{col}</th>
+                                    ))}
+                                  </tr></thead>
+                                  <tbody className="divide-y">
+                                    {rtTestResult.rows.slice(0, 10).map((row, i) => (
+                                      <tr key={i}>
+                                        {rtTestResult.columns.map((col) => (
+                                          <td key={col} className="px-2 py-1 text-foreground">{String(row[col] ?? "—")}</td>
+                                        ))}
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              )}
+                              {rtTestResult.rows.length > 10 && (
+                                <div className="px-2 py-1 text-xs text-muted-foreground bg-muted/30 border-t">
+                                  Showing 10 of {rtTestResult.rows.length} rows
+                                </div>
+                              )}
+                            </div>
+                          )}
                           <div className="flex gap-2">
                             <Button onClick={saveNewTemplate} disabled={rtSaving || !rtNewForm.name.trim() || !rtNewForm.sql_query.trim()}>{rtSaving ? "Creating..." : "Create Template"}</Button>
                             <Button variant="outline" onClick={() => { setRtNewOpen(false); setShowTemplateAssistant(false); }}>Cancel</Button>
