@@ -248,23 +248,21 @@ export default function Reports() {
     return reports;
   }, [allReports, customTemplates, roles]);
 
-  const handleAssistantSelectReport = useCallback((reportName: string, startDateStr?: string | null, endDateStr?: string | null) => {
-    // Try built-in reports first
+  const handleAssistantSelectReport = useCallback((reportName: string, startDateStr?: string | null, endDateStr?: string | null, searchTerm?: string | null) => {
     const key = REPORT_KEY_MAP[reportName];
     if (key) {
       setSelectedKey(key);
       setSelectedCustomId(null);
     } else {
-      // Try custom templates
       const custom = customTemplates.find((t) => t.name.toLowerCase() === reportName.toLowerCase());
       if (custom) {
         setSelectedCustomId(custom.id);
         setSelectedKey(null);
       }
     }
-    // Set date range if provided
     if (startDateStr) setStartDate(new Date(startDateStr));
     if (endDateStr) setEndDate(new Date(endDateStr));
+    if (searchTerm) setSearchFilter(searchTerm);
   }, [customTemplates]);
 
   // ---- Custom Report Execution ----
