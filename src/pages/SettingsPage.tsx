@@ -453,7 +453,7 @@ export default function SettingsPage() {
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Template created" });
     setRtNewOpen(false);
-    setRtNewForm({ name: "", description: "", access_level: "admin", chart_type: "table", supports_date_range: true, supports_quarterly: false, sql_query: "" });
+    setRtNewForm({ name: "", description: "", access_level: "admin", chart_type: "table", supports_date_range: true, sql_query: "" });
     qc.invalidateQueries({ queryKey: ["org-report-templates"] });
     qc.invalidateQueries({ queryKey: ["report-templates"] });
   };
