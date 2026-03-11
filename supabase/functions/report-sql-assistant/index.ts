@@ -9,18 +9,25 @@ const corsHeaders = {
 const SCHEMA_SUMMARY = `Available tables and columns (PostgreSQL):
 
 - organizations(id UUID, name TEXT)
-- inventory_items(id UUID, organization_id UUID, name TEXT, sku TEXT, item_type TEXT ['resale','manufacturing_input','internal_use','consumable'], default_unit_cost NUMERIC, avg_unit_cost NUMERIC, reorder_point INT)
-- inventory_movements(id UUID, organization_id UUID, item_id UUID, movement_type TEXT ['purchase','sale','adjustment','reconciliation','consumption','received','assembled'], quantity INT, source_type TEXT, source_id UUID, created_at TIMESTAMPTZ)
-- purchase_orders(id UUID, organization_id UUID, supplier_id UUID, department_id UUID, status TEXT ['draft','submitted','approved','ordered','partially_received','received','closed'], total_amount NUMERIC, created_at TIMESTAMPTZ, ordered_at TIMESTAMPTZ, received_at TIMESTAMPTZ, created_by UUID, po_number TEXT)
-- purchase_order_items(id UUID, organization_id UUID, purchase_order_id UUID, item_id UUID, item_type TEXT, quantity INT, quantity_received INT, unit_cost NUMERIC)
-- sales_orders(id UUID, organization_id UUID, created_by UUID, customer_name TEXT, status TEXT ['quote','order','fulfilled','invoiced','paid','closed'], total_amount NUMERIC, created_at TIMESTAMPTZ, so_number TEXT)
+- inventory_items(id UUID, organization_id UUID, name TEXT, sku TEXT, item_type inventory_type, default_unit_cost NUMERIC, avg_unit_cost NUMERIC, reorder_point INT, description TEXT, preferred_supplier_id UUID)
+- inventory_movements(id UUID, organization_id UUID, item_id UUID, movement_type movement_type, quantity INT, source_type source_type, source_id UUID, created_at TIMESTAMPTZ, notes TEXT)
+- purchase_orders(id UUID, organization_id UUID, supplier_id UUID, department_id UUID, status po_status, total_amount NUMERIC, created_at TIMESTAMPTZ, ordered_at TIMESTAMPTZ, received_at TIMESTAMPTZ, created_by UUID, po_number TEXT)
+- purchase_order_items(id UUID, organization_id UUID, purchase_order_id UUID, item_id UUID, item_type inventory_type, quantity INT, quantity_received INT, unit_cost NUMERIC)
+- sales_orders(id UUID, organization_id UUID, created_by UUID, customer_name TEXT, status so_status, total_amount NUMERIC, created_at TIMESTAMPTZ, so_number TEXT)
 - sales_order_items(id UUID, organization_id UUID, sales_order_id UUID, item_id UUID, quantity INT, unit_price NUMERIC, cost_per_unit NUMERIC)
 - suppliers(id UUID, organization_id UUID, name TEXT, avg_lead_time_days INT, contact_name TEXT, contact_email TEXT)
 - departments(id UUID, organization_id UUID, name TEXT)
 - reconciliations(id UUID, organization_id UUID, item_id UUID, expected_quantity INT, actual_quantity INT, variance INT, created_at TIMESTAMPTZ, notes TEXT)
 - assembly_records(id UUID, organization_id UUID, finished_item_id UUID, quantity_produced INT, created_at TIMESTAMPTZ)
 - assembly_record_components(id UUID, assembly_record_id UUID, component_item_id UUID, quantity_consumed INT)
-- profiles(id UUID, user_id UUID, organization_id UUID, full_name TEXT, email TEXT, department_id UUID)`;
+- profiles(id UUID, user_id UUID, organization_id UUID, full_name TEXT, email TEXT, department_id UUID)
+
+ENUM VALUES — use these EXACT strings (any other value will cause a runtime error):
+- inventory_type: 'resale', 'manufacturing_input', 'internal_use', 'consumable'
+- movement_type: 'purchase', 'sale', 'adjustment', 'reconciliation', 'consumption', 'received', 'assembled'  (NOTE: it is 'assembled' NOT 'assembly')
+- source_type: 'purchase_order', 'sales_order', 'reconciliation', 'assembly_record', 'manual'
+- po_status: 'draft', 'submitted', 'approved', 'ordered', 'partially_received', 'received', 'closed'
+- so_status: 'quote', 'order', 'fulfilled', 'invoiced', 'paid', 'closed'`;
 
 /**
  * Extract raw SQL from a response that may contain markdown code fences.
