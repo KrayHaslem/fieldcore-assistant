@@ -660,17 +660,21 @@ export default function Reports() {
 
   return (
     <div>
-      <PageHeader title="Reports" description="Data-driven insights from your operations">
-        <Button
-          variant={showAssistant ? "default" : "outline"}
-          size="sm"
-          onClick={() => setShowAssistant((v) => !v)}
-          className="gap-2"
-        >
-          <Bot className="h-4 w-4" />
-          {showAssistant ? "Hide Assistant" : "Report Assistant"}
-        </Button>
-      </PageHeader>
+      <PageHeader
+        title="Reports"
+        description="Data-driven insights from your operations"
+        actions={
+          <Button
+            variant={showAssistant ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowAssistant((v) => !v)}
+            className="gap-2"
+          >
+            <Bot className="h-4 w-4" />
+            {showAssistant ? "Hide Assistant" : "Report Assistant"}
+          </Button>
+        }
+      />
       <div className="flex p-8 gap-6">
         {/* Main content area */}
         <div className="flex gap-6 flex-1 min-w-0 max-w-7xl">
