@@ -29,7 +29,7 @@ ENUM VALUES — use these EXACT strings (any other value will cause a runtime er
 - po_status: 'draft', 'submitted', 'approved', 'ordered', 'partially_received', 'received', 'closed'
 - so_status: 'quote', 'order', 'fulfilled', 'invoiced', 'paid', 'closed'`;
 
-const EXAMPLE_REPORTS = \`
+const EXAMPLE_REPORTS = `
 REFERENCE EXAMPLES — Study these existing system reports to match their quality, style, and level of detail:
 
 EXAMPLE 1 — Inventory Valuation (table, access: procurement):
