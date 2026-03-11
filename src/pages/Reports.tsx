@@ -1488,7 +1488,7 @@ export default function Reports() {
                               <th className="px-4 py-2 font-medium text-muted-foreground text-right">Margin %</th>
                             </tr></thead>
                             <tbody className="divide-y">
-                              {marginItemData.map((i: any) => (
+                              {(marginItemData ?? []).filter((i: any) => !sf || i.name.toLowerCase().includes(sf)).map((i: any) => (
                                 <tr key={i.name}>
                                   <td className="px-4 py-2 font-medium text-foreground">{i.name}</td>
                                   <td className="px-4 py-2 text-right text-foreground">{i.units}</td>
