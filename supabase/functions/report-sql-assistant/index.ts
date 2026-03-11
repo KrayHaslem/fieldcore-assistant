@@ -64,7 +64,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, reportDescription, mode } = await req.json();
+    const { messages, reportDescription, mode, instruction } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
       return jsonResp({ error: "messages array is required" }, 400);
