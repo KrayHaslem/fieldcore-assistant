@@ -74,6 +74,7 @@ export function TemplateAssistantPanel({ onFieldsUpdate, onClose, initialMessage
           messages: updated.map((m) => ({ role: m.role, content: m.content })),
           reportDescription: initialMessage,
           mode: "template",
+          instruction: "The user navigated here from a command center. Analyze their request carefully, suggest ALL template fields including a valid SQL query, and explain what you set.",
         },
       }).then(({ data, error }) => {
         if (error) {
