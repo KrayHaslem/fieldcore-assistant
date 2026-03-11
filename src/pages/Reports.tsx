@@ -1596,6 +1596,7 @@ export default function Reports() {
             availableReports={availableReportsForAssistant}
             onSelectReport={handleAssistantSelectReport}
             onClose={() => setShowAssistant(false)}
+            initialMessage={initialMessage}
           />
         )}
       </div>
