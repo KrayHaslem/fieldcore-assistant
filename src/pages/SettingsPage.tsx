@@ -24,6 +24,7 @@ const ALL_ROLES = ["admin", "procurement", "sales", "finance", "employee"] as co
 export default function SettingsPage() {
   const { user, profile, roles, orgId, refreshRoles } = useAuth();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const { toast } = useToast();
   const navigate = useNavigate();
   const qc = useQueryClient();
