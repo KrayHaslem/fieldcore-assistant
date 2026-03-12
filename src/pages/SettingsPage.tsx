@@ -40,6 +40,7 @@ export default function SettingsPage() {
 
   // ---- Super Admin: Seed Demo ----
   const [seeding, setSeeding] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const seedDemo = async () => {
     setConfirmAction({
@@ -59,6 +60,24 @@ export default function SettingsPage() {
           toast({ title: "Seed failed", description: e.message, variant: "destructive" });
         }
         setSeeding(false);
+      },
+    });
+  };
+
+  const clearDemo = async () => {
+    setConfirmAction({
+      message: "This will permanently delete ALL Innovex demo data (users, inventory, orders, etc.) without reseeding. Continue?",
+      onConfirm: async () => {
+        setConfirmAction(null);
+        setClearing(true);
+        try {
+          const { data, error } = await supabase.functions.invoke("seed-demo", { body: { action: "clear" } });
+          if (error) throw error;
+          toast({ title: "Demo data cleared", description: "All Innovex demo data has been removed." });
+        } catch (e: any) {
+          toast({ title: "Clear failed", description: e.message, variant: "destructive" });
+        }
+        setClearing(false);
       },
     });
   };
@@ -579,7 +598,10 @@ export default function SettingsPage() {
                 <div className="fieldcore-card p-6">
                   <h3 className="text-sm font-semibold text-foreground mb-4">Demo Data</h3>
                   <p className="text-sm text-muted-foreground mb-3">Clear and reseed the Innovex demo organization with fresh sample data (users, inventory, POs, SOs, assemblies, reconciliations).</p>
-                  <Button onClick={seedDemo} disabled={seeding} variant="outline">{seeding ? "Resetting…" : "Reset Demo Data"}</Button>
+                  <div className="flex gap-3">
+                    <Button onClick={seedDemo} disabled={seeding || clearing} variant="outline">{seeding ? "Resetting…" : "Reset Demo Data"}</Button>
+                    <Button onClick={clearDemo} disabled={seeding || clearing} variant="destructive">{clearing ? "Clearing…" : "Clear Demo Data"}</Button>
+                  </div>
                 </div>
                 <div className="fieldcore-card overflow-hidden">
                   <div className="flex items-center justify-between border-b px-5 py-3">

@@ -39,6 +39,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const body = await req.json().catch(() => ({}));
+    const action = body.action ?? "reset"; // "reset" | "clear"
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, serviceKey);
@@ -70,6 +73,12 @@ serve(async (req) => {
     // Delete auth users
     for (const uid of existingUserIds) {
       await sb.auth.admin.deleteUser(uid);
+    }
+
+    if (action === "clear") {
+      return new Response(JSON.stringify({ success: true, action: "clear", message: "All Innovex demo data cleared" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // ===== STEP 2: ORGANIZATION =====
