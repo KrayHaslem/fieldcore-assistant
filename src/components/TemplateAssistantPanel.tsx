@@ -41,11 +41,17 @@ export function TemplateAssistantPanel({ onFieldsUpdate, onClose, initialMessage
     const reply = data?.reply || "";
     const fields = data?.fields as TemplateFieldUpdates | undefined;
     const hasFields = fields && Object.keys(fields).length > 0;
+    const warnings = data?.warnings as string[] | undefined;
 
     // Build a meaningful reply even if AI returned empty content (common with tool calls)
-    const displayReply = reply || (hasFields
+    let displayReply = reply || (hasFields
       ? "I've updated the template fields based on your description."
       : "I couldn't process that request.");
+
+    // Append guardrail warnings so the user sees what was corrected
+    if (warnings && warnings.length > 0) {
+      displayReply += "\n\n🛡️ **SQL Guardrails:**\n" + warnings.map((w) => `• ${w}`).join("\n");
+    }
 
     setMessages((prev) => [...prev, { role: "assistant", content: displayReply }]);
 
