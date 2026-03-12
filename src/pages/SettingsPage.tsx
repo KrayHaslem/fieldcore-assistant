@@ -32,6 +32,7 @@ export default function SettingsPage() {
   const isSuperAdmin = roles.includes("superadmin");
   const isAdmin = roles.includes("admin") || isSuperAdmin;
   const canManageSuppliers = isAdmin || roles.includes("procurement");
+  const canManageCustomers = isAdmin || roles.includes("sales");
   const canManageUnits = isAdmin || roles.includes("procurement");
 
   // ---- Confirm dialog state ----
