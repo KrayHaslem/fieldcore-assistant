@@ -45,8 +45,18 @@ export default function CreateSalesOrder() {
 
   // Unmatched customer from command center
   const unmatchedCustomer: UnmatchedCustomer | undefined = prefill?.unmatched_customer;
-  // Unmatched items from command center
-  const unmatchedItems = prefill?.unmatched_items;
+  // Unmatched items from command center — also synthesize if items exist but weren't enriched
+  const unmatchedItems = (() => {
+    if (prefill?.unmatched_items && prefill.unmatched_items.length > 0) return prefill.unmatched_items;
+    // If there are raw items but no item_matches and no unmatched_items, the data may be stale (from history)
+    // Synthesize unmatched entries so the assistant can still help resolve them
+    if (prefill?.items && Array.isArray(prefill.items) && !prefill.item_matches) {
+      return prefill.items
+        .filter((i: any) => i.name)
+        .map((i: any) => ({ parsed_name: i.name, quantity: i.quantity || 1, candidates: [] }));
+    }
+    return undefined;
+  })();
 
   // Auto-apply prefill data on mount
   useEffect(() => {

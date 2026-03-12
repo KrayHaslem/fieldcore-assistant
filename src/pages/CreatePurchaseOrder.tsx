@@ -1092,7 +1092,14 @@ export default function CreatePurchaseOrder() {
           onIntentReceived={handleAssistantIntent}
           onDirectAction={handleDirectAction}
           onClose={() => setShowAssistant(false)}
-          unmatchedItems={prefill.unmatched_items as UnmatchedItem[] | undefined}
+          unmatchedItems={(() => {
+            const ui = prefill.unmatched_items as UnmatchedItem[] | undefined;
+            if (ui && ui.length > 0) return ui;
+            if (prefill.items && Array.isArray(prefill.items) && !prefill.item_matches) {
+              return prefill.items.filter((i: any) => i.name).map((i: any) => ({ parsed_name: i.name, quantity: i.quantity || 1, candidates: [] }));
+            }
+            return undefined;
+          })()}
           unmatchedSupplier={prefill.unmatched_supplier as UnmatchedSupplier | undefined}
         />
       )}
