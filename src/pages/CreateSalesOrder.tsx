@@ -45,6 +45,8 @@ export default function CreateSalesOrder() {
 
   // Unmatched customer from command center
   const unmatchedCustomer: UnmatchedCustomer | undefined = prefill?.unmatched_customer;
+  // Unmatched items from command center
+  const unmatchedItems = prefill?.unmatched_items;
 
   // Auto-apply prefill data on mount
   useEffect(() => {
