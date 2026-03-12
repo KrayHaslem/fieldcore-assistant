@@ -238,8 +238,9 @@ export default function CreateSalesOrder() {
                   }}
                   onSearch={searchCustomers}
                   placeholder="Search customers..."
-                  allowCustomValue
-                  onCustomValue={(text) => {
+                  allowCreate
+                  createLabel="Use as one-off customer"
+                  onCreateNew={(text) => {
                     setCustomerName(text);
                     setCustomerId(null);
                   }}
