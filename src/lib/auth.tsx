@@ -23,6 +23,7 @@ type AuthContextType = {
   orgId: string | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
   refreshRoles: () => Promise<void>;
 };
 
