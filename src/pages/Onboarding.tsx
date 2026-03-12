@@ -54,6 +54,7 @@ export default function Onboarding() {
       if (error) throw error;
 
       toast.success("Organization created! Let's configure your settings.");
+      await Promise.all([refreshProfile(), refreshRoles()]);
       navigate(`/setup/${orgId}`, { replace: true });
     } catch (err: any) {
       toast.error(err.message || "Failed to create organization");
