@@ -76,7 +76,12 @@ serve(async (req) => {
     }
 
     if (action === "clear") {
-      return new Response(JSON.stringify({ success: true, action: "clear", message: "All Innovex demo data cleared" }), {
+      // Also remove the organization itself
+      await sb.from("report_templates").delete().eq("organization_id", ORG_ID);
+      await sb.from("po_groups").delete().eq("organization_id", ORG_ID);
+      await sb.from("bill_of_materials").delete().eq("organization_id", ORG_ID);
+      await sb.from("organizations").delete().eq("id", ORG_ID);
+      return new Response(JSON.stringify({ success: true, action: "clear", message: "Innovex organization and all demo data fully removed" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
