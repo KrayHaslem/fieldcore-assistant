@@ -21,6 +21,7 @@ import Reconciliation from "./pages/Reconciliation";
 import Reports from "./pages/Reports";
 import SettingsPage from "./pages/SettingsPage";
 import OrgSetupWizard from "./pages/OrgSetupWizard";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
