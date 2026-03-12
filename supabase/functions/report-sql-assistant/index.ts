@@ -105,6 +105,100 @@ function extractSqlFromFences(text: string): string | null {
   return null;
 }
 
+// ── SQL Quality Guardrails ──────────────────────────────────────────────
+// Validates AI-generated SQL and returns a list of issues found.
+// Some issues are auto-fixable; others require the AI to regenerate.
+
+interface SqlIssue {
+  severity: "error" | "warning";
+  message: string;
+  autoFixable: boolean;
+}
+
+function validateGeneratedSql(sql: string): { issues: SqlIssue[]; fixedSql: string } {
+  const issues: SqlIssue[] = [];
+  let fixedSql = sql;
+  const upper = sql.toUpperCase();
+
+  // 1. Must contain :org_id filtering
+  if (!sql.includes(":org_id")) {
+    issues.push({
+      severity: "error",
+      message: "Missing :org_id filter — multi-tenant data leak risk.",
+      autoFixable: false,
+    });
+  }
+
+  // 2. EXTRACT(DAY FROM ...) on date subtraction — the #1 offender
+  const extractDayPattern = /EXTRACT\s*\(\s*DAY\s+FROM\s+[^)]*(?:NOW\(\)|CURRENT_DATE|CURRENT_TIMESTAMP)[^)]*-[^)]*\)/gi;
+  if (extractDayPattern.test(fixedSql)) {
+    issues.push({
+      severity: "error",
+      message: "Uses EXTRACT(DAY FROM date_subtraction) which doesn't work in PostgreSQL. Auto-fixing to direct subtraction.",
+      autoFixable: true,
+    });
+    // Auto-fix: replace EXTRACT(DAY FROM (NOW() - col)) with (CURRENT_DATE - col::DATE)
+    fixedSql = fixedSql.replace(
+      /EXTRACT\s*\(\s*DAY\s+FROM\s+\(\s*(?:NOW\(\)|CURRENT_DATE|CURRENT_TIMESTAMP)\s*-\s*([\w.]+(?:\s*::\s*\w+)?)\s*\)\s*\)/gi,
+      "(CURRENT_DATE - $1::DATE)"
+    );
+    // Also handle without parens
+    fixedSql = fixedSql.replace(
+      /EXTRACT\s*\(\s*DAY\s+FROM\s+(?:NOW\(\)|CURRENT_DATE|CURRENT_TIMESTAMP)\s*-\s*([\w.]+(?:\s*::\s*\w+)?)\s*\)/gi,
+      "(CURRENT_DATE - $1::DATE)"
+    );
+  }
+
+  // 3. Wrong enum values
+  const wrongEnums: [RegExp, string][] = [
+    [/'assembly'/gi, "Use 'assembled' not 'assembly' for movement_type enum."],
+  ];
+  for (const [pattern, msg] of wrongEnums) {
+    if (pattern.test(fixedSql)) {
+      issues.push({ severity: "error", message: msg, autoFixable: true });
+      fixedSql = fixedSql.replace(/'assembly'/gi, "'assembled'");
+    }
+  }
+
+  // 4. Trailing semicolons
+  if (fixedSql.trim().endsWith(";")) {
+    fixedSql = fixedSql.trim().replace(/;$/, "");
+    issues.push({ severity: "warning", message: "Removed trailing semicolon.", autoFixable: true });
+  }
+
+  // 5. Contains forbidden DDL/DML
+  const forbidden = ["INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE", "TRUNCATE"];
+  const normalizedCheck = fixedSql.replace(/\s+/g, " ").toUpperCase();
+  for (const kw of forbidden) {
+    const regex = new RegExp(`\\b${kw}\\b`);
+    if (regex.test(normalizedCheck) && !normalizedCheck.startsWith("SELECT") && !normalizedCheck.startsWith("WITH")) {
+      issues.push({ severity: "error", message: `Contains forbidden keyword: ${kw}`, autoFixable: false });
+    }
+  }
+
+  // 6. Too few columns (less than 3 SELECT expressions) — warning only
+  const selectClause = fixedSql.match(/^(?:WITH[\s\S]*?\)\s*)?SELECT\s+([\s\S]*?)\s+FROM\s/i);
+  if (selectClause) {
+    // Simple comma count (not perfect but catches obvious 1-2 column queries)
+    const commaCount = (selectClause[1].match(/,(?![^(]*\))/g) || []).length;
+    if (commaCount < 2) {
+      issues.push({
+        severity: "warning",
+        message: "Query selects fewer than 3 columns — consider adding more for a useful report.",
+        autoFixable: false,
+      });
+    }
+  }
+
+  return { issues, fixedSql };
+}
+
+/** Build a correction prompt from SQL issues for the AI to self-correct. */
+function buildCorrectionPrompt(sql: string, issues: SqlIssue[]): string {
+  const errorList = issues.map((i) => `- ${i.message}`).join("\n");
+  return `The SQL query you generated has the following issues:\n${errorList}\n\nOriginal query:\n${sql}\n\nPlease fix these issues and return ONLY the corrected SQL query. Remember: use (CURRENT_DATE - column::DATE) for day calculations, never EXTRACT(DAY FROM ...). Include at least 4-6 columns with descriptive aliases.`;
+}
+
 const TEMPLATE_TOOLS = [
   {
     type: "function",
@@ -272,7 +366,70 @@ ${instruction ? `\nIMPORTANT: ${instruction}` : ""}`;
       sql = fields.sql_query;
     }
 
-    return jsonResp({ reply: content, sql, fields: fields || undefined });
+    // ── SQL Guardrail Pass ──────────────────────────────────────────────
+    let warnings: string[] = [];
+    if (sql) {
+      const { issues, fixedSql } = validateGeneratedSql(sql);
+      const autoFixed = issues.filter((i) => i.autoFixable);
+      const nonFixable = issues.filter((i) => !i.autoFixable && i.severity === "error");
+
+      if (autoFixed.length > 0) {
+        sql = fixedSql;
+        if (fields?.sql_query) fields.sql_query = fixedSql;
+        warnings.push(...autoFixed.map((i) => `Auto-fixed: ${i.message}`));
+      }
+
+      // If there are non-auto-fixable errors, try a self-correction pass
+      if (nonFixable.length > 0) {
+        const correctionMsg = buildCorrectionPrompt(sql, nonFixable);
+        try {
+          const correctionBody: any = {
+            model: "google/gemini-2.5-flash",
+            messages: [
+              { role: "system", content: isTemplateMode ? templatePrompt : sqlOnlyPrompt },
+              ...messages,
+              { role: "assistant", content: sql },
+              { role: "user", content: correctionMsg },
+            ],
+          };
+          const corrResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(correctionBody),
+          });
+          if (corrResp.ok) {
+            const corrResult = await corrResp.json();
+            const corrContent = corrResult.choices?.[0]?.message?.content?.trim() ?? "";
+            const corrClean = corrContent.replace(/;$/, "");
+            let correctedSql: string | null = null;
+            if (corrClean.toUpperCase().startsWith("SELECT") || corrClean.toUpperCase().startsWith("WITH")) {
+              correctedSql = corrClean;
+            } else {
+              correctedSql = extractSqlFromFences(corrContent);
+            }
+            if (correctedSql) {
+              // Validate the correction too
+              const recheck = validateGeneratedSql(correctedSql);
+              sql = recheck.fixedSql;
+              if (fields?.sql_query) fields.sql_query = recheck.fixedSql;
+              warnings.push("AI self-corrected SQL issues.");
+            }
+          }
+        } catch {
+          // Self-correction failed — return original with warnings
+          warnings.push(...nonFixable.map((i) => i.message));
+        }
+      }
+
+      // Add quality warnings
+      const qualityWarnings = issues.filter((i) => i.severity === "warning" && !i.autoFixable);
+      warnings.push(...qualityWarnings.map((i) => `⚠️ ${i.message}`));
+    }
+
+    return jsonResp({ reply: content, sql, fields: fields || undefined, warnings: warnings.length > 0 ? warnings : undefined });
   } catch (error: any) {
     console.error("report-sql-assistant error:", error);
     return jsonResp({ error: error.message }, 500);

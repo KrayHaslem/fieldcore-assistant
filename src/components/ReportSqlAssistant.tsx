@@ -80,7 +80,11 @@ export function ReportSqlAssistant({ sqlQuery, onSqlChange, accessLevel }: Repor
       });
       if (error) throw error;
 
-      const reply = data?.reply || "I couldn't generate a response.";
+      let reply = data?.reply || "I couldn't generate a response.";
+      const warnings = data?.warnings as string[] | undefined;
+      if (warnings && warnings.length > 0) {
+        reply += "\n\n🛡️ **SQL Guardrails:**\n" + warnings.map((w: string) => `• ${w}`).join("\n");
+      }
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
 
       if (data?.sql) {
