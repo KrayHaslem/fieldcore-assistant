@@ -176,7 +176,7 @@ export default function Dashboard() {
       if (intent === "create_purchase_order") {
         navigate("/orders/new", { state: { prefill: data, commandText: command.trim() } });
       } else if (intent === "create_sales_order") {
-        navigate("/sales", { state: { prefill: data } });
+        navigate("/sales/new", { state: { prefill: data, commandText: command.trim() } });
       } else if (intent === "show_report") {
         if (data?.unmatched_report) {
           // No exact match — show resolution
