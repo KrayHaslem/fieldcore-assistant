@@ -75,6 +75,12 @@ serve(async (req) => {
       await sb.auth.admin.deleteUser(uid);
     }
 
+    if (action === "clear") {
+      return new Response(JSON.stringify({ success: true, action: "clear", message: "All Innovex demo data cleared" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ===== STEP 2: ORGANIZATION =====
     await sb.from("organizations").upsert({
       id: ORG_ID, name: "Innovex Oilfield Equipment", industry: "Oilfield Manufacturing & Distribution",
