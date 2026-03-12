@@ -27,7 +27,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
-  const { session, loading } = useAuth();
+  const { session, profile, loading } = useAuth();
 
   if (loading) {
     return (
@@ -41,6 +41,9 @@ function ProtectedRoutes() {
   }
 
   if (!session) return <Navigate to="/auth" replace />;
+
+  // Authenticated but no profile → send to onboarding
+  if (!profile) return <Navigate to="/onboarding" replace />;
 
   return (
     <Routes>
