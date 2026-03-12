@@ -182,13 +182,22 @@ export function ReportSqlAssistant({ sqlQuery, onSqlChange, accessLevel }: Repor
           </div>
           <div className="border-t p-2">
             <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-1.5">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="e.g. Show monthly revenue by item..."
-                className="text-xs h-8"
-                disabled={sending}
-              />
+              <div className="relative flex-1">
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="e.g. Show monthly revenue by item..."
+                  className="text-xs h-8 pr-7"
+                  disabled={sending}
+                />
+                <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                  <VoiceInputButton
+                    onTranscript={(text) => setInput(text)}
+                    disabled={sending}
+                    size="sm"
+                  />
+                </div>
+              </div>
               <Button type="submit" size="icon" className="h-8 w-8" disabled={sending || !input.trim()}>
                 <Send className="h-3.5 w-3.5" />
               </Button>
