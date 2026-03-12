@@ -278,14 +278,23 @@ export default function Dashboard() {
             <h2 className="text-lg font-semibold text-foreground">Command Center</h2>
           </div>
           <form onSubmit={handleCommand} className="flex gap-3">
-            <input
-              type="text"
-              className="command-input flex-1"
-              placeholder="Try: 'Order 3 MIG wire spools from Logan Supply' or 'Show quarterly spending report'"
-              value={command}
-              onChange={(e) => setCommand(e.target.value)}
-              disabled={isParsingCommand}
-            />
+            <div className="relative flex-1">
+              <input
+                type="text"
+                className="command-input w-full pr-9"
+                placeholder="Try: 'Order 3 MIG wire spools from Logan Supply' or 'Show quarterly spending report'"
+                value={command}
+                onChange={(e) => setCommand(e.target.value)}
+                disabled={isParsingCommand}
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                <VoiceInputButton
+                  onTranscript={(text) => setCommand(text)}
+                  disabled={isParsingCommand}
+                  size="sm"
+                />
+              </div>
+            </div>
             <Button type="submit" disabled={isParsingCommand || !command.trim()}>
               {isParsingCommand ? <Loader2 className="h-4 w-4 animate-spin" /> : "Run"}
             </Button>
