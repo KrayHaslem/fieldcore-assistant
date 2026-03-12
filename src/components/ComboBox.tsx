@@ -204,10 +204,10 @@ export function ComboBox<T extends ComboBoxOption>({
               key={option.id}
               type="button"
               className={cn(
-                "w-full text-left px-3 py-2 text-sm transition-colors",
+                "w-full text-left px-3 py-2 text-sm transition-colors text-popover-foreground",
                 index === highlightedIndex
-                  ? "bg-accent/10 text-accent-foreground"
-                  : "hover:bg-muted"
+                  ? "bg-accent text-accent-foreground"
+                  : "hover:bg-muted hover:text-muted-foreground"
               )}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleSelect(option)}
