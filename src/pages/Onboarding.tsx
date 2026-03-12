@@ -44,41 +44,17 @@ export default function Onboarding() {
     setSaving(true);
 
     try {
-      // 1. Create organization
-      const { data: org, error: orgError } = await supabase
-        .from("organizations")
-        .insert({ name: orgName.trim() })
-        .select("id")
-        .single();
+      const { data: orgId, error } = await supabase.rpc("create_onboarding_org", {
+        _user_id: user.id,
+        _org_name: orgName.trim(),
+        _full_name: fullName.trim(),
+        _email: user.email!,
+      });
 
-      if (orgError) throw orgError;
-
-      // 2. Create profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .insert({
-          user_id: user.id,
-          organization_id: org.id,
-          full_name: fullName.trim(),
-          email: user.email!,
-        });
-
-      if (profileError) throw profileError;
-
-      // 3. Assign admin role
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({
-          user_id: user.id,
-          organization_id: org.id,
-          role: "admin" as any,
-        });
-
-      if (roleError) throw roleError;
+      if (error) throw error;
 
       toast.success("Organization created! Let's configure your settings.");
-      // Navigate to the setup wizard
-      navigate(`/setup/${org.id}`, { replace: true });
+      navigate(`/setup/${orgId}`, { replace: true });
     } catch (err: any) {
       toast.error(err.message || "Failed to create organization");
     } finally {
