@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X, Send, Bot, User } from "lucide-react";
+import { VoiceInputButton } from "@/components/VoiceInputButton";
 
 interface ChatMessage {
   role: "user" | "assistant";
