@@ -313,11 +313,20 @@ export default function OrgSetupWizard() {
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-foreground">What industry is your business in?</h2>
               <p className="text-sm text-muted-foreground">This helps us tailor default settings for your organization.</p>
-              <Input
-                placeholder="e.g. Construction, Manufacturing, Healthcare..."
-                value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  placeholder="e.g. Construction, Manufacturing, Healthcare..."
+                  value={industry}
+                  onChange={(e) => setIndustry(e.target.value)}
+                  className="pr-10"
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                  <VoiceInputButton
+                    size="sm"
+                    onTranscript={(text) => setIndustry(text)}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="relative py-4">
