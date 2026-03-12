@@ -117,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         orgId: profile?.organization_id ?? null,
         loading,
         signOut,
+        refreshProfile,
         refreshRoles,
       }}
     >
