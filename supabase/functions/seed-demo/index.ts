@@ -130,6 +130,25 @@ serve(async (req) => {
     ];
     for (const s of suppliers) await sb.from("suppliers").upsert(s, { onConflict: "id" });
 
+    // ===== STEP 5b: CUSTOMERS =====
+    const CUST = {
+      permian:  "00000000-0000-0000-0008-000000000001",
+      westTx:   "00000000-0000-0000-0008-000000000002",
+      midland:  "00000000-0000-0000-0008-000000000003",
+      eagleFord:"00000000-0000-0000-0008-000000000004",
+      concho:   "00000000-0000-0000-0008-000000000005",
+      pioneer:  "00000000-0000-0000-0008-000000000006",
+    };
+    const customerData = [
+      { id: CUST.permian, name: "Permian Basin Energy", contact_name: "Rick Dawson", contact_email: "rick@permianbasin.com", contact_phone: "432-555-0201", organization_id: ORG_ID },
+      { id: CUST.westTx, name: "West Texas Drilling Co", contact_name: "Teresa Gomez", contact_email: "teresa@wtxdrilling.com", contact_phone: "432-555-0202", organization_id: ORG_ID },
+      { id: CUST.midland, name: "Midland Production LLC", contact_name: "Jason Fields", contact_email: "jason@midlandprod.com", contact_phone: "432-555-0203", organization_id: ORG_ID },
+      { id: CUST.eagleFord, name: "Eagle Ford Operations", contact_name: "Brenda Clark", contact_email: "brenda@eaglefordops.com", contact_phone: "830-555-0204", organization_id: ORG_ID },
+      { id: CUST.concho, name: "Concho Resources", contact_name: "Dave Martinez", contact_email: "dave@conchoresources.com", contact_phone: "432-555-0205", organization_id: ORG_ID },
+      { id: CUST.pioneer, name: "Pioneer Natural Resources", contact_name: "Lisa Tran", contact_email: "lisa@pioneernr.com", contact_phone: "972-555-0206", organization_id: ORG_ID },
+    ];
+    for (const c of customerData) await sb.from("customers").upsert(c, { onConflict: "id" });
+
     // ===== STEP 6: INVENTORY ITEMS =====
     const items = [
       // Resale (1-5)
