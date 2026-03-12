@@ -124,6 +124,7 @@ export default function AuthPage() {
             {loading ? "Loading..." : isLogin ? "Sign In" : "Create Account"}
           </Button>
         </form>
+        </div>
 
         <p className="text-center text-sm text-muted-foreground">
           {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
