@@ -10,7 +10,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Onboarding() {
-  const { user, profile, loading: authLoading, signOut } = useAuth();
+  const { user, profile, loading: authLoading, signOut, refreshProfile, refreshRoles } = useAuth();
   const navigate = useNavigate();
   const [orgName, setOrgName] = useState("");
   const [fullName, setFullName] = useState("");
@@ -54,6 +54,7 @@ export default function Onboarding() {
       if (error) throw error;
 
       toast.success("Organization created! Let's configure your settings.");
+      await Promise.all([refreshProfile(), refreshRoles()]);
       navigate(`/setup/${orgId}`, { replace: true });
     } catch (err: any) {
       toast.error(err.message || "Failed to create organization");
