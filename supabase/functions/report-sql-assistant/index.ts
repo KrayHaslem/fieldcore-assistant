@@ -366,7 +366,70 @@ ${instruction ? `\nIMPORTANT: ${instruction}` : ""}`;
       sql = fields.sql_query;
     }
 
-    return jsonResp({ reply: content, sql, fields: fields || undefined });
+    // ── SQL Guardrail Pass ──────────────────────────────────────────────
+    let warnings: string[] = [];
+    if (sql) {
+      const { issues, fixedSql } = validateGeneratedSql(sql);
+      const autoFixed = issues.filter((i) => i.autoFixable);
+      const nonFixable = issues.filter((i) => !i.autoFixable && i.severity === "error");
+
+      if (autoFixed.length > 0) {
+        sql = fixedSql;
+        if (fields?.sql_query) fields.sql_query = fixedSql;
+        warnings.push(...autoFixed.map((i) => `Auto-fixed: ${i.message}`));
+      }
+
+      // If there are non-auto-fixable errors, try a self-correction pass
+      if (nonFixable.length > 0) {
+        const correctionMsg = buildCorrectionPrompt(sql, nonFixable);
+        try {
+          const correctionBody: any = {
+            model: "google/gemini-2.5-flash",
+            messages: [
+              { role: "system", content: isTemplateMode ? templatePrompt : sqlOnlyPrompt },
+              ...messages,
+              { role: "assistant", content: sql },
+              { role: "user", content: correctionMsg },
+            ],
+          };
+          const corrResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(correctionBody),
+          });
+          if (corrResp.ok) {
+            const corrResult = await corrResp.json();
+            const corrContent = corrResult.choices?.[0]?.message?.content?.trim() ?? "";
+            const corrClean = corrContent.replace(/;$/, "");
+            let correctedSql: string | null = null;
+            if (corrClean.toUpperCase().startsWith("SELECT") || corrClean.toUpperCase().startsWith("WITH")) {
+              correctedSql = corrClean;
+            } else {
+              correctedSql = extractSqlFromFences(corrContent);
+            }
+            if (correctedSql) {
+              // Validate the correction too
+              const recheck = validateGeneratedSql(correctedSql);
+              sql = recheck.fixedSql;
+              if (fields?.sql_query) fields.sql_query = recheck.fixedSql;
+              warnings.push("AI self-corrected SQL issues.");
+            }
+          }
+        } catch {
+          // Self-correction failed — return original with warnings
+          warnings.push(...nonFixable.map((i) => i.message));
+        }
+      }
+
+      // Add quality warnings
+      const qualityWarnings = issues.filter((i) => i.severity === "warning" && !i.autoFixable);
+      warnings.push(...qualityWarnings.map((i) => `⚠️ ${i.message}`));
+    }
+
+    return jsonResp({ reply: content, sql, fields: fields || undefined, warnings: warnings.length > 0 ? warnings : undefined });
   } catch (error: any) {
     console.error("report-sql-assistant error:", error);
     return jsonResp({ error: error.message }, 500);
