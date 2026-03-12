@@ -236,6 +236,53 @@ export type Database = {
           },
         ]
       }
+      customers: {
+        Row: {
+          address: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           created_at: string
@@ -843,6 +890,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          customer_id: string | null
           customer_name: string
           id: string
           notes: string | null
@@ -855,6 +903,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          customer_id?: string | null
           customer_name: string
           id?: string
           notes?: string | null
@@ -867,6 +916,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          customer_id?: string | null
           customer_name?: string
           id?: string
           notes?: string | null
@@ -877,6 +927,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sales_orders_organization_id_fkey"
             columns: ["organization_id"]

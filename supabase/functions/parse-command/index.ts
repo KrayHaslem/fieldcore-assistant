@@ -207,6 +207,36 @@ Always return valid JSON only. No markdown, no explanation. If you cannot determ
       }
 
       if (parsed.intent === "create_sales_order") {
+        // Enrich customer match
+        if (parsed.customer && typeof parsed.customer === "string") {
+          const { data: customers } = await sb
+            .from("customers")
+            .select("id, name, contact_name, contact_email")
+            .ilike("name", `%${parsed.customer}%`)
+            .limit(1);
+          if (customers && customers.length > 0) {
+            parsed.customer_match = {
+              id: customers[0].id,
+              name: customers[0].name,
+            };
+          } else {
+            const firstWord = parsed.customer.split(" ")[0];
+            const { data: candidates } = await sb
+              .from("customers")
+              .select("id, name")
+              .or(`name.ilike.%${firstWord}%`)
+              .limit(5);
+            parsed.unmatched_customer = {
+              parsed_name: parsed.customer,
+              candidates: (candidates ?? []).map((c: any) => ({
+                id: c.id,
+                name: c.name,
+              })),
+            };
+          }
+        }
+
+        // Enrich item matches
         if (parsed.items && Array.isArray(parsed.items)) {
           const itemMatches: any[] = [];
           for (const item of parsed.items) {
@@ -219,7 +249,6 @@ Always return valid JSON only. No markdown, no explanation. If you cannot determ
               .limit(1);
             if (items && items.length > 0) {
               const matchedId = items[0].id;
-              // Get on-hand quantity
               const { data: movements } = await sb
                 .from("inventory_movements")
                 .select("quantity")

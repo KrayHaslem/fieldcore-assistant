@@ -62,6 +62,7 @@ serve(async (req) => {
     await sb.from("inventory_items").delete().eq("organization_id", ORG_ID);
     await sb.from("units").delete().eq("organization_id", ORG_ID);
     await sb.from("suppliers").delete().eq("organization_id", ORG_ID);
+    await sb.from("customers").delete().eq("organization_id", ORG_ID);
     await sb.from("departments").delete().eq("organization_id", ORG_ID);
     await sb.from("user_roles").delete().eq("organization_id", ORG_ID);
     await sb.from("profiles").delete().eq("organization_id", ORG_ID);
@@ -128,6 +129,25 @@ serve(async (req) => {
       { id: SUP.premier, name: "Premier Equipment Sales", contact_name: "Dan Brooks", contact_email: "dan@premierequip.com", contact_phone: "432-555-0108", organization_id: ORG_ID, avg_lead_time_days: 21 },
     ];
     for (const s of suppliers) await sb.from("suppliers").upsert(s, { onConflict: "id" });
+
+    // ===== STEP 5b: CUSTOMERS =====
+    const CUST = {
+      permian:  "00000000-0000-0000-0008-000000000001",
+      westTx:   "00000000-0000-0000-0008-000000000002",
+      midland:  "00000000-0000-0000-0008-000000000003",
+      eagleFord:"00000000-0000-0000-0008-000000000004",
+      concho:   "00000000-0000-0000-0008-000000000005",
+      pioneer:  "00000000-0000-0000-0008-000000000006",
+    };
+    const customerData = [
+      { id: CUST.permian, name: "Permian Basin Energy", contact_name: "Rick Dawson", contact_email: "rick@permianbasin.com", contact_phone: "432-555-0201", organization_id: ORG_ID },
+      { id: CUST.westTx, name: "West Texas Drilling Co", contact_name: "Teresa Gomez", contact_email: "teresa@wtxdrilling.com", contact_phone: "432-555-0202", organization_id: ORG_ID },
+      { id: CUST.midland, name: "Midland Production LLC", contact_name: "Jason Fields", contact_email: "jason@midlandprod.com", contact_phone: "432-555-0203", organization_id: ORG_ID },
+      { id: CUST.eagleFord, name: "Eagle Ford Operations", contact_name: "Brenda Clark", contact_email: "brenda@eaglefordops.com", contact_phone: "830-555-0204", organization_id: ORG_ID },
+      { id: CUST.concho, name: "Concho Resources", contact_name: "Dave Martinez", contact_email: "dave@conchoresources.com", contact_phone: "432-555-0205", organization_id: ORG_ID },
+      { id: CUST.pioneer, name: "Pioneer Natural Resources", contact_name: "Lisa Tran", contact_email: "lisa@pioneernr.com", contact_phone: "972-555-0206", organization_id: ORG_ID },
+    ];
+    for (const c of customerData) await sb.from("customers").upsert(c, { onConflict: "id" });
 
     // ===== STEP 6: INVENTORY ITEMS =====
     const items = [
@@ -266,12 +286,12 @@ serve(async (req) => {
 
     // ===== STEP 9: SALES ORDERS =====
     const soData = [
-      { id: SO(1), so_number: "SO-2025-001", customer_name: "Permian Basin Energy", status: "closed", total_amount: 6250, created_by: dana, created_at: "2025-11-10T10:00:00Z" },
-      { id: SO(2), so_number: "SO-2025-002", customer_name: "West Texas Drilling Co", status: "fulfilled", total_amount: 4785, created_by: dana, created_at: "2025-12-05T14:00:00Z" },
-      { id: SO(3), so_number: "SO-2025-003", customer_name: "Midland Production LLC", status: "order", total_amount: 9570, created_by: dana, created_at: "2026-01-15T09:00:00Z" },
-      { id: SO(4), so_number: "SO-2025-004", customer_name: "Eagle Ford Operations", status: "fulfilled", total_amount: 2675, created_by: dana, created_at: "2026-02-01T11:00:00Z" },
-      { id: SO(5), so_number: "SO-2025-005", customer_name: "Concho Resources", status: "quote", total_amount: 13500, created_by: dana, created_at: "2026-02-20T08:00:00Z" },
-      { id: SO(6), so_number: "SO-2025-006", customer_name: "Pioneer Natural Resources", status: "order", total_amount: 5340, created_by: dana, created_at: "2026-03-05T10:00:00Z" },
+      { id: SO(1), so_number: "SO-2025-001", customer_name: "Permian Basin Energy", customer_id: CUST.permian, status: "closed", total_amount: 6250, created_by: dana, created_at: "2025-11-10T10:00:00Z" },
+      { id: SO(2), so_number: "SO-2025-002", customer_name: "West Texas Drilling Co", customer_id: CUST.westTx, status: "fulfilled", total_amount: 4785, created_by: dana, created_at: "2025-12-05T14:00:00Z" },
+      { id: SO(3), so_number: "SO-2025-003", customer_name: "Midland Production LLC", customer_id: CUST.midland, status: "order", total_amount: 9570, created_by: dana, created_at: "2026-01-15T09:00:00Z" },
+      { id: SO(4), so_number: "SO-2025-004", customer_name: "Eagle Ford Operations", customer_id: CUST.eagleFord, status: "fulfilled", total_amount: 2675, created_by: dana, created_at: "2026-02-01T11:00:00Z" },
+      { id: SO(5), so_number: "SO-2025-005", customer_name: "Concho Resources", customer_id: CUST.concho, status: "quote", total_amount: 13500, created_by: dana, created_at: "2026-02-20T08:00:00Z" },
+      { id: SO(6), so_number: "SO-2025-006", customer_name: "Pioneer Natural Resources", customer_id: CUST.pioneer, status: "order", total_amount: 5340, created_by: dana, created_at: "2026-03-05T10:00:00Z" },
     ];
     for (const so of soData) await sb.from("sales_orders").upsert({ ...so, organization_id: ORG_ID }, { onConflict: "id" });
 
@@ -433,7 +453,7 @@ serve(async (req) => {
       message: "Demo data seeded successfully",
       counts: {
         organization: 1, departments: departments.length, users: demoUsers.length,
-        suppliers: suppliers.length, inventory_items: items.length, units: units.length,
+        suppliers: suppliers.length, customers: customerData.length, inventory_items: items.length, units: units.length,
         purchase_orders: poData.length, purchase_order_items: poItems.length,
         sales_orders: soData.length, sales_order_items: soItems.length,
         assembly_records: assemblies.length, assembly_components: asmComponents.length,

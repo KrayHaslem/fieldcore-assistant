@@ -32,6 +32,7 @@ export default function SettingsPage() {
   const isSuperAdmin = roles.includes("superadmin");
   const isAdmin = roles.includes("admin") || isSuperAdmin;
   const canManageSuppliers = isAdmin || roles.includes("procurement");
+  const canManageCustomers = isAdmin || roles.includes("sales");
   const canManageUnits = isAdmin || roles.includes("procurement");
 
   // ---- Confirm dialog state ----
@@ -257,6 +258,41 @@ export default function SettingsPage() {
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     toast({ title: editingSupplierId ? "Supplier updated" : "Supplier added" });
     setSupplierDialog(false); qc.invalidateQueries({ queryKey: ["suppliers"] });
+  };
+
+  // ---- Customers ----
+  const [customerDialog, setCustomerDialog] = useState(false);
+  const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
+  const [cForm, setCForm] = useState({ name: "", contact_name: "", contact_email: "", contact_phone: "", address: "", notes: "" });
+  const [cSaving, setCSaving] = useState(false);
+
+  const { data: customers } = useQuery({
+    queryKey: ["customers", orgId], enabled: !!orgId && canManageCustomers,
+    queryFn: async () => { const { data } = await supabase.from("customers").select("*").order("name"); return data ?? []; },
+  });
+
+  const openCustomerDialog = (c?: any) => {
+    if (c) {
+      setEditingCustomerId(c.id);
+      setCForm({ name: c.name, contact_name: c.contact_name || "", contact_email: c.contact_email || "", contact_phone: c.contact_phone || "", address: c.address || "", notes: c.notes || "" });
+    } else {
+      setEditingCustomerId(null);
+      setCForm({ name: "", contact_name: "", contact_email: "", contact_phone: "", address: "", notes: "" });
+    }
+    setCustomerDialog(true);
+  };
+
+  const saveCustomer = async () => {
+    if (!cForm.name.trim() || !orgId) return;
+    setCSaving(true);
+    const payload = { name: cForm.name.trim(), contact_name: cForm.contact_name || null, contact_email: cForm.contact_email || null, contact_phone: cForm.contact_phone || null, address: cForm.address || null, notes: cForm.notes || null, organization_id: orgId };
+    const { error } = editingCustomerId
+      ? await supabase.from("customers").update(payload).eq("id", editingCustomerId)
+      : await supabase.from("customers").insert(payload);
+    setCSaving(false);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: editingCustomerId ? "Customer updated" : "Customer added" });
+    setCustomerDialog(false); qc.invalidateQueries({ queryKey: ["customers"] });
   };
 
   // ---- Approval Rules ----
@@ -530,9 +566,9 @@ export default function SettingsPage() {
             {isAdmin && <TabsTrigger value="departments">Departments</TabsTrigger>}
             {isAdmin && <TabsTrigger value="users">Users & Roles</TabsTrigger>}
             {canManageSuppliers && <TabsTrigger value="suppliers">Suppliers</TabsTrigger>}
+            {canManageCustomers && <TabsTrigger value="customers">Customers</TabsTrigger>}
             {isAdmin && <TabsTrigger value="approvals">Approval Rules</TabsTrigger>}
             {canManageUnits && <TabsTrigger value="units">Units</TabsTrigger>}
-            
             {isAdmin && <TabsTrigger value="report-templates">Report Templates</TabsTrigger>}
           </TabsList>
 
@@ -662,6 +698,39 @@ export default function SettingsPage() {
               </table>
             </div>
           </TabsContent>
+
+          {/* Customers */}
+          {canManageCustomers && (
+            <TabsContent value="customers">
+              <div className="fieldcore-card overflow-hidden">
+                <div className="flex items-center justify-between border-b px-5 py-3">
+                  <h3 className="text-sm font-semibold text-foreground">Customers</h3>
+                  <Button size="sm" onClick={() => openCustomerDialog()}><Plus className="h-4 w-4" /> Add Customer</Button>
+                </div>
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b bg-muted/50">
+                    <th className="px-5 py-2 text-left font-medium text-muted-foreground">Name</th>
+                    <th className="px-5 py-2 text-left font-medium text-muted-foreground">Contact</th>
+                    <th className="px-5 py-2 text-left font-medium text-muted-foreground">Email</th>
+                    <th className="px-5 py-2 text-left font-medium text-muted-foreground">Phone</th>
+                    <th className="px-5 py-2 w-16" />
+                  </tr></thead>
+                  <tbody className="divide-y">
+                    {customers?.map((c: any) => (
+                      <tr key={c.id} className="hover:bg-muted/30">
+                        <td className="px-5 py-2 font-medium text-foreground">{c.name}</td>
+                        <td className="px-5 py-2 text-muted-foreground">{c.contact_name ?? "—"}</td>
+                        <td className="px-5 py-2 text-muted-foreground">{c.contact_email ?? "—"}</td>
+                        <td className="px-5 py-2 text-muted-foreground">{c.contact_phone ?? "—"}</td>
+                        <td className="px-5 py-2"><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openCustomerDialog(c)}><Pencil className="h-3.5 w-3.5" /></Button></td>
+                      </tr>
+                    ))}
+                    {(!customers || customers.length === 0) && <tr><td colSpan={5} className="px-5 py-6 text-center text-muted-foreground">No customers</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
+          )}
 
           {/* Approval Rules */}
           <TabsContent value="approvals">
@@ -1134,6 +1203,22 @@ export default function SettingsPage() {
             <div><Label>Phone</Label><Input value={sForm.contact_phone} onChange={(e) => setSForm({ ...sForm, contact_phone: e.target.value })} /></div>
           </div>
           <DialogFooter><Button onClick={saveSupplier} disabled={sSaving || !sForm.name.trim()}>{sSaving ? "Saving..." : "Save"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Customer Dialog */}
+      <Dialog open={customerDialog} onOpenChange={setCustomerDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{editingCustomerId ? "Edit Customer" : "Add Customer"}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Name *</Label><Input value={cForm.name} onChange={(e) => setCForm({ ...cForm, name: e.target.value })} /></div>
+            <div><Label>Contact Name</Label><Input value={cForm.contact_name} onChange={(e) => setCForm({ ...cForm, contact_name: e.target.value })} /></div>
+            <div><Label>Email</Label><Input value={cForm.contact_email} onChange={(e) => setCForm({ ...cForm, contact_email: e.target.value })} /></div>
+            <div><Label>Phone</Label><Input value={cForm.contact_phone} onChange={(e) => setCForm({ ...cForm, contact_phone: e.target.value })} /></div>
+            <div><Label>Address</Label><Input value={cForm.address} onChange={(e) => setCForm({ ...cForm, address: e.target.value })} /></div>
+            <div><Label>Notes</Label><Textarea value={cForm.notes} onChange={(e) => setCForm({ ...cForm, notes: e.target.value })} rows={2} /></div>
+          </div>
+          <DialogFooter><Button onClick={saveCustomer} disabled={cSaving || !cForm.name.trim()}>{cSaving ? "Saving..." : "Save"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
