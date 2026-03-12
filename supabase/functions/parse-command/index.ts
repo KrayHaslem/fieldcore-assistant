@@ -275,6 +275,7 @@ Always return valid JSON only. No markdown, no explanation. If you cannot determ
                   id: c.id,
                   name: c.name,
                   sku: c.sku,
+                  item_type: c.item_type,
                 })),
               });
             }
