@@ -260,6 +260,41 @@ export default function SettingsPage() {
     setSupplierDialog(false); qc.invalidateQueries({ queryKey: ["suppliers"] });
   };
 
+  // ---- Customers ----
+  const [customerDialog, setCustomerDialog] = useState(false);
+  const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
+  const [cForm, setCForm] = useState({ name: "", contact_name: "", contact_email: "", contact_phone: "", address: "", notes: "" });
+  const [cSaving, setCSaving] = useState(false);
+
+  const { data: customers } = useQuery({
+    queryKey: ["customers", orgId], enabled: !!orgId && canManageCustomers,
+    queryFn: async () => { const { data } = await supabase.from("customers").select("*").order("name"); return data ?? []; },
+  });
+
+  const openCustomerDialog = (c?: any) => {
+    if (c) {
+      setEditingCustomerId(c.id);
+      setCForm({ name: c.name, contact_name: c.contact_name || "", contact_email: c.contact_email || "", contact_phone: c.contact_phone || "", address: c.address || "", notes: c.notes || "" });
+    } else {
+      setEditingCustomerId(null);
+      setCForm({ name: "", contact_name: "", contact_email: "", contact_phone: "", address: "", notes: "" });
+    }
+    setCustomerDialog(true);
+  };
+
+  const saveCustomer = async () => {
+    if (!cForm.name.trim() || !orgId) return;
+    setCSaving(true);
+    const payload = { name: cForm.name.trim(), contact_name: cForm.contact_name || null, contact_email: cForm.contact_email || null, contact_phone: cForm.contact_phone || null, address: cForm.address || null, notes: cForm.notes || null, organization_id: orgId };
+    const { error } = editingCustomerId
+      ? await supabase.from("customers").update(payload).eq("id", editingCustomerId)
+      : await supabase.from("customers").insert(payload);
+    setCSaving(false);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: editingCustomerId ? "Customer updated" : "Customer added" });
+    setCustomerDialog(false); qc.invalidateQueries({ queryKey: ["customers"] });
+  };
+
   // ---- Approval Rules ----
   const [ruleDialog, setRuleDialog] = useState(false);
   const [ruleForm, setRuleForm] = useState({ department_id: "", min_amount: "0", max_amount: "", required_role: "admin" as string, approver_user_id: "" });
