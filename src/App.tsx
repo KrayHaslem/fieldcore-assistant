@@ -21,12 +21,13 @@ import Reconciliation from "./pages/Reconciliation";
 import Reports from "./pages/Reports";
 import SettingsPage from "./pages/SettingsPage";
 import OrgSetupWizard from "./pages/OrgSetupWizard";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
-  const { session, loading } = useAuth();
+  const { session, profile, loading } = useAuth();
 
   if (loading) {
     return (
@@ -40,6 +41,9 @@ function ProtectedRoutes() {
   }
 
   if (!session) return <Navigate to="/auth" replace />;
+
+  // Authenticated but no profile → send to onboarding
+  if (!profile) return <Navigate to="/onboarding" replace />;
 
   return (
     <Routes>
@@ -78,6 +82,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/*" element={<ProtectedRoutes />} />
           </Routes>
         </BrowserRouter>
