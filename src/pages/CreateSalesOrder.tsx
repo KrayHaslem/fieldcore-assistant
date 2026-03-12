@@ -385,6 +385,8 @@ export default function CreateSalesOrder() {
           onClose={() => setShowAssistant(false)}
           onDirectAction={handleDirectAction}
           unmatchedSupplier={unmatchedCustomer}
+          unmatchedItems={unmatchedItems}
+          suppressItemCreation
         />
       )}
     </div>

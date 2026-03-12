@@ -131,19 +131,23 @@ export function FormAssistantPanel({ commandText, formContext, onIntentReceived,
           }
         }
 
-        actions.push({
-          label: `Add new part "${item.parsed_name}" and order ${item.quantity}`,
-          message: "",
-          icon: "plus",
-          directAction: { type: "create_item", itemName: item.parsed_name, quantity: item.quantity },
-        });
+        if (!suppressItemCreation) {
+          actions.push({
+            label: `Add new part "${item.parsed_name}" and order ${item.quantity}`,
+            message: "",
+            icon: "plus",
+            directAction: { type: "create_item", itemName: item.parsed_name, quantity: item.quantity },
+          });
+        }
 
         actions.push({ label: "Something else", message: "", icon: "help" });
 
         const candidateNames = item.candidates.slice(0, 3).map(c => `"${c.name}"`).join(", ");
         const explanation = item.candidates.length > 0
-          ? `I couldn't find an exact match for **"${item.parsed_name}"** in your inventory. I found some similar items (${candidateNames}). What would you like to do?`
-          : `I couldn't find **"${item.parsed_name}"** in your inventory and there are no similar items. Would you like to create it as a new part?`;
+          ? `I couldn't find an exact match for **"${item.parsed_name}"** in your inventory. I found some similar items (${candidateNames}). Which one did you mean?`
+          : suppressItemCreation
+            ? `I couldn't find **"${item.parsed_name}"** in your inventory. You can search for it manually in the line items below.`
+            : `I couldn't find **"${item.parsed_name}"** in your inventory and there are no similar items. Would you like to create it as a new part?`;
 
         newMessages.push({ role: "assistant", content: explanation, actions });
       }
