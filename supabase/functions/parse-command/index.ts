@@ -244,8 +244,7 @@ Always return valid JSON only. No markdown, no explanation. If you cannot determ
             if (!item.name) continue;
             const { data: items } = await sb
               .from("inventory_items")
-              .select("id, name, sku")
-              .eq("item_type", "resale")
+              .select("id, name, sku, item_type")
               .ilike("name", `%${item.name}%`)
               .limit(1);
             if (items && items.length > 0) {
@@ -259,14 +258,14 @@ Always return valid JSON only. No markdown, no explanation. If you cannot determ
                 parsed_name: item.name,
                 id: matchedId,
                 name: items[0].name,
+                item_type: items[0].item_type,
                 on_hand: onHand,
               });
             } else {
               // No exact match — find closest candidates for the user to pick from
               const { data: candidates } = await sb
                 .from("inventory_items")
-                .select("id, name, sku")
-                .eq("item_type", "resale")
+                .select("id, name, sku, item_type")
                 .or(`name.ilike.%${item.name.split(" ")[0]}%`)
                 .limit(5);
               unmatchedItems.push({
