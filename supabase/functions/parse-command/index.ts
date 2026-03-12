@@ -278,7 +278,6 @@ Always return valid JSON only. No markdown, no explanation. If you cannot determ
                   sku: c.sku,
                 })),
               });
-              });
             }
           }
           if (itemMatches.length > 0) {
