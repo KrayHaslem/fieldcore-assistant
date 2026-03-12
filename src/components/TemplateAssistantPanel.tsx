@@ -179,13 +179,22 @@ export function TemplateAssistantPanel({ onFieldsUpdate, onClose, initialMessage
           onSubmit={(e) => { e.preventDefault(); handleSend(); }}
           className="flex gap-2"
         >
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="e.g. Monthly spending by department..."
-            className="text-sm"
-            disabled={sending}
-          />
+          <div className="relative flex-1">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="e.g. Monthly spending by department..."
+              className="text-sm pr-8"
+              disabled={sending}
+            />
+            <div className="absolute right-1.5 top-1/2 -translate-y-1/2">
+              <VoiceInputButton
+                onTranscript={(text) => setInput(text)}
+                disabled={sending}
+                size="sm"
+              />
+            </div>
+          </div>
           <Button type="submit" size="icon" disabled={sending || !input.trim()}>
             <Send className="h-4 w-4" />
           </Button>
