@@ -566,9 +566,9 @@ export default function SettingsPage() {
             {isAdmin && <TabsTrigger value="departments">Departments</TabsTrigger>}
             {isAdmin && <TabsTrigger value="users">Users & Roles</TabsTrigger>}
             {canManageSuppliers && <TabsTrigger value="suppliers">Suppliers</TabsTrigger>}
+            {canManageCustomers && <TabsTrigger value="customers">Customers</TabsTrigger>}
             {isAdmin && <TabsTrigger value="approvals">Approval Rules</TabsTrigger>}
             {canManageUnits && <TabsTrigger value="units">Units</TabsTrigger>}
-            
             {isAdmin && <TabsTrigger value="report-templates">Report Templates</TabsTrigger>}
           </TabsList>
 
