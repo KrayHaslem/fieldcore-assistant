@@ -46,6 +46,8 @@ interface FormAssistantPanelProps {
   onDirectAction?: (action: DirectAction) => Promise<string>;
   unmatchedItems?: UnmatchedItem[];
   unmatchedSupplier?: UnmatchedSupplier;
+  /** Label for the supplier/customer entity — defaults to "supplier" */
+  entityLabel?: string;
   /** When true, unmatched items show suggestions only — no "Create new" option */
   suppressItemCreation?: boolean;
 }
