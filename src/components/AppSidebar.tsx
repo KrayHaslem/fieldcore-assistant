@@ -1,18 +1,8 @@
 import { NavLink, useLocation } from "react-router-dom";
-import {
-  LayoutDashboard,
-  ShoppingCart,
-  Package,
-  DollarSign,
-  BarChart3,
-  Settings,
-  Wrench,
-  ClipboardCheck,
-  LogOut,
-  FolderOpen,
-} from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, DollarSign, BarChart3, Settings, Wrench, ClipboardCheck, LogOut, FolderOpen } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { AppLogo } from "@/components/AppLogo";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -34,9 +24,7 @@ export function AppSidebar() {
     <aside className="flex h-screen w-64 flex-col bg-sidebar text-sidebar-foreground">
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg fieldcore-gradient">
-          <Package className="h-5 w-5 text-sidebar-primary-foreground" />
-        </div>
+        <AppLogo size="md" />
         <div>
           <h1 className="text-sm font-bold text-sidebar-accent-foreground tracking-tight">FieldCore</h1>
           <p className="text-[10px] text-sidebar-muted uppercase tracking-widest">Resource Systems</p>

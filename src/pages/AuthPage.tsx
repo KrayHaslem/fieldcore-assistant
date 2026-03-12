@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Package } from "lucide-react";
+import { AppLogo } from "@/components/AppLogo";
 import { toast } from "sonner";
 
 export default function AuthPage() {
@@ -42,8 +42,8 @@ export default function AuthPage() {
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         {/* Logo */}
         <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl fieldcore-gradient shadow-lg">
-            <Package className="h-7 w-7 text-primary-foreground" />
+          <div className="mx-auto">
+            <AppLogo size="lg" />
           </div>
           <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground">FieldCore Resource Systems</h1>
           <p className="mt-1 text-sm text-muted-foreground">
