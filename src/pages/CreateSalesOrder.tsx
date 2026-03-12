@@ -379,7 +379,7 @@ export default function CreateSalesOrder() {
 
       {showAssistant && prefill && (
         <FormAssistantPanel
-          commandText={prefill.raw || prefill.command || "AI command"}
+          commandText={(location.state as any)?.commandText || prefill.raw || prefill.command || "AI command"}
           formContext="Sales Order creation form. Fields include customer (ComboBox selecting from customers table), line items with resale item name, quantity, and unit price."
           onIntentReceived={handleAssistantIntent}
           onClose={() => setShowAssistant(false)}
