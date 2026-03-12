@@ -251,7 +251,20 @@ export default function Reconciliation() {
                   <td className={`px-5 py-3 font-medium ${r.variance < 0 ? "text-destructive" : r.variance > 0 ? "text-green-600" : "text-muted-foreground"}`}>
                     {r.variance > 0 ? "+" : ""}{r.variance}
                   </td>
-                  <td className="px-5 py-3 text-muted-foreground max-w-[200px] truncate">{r.notes ?? "—"}</td>
+                  <td className="px-5 py-3 text-muted-foreground max-w-[200px]">
+                    {r.notes ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="block truncate cursor-default">{r.notes}</span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs whitespace-pre-wrap">
+                            <p>{r.notes}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : "—"}
+                  </td>
                   <td className="px-5 py-3 text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</td>
                 </tr>
               ))}
