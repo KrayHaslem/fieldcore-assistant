@@ -64,6 +64,24 @@ export default function SettingsPage() {
     });
   };
 
+  const clearDemo = async () => {
+    setConfirmAction({
+      message: "This will permanently delete ALL Innovex demo data (users, inventory, orders, etc.) without reseeding. Continue?",
+      onConfirm: async () => {
+        setConfirmAction(null);
+        setClearing(true);
+        try {
+          const { data, error } = await supabase.functions.invoke("seed-demo", { body: { action: "clear" } });
+          if (error) throw error;
+          toast({ title: "Demo data cleared", description: "All Innovex demo data has been removed." });
+        } catch (e: any) {
+          toast({ title: "Clear failed", description: e.message, variant: "destructive" });
+        }
+        setClearing(false);
+      },
+    });
+  };
+
   // ---- Super Admin: Tenant List ----
   const { data: tenants } = useQuery({
     queryKey: ["tenants"], enabled: isSuperAdmin,
