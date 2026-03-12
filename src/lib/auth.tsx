@@ -35,6 +35,7 @@ const AuthContext = createContext<AuthContextType>({
   orgId: null,
   loading: true,
   signOut: async () => {},
+  refreshProfile: async () => {},
   refreshRoles: async () => {},
 });
 
