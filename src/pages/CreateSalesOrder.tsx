@@ -45,6 +45,8 @@ export default function CreateSalesOrder() {
 
   // Unmatched customer from command center
   const unmatchedCustomer: UnmatchedCustomer | undefined = prefill?.unmatched_customer;
+  // Unmatched items from command center
+  const unmatchedItems = prefill?.unmatched_items;
 
   // Auto-apply prefill data on mount
   useEffect(() => {
@@ -257,6 +259,20 @@ export default function CreateSalesOrder() {
       setCustomerId(data.id);
       return `Created customer "${action.supplierName}" and set on form.`;
     }
+    if (action.type === "use_item") {
+      const nl: LineItem = {
+        key: ++rowKey,
+        item: { id: action.itemId, label: action.itemName, sku: null, onHand: 0 },
+        quantity: String(action.quantity),
+        unitPrice: "",
+      };
+      setLines((prev) => {
+        const empty = prev.find((l) => !l.item);
+        if (empty) return prev.map((l) => (l.key === empty.key ? nl : l));
+        return [...prev, nl];
+      });
+      return `Added ${action.quantity}× "${action.itemName}" to the order.`;
+    }
     return "Action not supported.";
   };
 
@@ -369,6 +385,8 @@ export default function CreateSalesOrder() {
           onClose={() => setShowAssistant(false)}
           onDirectAction={handleDirectAction}
           unmatchedSupplier={unmatchedCustomer}
+          unmatchedItems={unmatchedItems}
+          suppressItemCreation
         />
       )}
     </div>
