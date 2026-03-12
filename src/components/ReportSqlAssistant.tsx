@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { Bot, Send, User, Play, AlertTriangle } from "lucide-react";
+import { VoiceInputButton } from "@/components/VoiceInputButton";
 
 interface ChatMessage {
   role: "user" | "assistant";
