@@ -75,6 +75,7 @@ serve(async (req) => {
     await sb.from("inventory_items").delete().eq("organization_id", E2E_ORG_ID);
     await sb.from("units").delete().eq("organization_id", E2E_ORG_ID);
     await sb.from("suppliers").delete().eq("organization_id", E2E_ORG_ID);
+    await sb.from("customers").delete().eq("organization_id", E2E_ORG_ID);
     await sb.from("departments").delete().eq("organization_id", E2E_ORG_ID);
     await sb.from("po_groups").delete().eq("organization_id", E2E_ORG_ID);
     await sb.from("user_roles").delete().eq("organization_id", E2E_ORG_ID);
@@ -228,10 +229,18 @@ serve(async (req) => {
       });
     }
 
+    // Customers
+    const { data: custData } = await sb.from("customers").insert([
+      { name: "E2E Test Customer", contact_name: "Test Contact", contact_email: "customer@test.com", organization_id: E2E_ORG_ID },
+      { name: "E2E Secondary Customer", contact_name: "Second Contact", contact_email: "customer2@test.com", organization_id: E2E_ORG_ID },
+    ]).select("id");
+    const custId = custData?.[0]?.id;
+
     // A sample SO
     const { data: soData } = await sb.from("sales_orders").insert({
       so_number: "SO-E2E-001",
       customer_name: "E2E Test Customer",
+      customer_id: custId ?? null,
       status: "order",
       total_amount: 1000,
       created_by: userId,
