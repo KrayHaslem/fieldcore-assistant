@@ -46,6 +46,8 @@ interface FormAssistantPanelProps {
   onDirectAction?: (action: DirectAction) => Promise<string>;
   unmatchedItems?: UnmatchedItem[];
   unmatchedSupplier?: UnmatchedSupplier;
+  /** Label for the supplier/customer entity — defaults to "supplier" */
+  entityLabel?: string;
   /** When true, unmatched items show suggestions only — no "Create new" option */
   suppressItemCreation?: boolean;
 }
@@ -56,7 +58,7 @@ const actionIcons = {
   help: HelpCircle,
 };
 
-export function FormAssistantPanel({ commandText, formContext, onIntentReceived, onClose, onDirectAction, unmatchedItems, unmatchedSupplier, suppressItemCreation }: FormAssistantPanelProps) {
+export function FormAssistantPanel({ commandText, formContext, onIntentReceived, onClose, onDirectAction, unmatchedItems, unmatchedSupplier, entityLabel = "supplier", suppressItemCreation }: FormAssistantPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -96,7 +98,7 @@ export function FormAssistantPanel({ commandText, formContext, onIntentReceived,
       }
 
       actions.push({
-        label: `Add new supplier "${unmatchedSupplier.parsed_name}"`,
+        label: `Add new ${entityLabel} "${unmatchedSupplier.parsed_name}"`,
         message: "",
         icon: "plus",
         directAction: { type: "create_supplier", supplierName: unmatchedSupplier.parsed_name },
@@ -106,8 +108,8 @@ export function FormAssistantPanel({ commandText, formContext, onIntentReceived,
 
       const candidateNames = unmatchedSupplier.candidates.slice(0, 3).map(c => `"${c.name}"`).join(", ");
       const explanation = unmatchedSupplier.candidates.length > 0
-        ? `I couldn't find an exact match for supplier **"${unmatchedSupplier.parsed_name}"**. I found some similar suppliers (${candidateNames}). What would you like to do?`
-        : `I couldn't find supplier **"${unmatchedSupplier.parsed_name}"** and there are no similar suppliers. Would you like to create it?`;
+        ? `I couldn't find an exact match for ${entityLabel} **"${unmatchedSupplier.parsed_name}"**. I found some similar ${entityLabel}s (${candidateNames}). What would you like to do?`
+        : `I couldn't find ${entityLabel} **"${unmatchedSupplier.parsed_name}"** and there are no similar ${entityLabel}s. Would you like to create it?`;
 
       newMessages.push({ role: "assistant", content: explanation, actions });
     }
