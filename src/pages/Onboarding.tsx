@@ -10,7 +10,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Onboarding() {
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [orgName, setOrgName] = useState("");
   const [fullName, setFullName] = useState("");
@@ -74,6 +74,19 @@ export default function Onboarding() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Let's set up your organization to get started.
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Wrong account?{" "}
+            <button
+              type="button"
+              onClick={async () => {
+                await signOut();
+                navigate("/auth", { replace: true });
+              }}
+              className="text-primary underline hover:text-primary/80"
+            >
+              Sign out and switch
+            </button>
           </p>
         </div>
 
