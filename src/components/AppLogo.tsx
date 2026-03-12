@@ -14,13 +14,11 @@ export function AppLogo({ size = "md" }: AppLogoProps) {
   const sizeClass = sizeMap[size];
 
   return (
-    <div className={`inline-flex items-center justify-center rounded-xl bg-transparent ${sizeClass}`}>
-      <img
-        src="/logo.png"
-        alt="FieldCore Resource Systems logo"
-        className="h-full w-full object-contain"
-      />
-    </div>
+    <img
+      src="/logo.png"
+      alt="FieldCore Resource Systems logo"
+      className={`${sizeClass} w-auto object-contain`}
+    />
   );
 }
 
