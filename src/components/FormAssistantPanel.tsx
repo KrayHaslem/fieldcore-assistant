@@ -98,7 +98,7 @@ export function FormAssistantPanel({ commandText, formContext, onIntentReceived,
       }
 
       actions.push({
-        label: `Add new supplier "${unmatchedSupplier.parsed_name}"`,
+        label: `Add new ${entityLabel} "${unmatchedSupplier.parsed_name}"`,
         message: "",
         icon: "plus",
         directAction: { type: "create_supplier", supplierName: unmatchedSupplier.parsed_name },
@@ -108,8 +108,8 @@ export function FormAssistantPanel({ commandText, formContext, onIntentReceived,
 
       const candidateNames = unmatchedSupplier.candidates.slice(0, 3).map(c => `"${c.name}"`).join(", ");
       const explanation = unmatchedSupplier.candidates.length > 0
-        ? `I couldn't find an exact match for supplier **"${unmatchedSupplier.parsed_name}"**. I found some similar suppliers (${candidateNames}). What would you like to do?`
-        : `I couldn't find supplier **"${unmatchedSupplier.parsed_name}"** and there are no similar suppliers. Would you like to create it?`;
+        ? `I couldn't find an exact match for ${entityLabel} **"${unmatchedSupplier.parsed_name}"**. I found some similar ${entityLabel}s (${candidateNames}). What would you like to do?`
+        : `I couldn't find ${entityLabel} **"${unmatchedSupplier.parsed_name}"** and there are no similar ${entityLabel}s. Would you like to create it?`;
 
       newMessages.push({ role: "assistant", content: explanation, actions });
     }
