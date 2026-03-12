@@ -450,11 +450,20 @@ export default function OrgSetupWizard() {
             {hasDepartments && (
               <div className="pt-2">
                 <Label className="text-xs text-muted-foreground">Department names (comma-separated)</Label>
-                <Textarea
-                  placeholder="e.g. Operations, Engineering, Sales, HR"
-                  value={departmentNames}
-                  onChange={(e) => setDepartmentNames(e.target.value)}
-                />
+                <div className="relative">
+                  <Textarea
+                    placeholder="e.g. Operations, Engineering, Sales, HR"
+                    value={departmentNames}
+                    onChange={(e) => setDepartmentNames(e.target.value)}
+                    className="pr-10"
+                  />
+                  <div className="absolute right-2 top-2">
+                    <VoiceInputButton
+                      size="sm"
+                      onTranscript={(text) => setDepartmentNames(text)}
+                    />
+                  </div>
+                </div>
               </div>
             )}
           </div>
