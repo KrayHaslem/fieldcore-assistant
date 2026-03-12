@@ -340,12 +340,20 @@ export default function OrgSetupWizard() {
 
             <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
               <div className="flex gap-2">
-                <Textarea
-                  className="min-h-[100px] resize-none"
-                  placeholder="Describe your organization..."
-                  value={aiInput}
-                  onChange={(e) => setAiInput(e.target.value)}
-                />
+                <div className="relative flex-1">
+                  <Textarea
+                    className="min-h-[100px] resize-none pr-10"
+                    placeholder="Describe your organization..."
+                    value={aiInput}
+                    onChange={(e) => setAiInput(e.target.value)}
+                  />
+                  <div className="absolute right-2 top-2">
+                    <VoiceInputButton
+                      size="sm"
+                      onTranscript={(text) => setAiInput(text)}
+                    />
+                  </div>
+                </div>
                 <Button
                   onClick={handleAnalyze}
                   disabled={aiLoading || !aiInput.trim()}
