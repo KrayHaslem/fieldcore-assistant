@@ -46,6 +46,58 @@ export default function CreateSalesOrder() {
   // Unmatched customer from command center
   const unmatchedCustomer: UnmatchedCustomer | undefined = prefill?.unmatched_customer;
 
+  // Auto-apply prefill data on mount
+  useEffect(() => {
+    if (!prefill) return;
+
+    // Apply customer
+    if (prefill.customer_match) {
+      setCustomerName(prefill.customer_match.name);
+      setCustomerId(prefill.customer_match.id);
+    } else if (prefill.customer) {
+      setCustomerName(prefill.customer);
+    }
+
+    // Apply items
+    if (prefill.item_matches && Array.isArray(prefill.item_matches)) {
+      const newLines: LineItem[] = prefill.item_matches.map((m: any) => ({
+        key: ++rowKey,
+        item: { id: m.id, label: m.name, sku: null, onHand: m.on_hand ?? 0 },
+        quantity: String(prefill.items?.find((i: any) => i.name?.toLowerCase() === m.parsed_name?.toLowerCase())?.quantity || 1),
+        unitPrice: "",
+      }));
+      if (newLines.length > 0) setLines(newLines);
+    } else if (prefill.items && Array.isArray(prefill.items)) {
+      // No matches yet — resolve items async
+      prefill.items.forEach((ii: any) => {
+        if (!ii.name) return;
+        supabase
+          .from("inventory_items")
+          .select("id, name, sku")
+          .eq("item_type", "resale")
+          .ilike("name", `%${ii.name}%`)
+          .limit(1)
+          .then(({ data: items }) => {
+            if (items && items[0]) {
+              const m = items[0];
+              setLines((prev) => {
+                const empty = prev.find((l) => !l.item);
+                const nl: LineItem = {
+                  key: ++rowKey,
+                  item: { id: m.id, label: m.name, sku: m.sku, onHand: 0 },
+                  quantity: String(ii.quantity || 1),
+                  unitPrice: "",
+                };
+                if (empty) return prev.map((l) => (l.key === empty.key ? nl : l));
+                return [...prev, nl];
+              });
+            }
+          });
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const searchCustomers = useCallback(async (query: string): Promise<ComboBoxOption[]> => {
     const { data } = await supabase
       .from("customers")
