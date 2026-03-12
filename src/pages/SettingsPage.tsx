@@ -40,6 +40,7 @@ export default function SettingsPage() {
 
   // ---- Super Admin: Seed Demo ----
   const [seeding, setSeeding] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const seedDemo = async () => {
     setConfirmAction({
