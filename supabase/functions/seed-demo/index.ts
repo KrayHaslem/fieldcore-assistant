@@ -286,12 +286,12 @@ serve(async (req) => {
 
     // ===== STEP 9: SALES ORDERS =====
     const soData = [
-      { id: SO(1), so_number: "SO-2025-001", customer_name: "Permian Basin Energy", status: "closed", total_amount: 6250, created_by: dana, created_at: "2025-11-10T10:00:00Z" },
-      { id: SO(2), so_number: "SO-2025-002", customer_name: "West Texas Drilling Co", status: "fulfilled", total_amount: 4785, created_by: dana, created_at: "2025-12-05T14:00:00Z" },
-      { id: SO(3), so_number: "SO-2025-003", customer_name: "Midland Production LLC", status: "order", total_amount: 9570, created_by: dana, created_at: "2026-01-15T09:00:00Z" },
-      { id: SO(4), so_number: "SO-2025-004", customer_name: "Eagle Ford Operations", status: "fulfilled", total_amount: 2675, created_by: dana, created_at: "2026-02-01T11:00:00Z" },
-      { id: SO(5), so_number: "SO-2025-005", customer_name: "Concho Resources", status: "quote", total_amount: 13500, created_by: dana, created_at: "2026-02-20T08:00:00Z" },
-      { id: SO(6), so_number: "SO-2025-006", customer_name: "Pioneer Natural Resources", status: "order", total_amount: 5340, created_by: dana, created_at: "2026-03-05T10:00:00Z" },
+      { id: SO(1), so_number: "SO-2025-001", customer_name: "Permian Basin Energy", customer_id: CUST.permian, status: "closed", total_amount: 6250, created_by: dana, created_at: "2025-11-10T10:00:00Z" },
+      { id: SO(2), so_number: "SO-2025-002", customer_name: "West Texas Drilling Co", customer_id: CUST.westTx, status: "fulfilled", total_amount: 4785, created_by: dana, created_at: "2025-12-05T14:00:00Z" },
+      { id: SO(3), so_number: "SO-2025-003", customer_name: "Midland Production LLC", customer_id: CUST.midland, status: "order", total_amount: 9570, created_by: dana, created_at: "2026-01-15T09:00:00Z" },
+      { id: SO(4), so_number: "SO-2025-004", customer_name: "Eagle Ford Operations", customer_id: CUST.eagleFord, status: "fulfilled", total_amount: 2675, created_by: dana, created_at: "2026-02-01T11:00:00Z" },
+      { id: SO(5), so_number: "SO-2025-005", customer_name: "Concho Resources", customer_id: CUST.concho, status: "quote", total_amount: 13500, created_by: dana, created_at: "2026-02-20T08:00:00Z" },
+      { id: SO(6), so_number: "SO-2025-006", customer_name: "Pioneer Natural Resources", customer_id: CUST.pioneer, status: "order", total_amount: 5340, created_by: dana, created_at: "2026-03-05T10:00:00Z" },
     ];
     for (const so of soData) await sb.from("sales_orders").upsert({ ...so, organization_id: ORG_ID }, { onConflict: "id" });
 

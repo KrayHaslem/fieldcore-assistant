@@ -1206,6 +1206,22 @@ export default function SettingsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Customer Dialog */}
+      <Dialog open={customerDialog} onOpenChange={setCustomerDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{editingCustomerId ? "Edit Customer" : "Add Customer"}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Name *</Label><Input value={cForm.name} onChange={(e) => setCForm({ ...cForm, name: e.target.value })} /></div>
+            <div><Label>Contact Name</Label><Input value={cForm.contact_name} onChange={(e) => setCForm({ ...cForm, contact_name: e.target.value })} /></div>
+            <div><Label>Email</Label><Input value={cForm.contact_email} onChange={(e) => setCForm({ ...cForm, contact_email: e.target.value })} /></div>
+            <div><Label>Phone</Label><Input value={cForm.contact_phone} onChange={(e) => setCForm({ ...cForm, contact_phone: e.target.value })} /></div>
+            <div><Label>Address</Label><Input value={cForm.address} onChange={(e) => setCForm({ ...cForm, address: e.target.value })} /></div>
+            <div><Label>Notes</Label><Textarea value={cForm.notes} onChange={(e) => setCForm({ ...cForm, notes: e.target.value })} rows={2} /></div>
+          </div>
+          <DialogFooter><Button onClick={saveCustomer} disabled={cSaving || !cForm.name.trim()}>{cSaving ? "Saving..." : "Save"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Approval Rule Dialog */}
       <Dialog open={ruleDialog} onOpenChange={setRuleDialog}>
         <DialogContent className="max-w-md">

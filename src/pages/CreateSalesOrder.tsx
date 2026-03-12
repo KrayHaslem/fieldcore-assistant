@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
-import { FormAssistantPanel } from "@/components/FormAssistantPanel";
+import { FormAssistantPanel, type DirectAction, type UnmatchedSupplier } from "@/components/FormAssistantPanel";
 
 interface ItemOption extends ComboBoxOption {
   sku: string | null;
@@ -24,6 +24,9 @@ interface LineItem {
   unitPrice: string;
 }
 
+// Reuse UnmatchedSupplier shape for customers
+export type UnmatchedCustomer = UnmatchedSupplier;
+
 let rowKey = 0;
 
 export default function CreateSalesOrder() {
@@ -35,9 +38,22 @@ export default function CreateSalesOrder() {
   const [showAssistant, setShowAssistant] = useState(!!prefill);
 
   const [customerName, setCustomerName] = useState("");
+  const [customerId, setCustomerId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<LineItem[]>([{ key: ++rowKey, item: null, quantity: "", unitPrice: "" }]);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Unmatched customer from command center
+  const unmatchedCustomer: UnmatchedCustomer | undefined = prefill?.unmatched_customer;
+
+  const searchCustomers = useCallback(async (query: string): Promise<ComboBoxOption[]> => {
+    const { data } = await supabase
+      .from("customers")
+      .select("id, name")
+      .ilike("name", `%${query}%`)
+      .limit(20);
+    return (data ?? []).map((c) => ({ id: c.id, label: c.name }));
+  }, []);
 
   const searchItems = useCallback(async (query: string): Promise<ItemOption[]> => {
     const { data: items } = await supabase
@@ -80,27 +96,19 @@ export default function CreateSalesOrder() {
     }
     setIsSaving(true);
     try {
-      // Look up cost_per_unit for each item from recent received movements
       const itemIds = validLines.map((l) => l.item!.id);
-      
-      // Get avg unit_cost from most recent 5 received movements per item
       const { data: movements } = await supabase
         .from("inventory_movements")
         .select("item_id, source_id")
         .eq("movement_type", "received")
         .in("item_id", itemIds)
         .order("created_at", { ascending: false });
-      
-      // Get the PO item costs for received movements
       const sourceIds = [...new Set((movements ?? []).map((m) => m.source_id).filter(Boolean))];
       const { data: poItems } = sourceIds.length > 0
         ? await supabase.from("purchase_order_items").select("id, item_id, unit_cost").in("id", sourceIds)
         : { data: [] };
-      
-      // Build cost map: get avg of up to 5 most recent received costs per item
       const costMap: Record<string, number> = {};
       const itemMovementCosts: Record<string, number[]> = {};
-      
       (movements ?? []).forEach((m) => {
         const poItem = (poItems ?? []).find((p) => p.id === m.source_id && p.item_id === m.item_id);
         if (poItem && poItem.unit_cost != null) {
@@ -110,15 +118,12 @@ export default function CreateSalesOrder() {
           }
         }
       });
-      
       for (const itemId of itemIds) {
         const costs = itemMovementCosts[itemId];
         if (costs && costs.length > 0) {
           costMap[itemId] = costs.reduce((s, c) => s + c, 0) / costs.length;
         }
       }
-      
-      // Fallback to default_unit_cost for items without received movements
       const missingCostItems = itemIds.filter((id) => costMap[id] === undefined);
       if (missingCostItems.length > 0) {
         const { data: invItems } = await supabase
@@ -133,8 +138,8 @@ export default function CreateSalesOrder() {
       const soNumber = generateSoNumber();
       const { data: so, error: soErr } = await supabase.from("sales_orders").insert({
         organization_id: orgId!, so_number: soNumber, customer_name: customerName.trim(),
-        status, total_amount: grandTotal, notes: notes || null, created_by: user!.id,
-      }).select("id").single();
+        customer_id: customerId, status, total_amount: grandTotal, notes: notes || null, created_by: user!.id,
+      } as any).select("id").single();
       if (soErr) throw soErr;
       const { error: liErr } = await supabase.from("sales_order_items").insert(
         validLines.map((l) => ({
@@ -156,7 +161,12 @@ export default function CreateSalesOrder() {
 
   const handleAssistantIntent = (intent: Record<string, any>): string => {
     const updates: string[] = [];
-    if (intent.customer) { setCustomerName(intent.customer); updates.push(`Set customer to "${intent.customer}"`); }
+    if (intent.customer) { setCustomerName(intent.customer); setCustomerId(null); updates.push(`Set customer to "${intent.customer}"`); }
+    if (intent.customer_match) {
+      setCustomerName(intent.customer_match.name);
+      setCustomerId(intent.customer_match.id);
+      updates.push(`Set customer to "${intent.customer_match.name}"`);
+    }
     if (intent.items && Array.isArray(intent.items)) {
       for (const ii of intent.items) {
         supabase.from("inventory_items").select("id, name, sku").eq("item_type", "resale").ilike("name", `%${ii.name}%`).limit(1)
@@ -177,6 +187,27 @@ export default function CreateSalesOrder() {
     return updates.length > 0 ? `I've updated the form: ${updates.join(". ")}.` : "I couldn't find specific fields to update.";
   };
 
+  const handleDirectAction = async (action: DirectAction): Promise<string> => {
+    if (action.type === "use_supplier") {
+      // Reuse supplier action type for customer: use_customer mapped to use_supplier shape
+      setCustomerName(action.supplierName);
+      setCustomerId(action.supplierId);
+      return `Set customer to "${action.supplierName}".`;
+    }
+    if (action.type === "create_supplier") {
+      // Create customer
+      if (!orgId) throw new Error("No org");
+      const { data, error } = await supabase.from("customers").insert({
+        name: action.supplierName, organization_id: orgId,
+      }).select("id").single();
+      if (error) throw error;
+      setCustomerName(action.supplierName);
+      setCustomerId(data.id);
+      return `Created customer "${action.supplierName}" and set on form.`;
+    }
+    return "Action not supported.";
+  };
+
   return (
     <div className="flex h-full">
       <div className="flex-1 min-w-0">
@@ -193,8 +224,29 @@ export default function CreateSalesOrder() {
           <div className="fieldcore-card p-6 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label className="text-sm text-muted-foreground">Customer Name *</Label>
-                <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Enter customer name" />
+                <Label className="text-sm text-muted-foreground">Customer *</Label>
+                <ComboBox
+                  value={customerId ? { id: customerId, label: customerName } : null}
+                  onChange={(v) => {
+                    if (v) {
+                      setCustomerName(v.label);
+                      setCustomerId(v.id);
+                    } else {
+                      setCustomerName("");
+                      setCustomerId(null);
+                    }
+                  }}
+                  onSearch={searchCustomers}
+                  placeholder="Search customers..."
+                  allowCustomValue
+                  onCustomValue={(text) => {
+                    setCustomerName(text);
+                    setCustomerId(null);
+                  }}
+                />
+                {customerName && !customerId && (
+                  <p className="text-xs text-muted-foreground mt-1">One-off customer (not saved to customer list)</p>
+                )}
               </div>
               <div>
                 <Label className="text-sm text-muted-foreground">Notes</Label>
@@ -259,9 +311,11 @@ export default function CreateSalesOrder() {
       {showAssistant && prefill && (
         <FormAssistantPanel
           commandText={prefill.raw || prefill.command || "AI command"}
-          formContext="Sales Order creation form. Fields include customer name, line items with resale item name, quantity, and unit price."
+          formContext="Sales Order creation form. Fields include customer (ComboBox selecting from customers table), line items with resale item name, quantity, and unit price."
           onIntentReceived={handleAssistantIntent}
           onClose={() => setShowAssistant(false)}
+          onDirectAction={handleDirectAction}
+          unmatchedSupplier={unmatchedCustomer}
         />
       )}
     </div>
