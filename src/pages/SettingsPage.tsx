@@ -699,6 +699,39 @@ export default function SettingsPage() {
             </div>
           </TabsContent>
 
+          {/* Customers */}
+          {canManageCustomers && (
+            <TabsContent value="customers">
+              <div className="fieldcore-card overflow-hidden">
+                <div className="flex items-center justify-between border-b px-5 py-3">
+                  <h3 className="text-sm font-semibold text-foreground">Customers</h3>
+                  <Button size="sm" onClick={() => openCustomerDialog()}><Plus className="h-4 w-4" /> Add Customer</Button>
+                </div>
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b bg-muted/50">
+                    <th className="px-5 py-2 text-left font-medium text-muted-foreground">Name</th>
+                    <th className="px-5 py-2 text-left font-medium text-muted-foreground">Contact</th>
+                    <th className="px-5 py-2 text-left font-medium text-muted-foreground">Email</th>
+                    <th className="px-5 py-2 text-left font-medium text-muted-foreground">Phone</th>
+                    <th className="px-5 py-2 w-16" />
+                  </tr></thead>
+                  <tbody className="divide-y">
+                    {customers?.map((c: any) => (
+                      <tr key={c.id} className="hover:bg-muted/30">
+                        <td className="px-5 py-2 font-medium text-foreground">{c.name}</td>
+                        <td className="px-5 py-2 text-muted-foreground">{c.contact_name ?? "—"}</td>
+                        <td className="px-5 py-2 text-muted-foreground">{c.contact_email ?? "—"}</td>
+                        <td className="px-5 py-2 text-muted-foreground">{c.contact_phone ?? "—"}</td>
+                        <td className="px-5 py-2"><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openCustomerDialog(c)}><Pencil className="h-3.5 w-3.5" /></Button></td>
+                      </tr>
+                    ))}
+                    {(!customers || customers.length === 0) && <tr><td colSpan={5} className="px-5 py-6 text-center text-muted-foreground">No customers</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
+          )}
+
           {/* Approval Rules */}
           <TabsContent value="approvals">
             <div className="fieldcore-card overflow-hidden">
