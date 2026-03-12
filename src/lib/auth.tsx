@@ -86,6 +86,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const refreshProfile = async () => {
+    if (!user) return;
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
+    setProfile(profileData);
+  };
+
   const refreshRoles = async () => {
     if (!user) return;
     const { data: rolesData } = await supabase
