@@ -46,6 +46,8 @@ interface FormAssistantPanelProps {
   onDirectAction?: (action: DirectAction) => Promise<string>;
   unmatchedItems?: UnmatchedItem[];
   unmatchedSupplier?: UnmatchedSupplier;
+  /** When true, unmatched items show suggestions only — no "Create new" option */
+  suppressItemCreation?: boolean;
 }
 
 const actionIcons = {
