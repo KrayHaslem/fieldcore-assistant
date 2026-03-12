@@ -1060,6 +1060,15 @@ export type Database = {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
       }
+      create_onboarding_org: {
+        Args: {
+          _email: string
+          _full_name: string
+          _org_name: string
+          _user_id: string
+        }
+        Returns: string
+      }
       get_approval_rule: {
         Args: { _department_id: string; _org_id: string; _total_amount: number }
         Returns: {
