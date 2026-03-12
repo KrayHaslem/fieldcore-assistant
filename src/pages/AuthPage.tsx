@@ -42,7 +42,7 @@ export default function AuthPage() {
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         {/* Logo */}
         <div className="text-center">
-          <div className="mx-auto">
+          <div className="mx-auto flex justify-center">
             <AppLogo size="lg" />
           </div>
           <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground">FieldCore Resource Systems</h1>
