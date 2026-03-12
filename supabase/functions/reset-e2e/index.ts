@@ -75,6 +75,7 @@ serve(async (req) => {
     await sb.from("inventory_items").delete().eq("organization_id", E2E_ORG_ID);
     await sb.from("units").delete().eq("organization_id", E2E_ORG_ID);
     await sb.from("suppliers").delete().eq("organization_id", E2E_ORG_ID);
+    await sb.from("customers").delete().eq("organization_id", E2E_ORG_ID);
     await sb.from("departments").delete().eq("organization_id", E2E_ORG_ID);
     await sb.from("po_groups").delete().eq("organization_id", E2E_ORG_ID);
     await sb.from("user_roles").delete().eq("organization_id", E2E_ORG_ID);
