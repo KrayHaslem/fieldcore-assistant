@@ -5,9 +5,9 @@ type AppLogoProps = {
 };
 
 const sizeMap: Record<NonNullable<AppLogoProps["size"]>, string> = {
-  sm: "h-10",
-  md: "h-14",
-  lg: "h-24",
+  sm: "h-12 w-12",
+  md: "h-16 w-16",
+  lg: "h-28 w-28",
 };
 
 export function AppLogo({ size = "md" }: AppLogoProps) {
@@ -17,7 +17,7 @@ export function AppLogo({ size = "md" }: AppLogoProps) {
     <img
       src="/logo.png"
       alt="FieldCore Resource Systems logo"
-      className={`${sizeClass} w-auto object-contain`}
+      className={`${sizeClass} object-cover rounded-lg`}
     />
   );
 }
