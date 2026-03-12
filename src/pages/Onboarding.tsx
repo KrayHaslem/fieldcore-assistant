@@ -75,6 +75,19 @@ export default function Onboarding() {
           <p className="mt-1 text-sm text-muted-foreground">
             Let's set up your organization to get started.
           </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Wrong account?{" "}
+            <button
+              type="button"
+              onClick={async () => {
+                await signOut();
+                navigate("/auth", { replace: true });
+              }}
+              className="text-primary underline hover:text-primary/80"
+            >
+              Sign out and switch
+            </button>
+          </p>
         </div>
 
         <form onSubmit={handleCreateOrg} className="fieldcore-card p-6 space-y-4">
