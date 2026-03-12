@@ -453,7 +453,7 @@ serve(async (req) => {
       message: "Demo data seeded successfully",
       counts: {
         organization: 1, departments: departments.length, users: demoUsers.length,
-        suppliers: suppliers.length, inventory_items: items.length, units: units.length,
+        suppliers: suppliers.length, customers: customerData.length, inventory_items: items.length, units: units.length,
         purchase_orders: poData.length, purchase_order_items: poItems.length,
         sales_orders: soData.length, sales_order_items: soItems.length,
         assembly_records: assemblies.length, assembly_components: asmComponents.length,
