@@ -395,6 +395,7 @@ export default function CreateSalesOrder() {
           onClose={() => setShowAssistant(false)}
           onDirectAction={handleDirectAction}
           unmatchedSupplier={unmatchedCustomer}
+          entityLabel="customer"
           unmatchedItems={unmatchedItems}
           suppressItemCreation
         />
