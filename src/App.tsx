@@ -27,7 +27,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
-  const { session, profile, orgId, orgOnboarded, loading } = useAuth();
+  const { session, profile, orgId, orgOnboarded, subscription, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -49,6 +49,16 @@ function ProtectedRoutes() {
   // Profile exists but org setup not completed → send back to wizard (unless already there)
   if (!orgOnboarded && orgId && !location.pathname.startsWith("/setup/")) {
     return <Navigate to={`/setup/${orgId}`} replace />;
+  }
+
+  // Subscription gate: allow settings page (for billing), block everything else
+  if (
+    subscription &&
+    !subscription.subscribed &&
+    orgOnboarded &&
+    !location.pathname.startsWith("/settings")
+  ) {
+    return <Navigate to="/settings?tab=billing" replace />;
   }
 
   return (

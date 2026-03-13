@@ -16,7 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
-import { Plus, Trash2, Pencil, FlaskConical, RotateCcw, AlertTriangle, Copy, ArrowLeft, Bot, Play, UserPlus, UserX, UserCheck, Mail, Clock, X } from "lucide-react";
+import { Plus, Trash2, Pencil, FlaskConical, RotateCcw, AlertTriangle, Copy, ArrowLeft, Bot, Play, UserPlus, UserX, UserCheck, Mail, Clock, X, CreditCard } from "lucide-react";
+import { BillingTab } from "@/components/BillingTab";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TemplateAssistantPanel, type TemplateFieldUpdates } from "@/components/TemplateAssistantPanel";
 import { ReportPreviewModal } from "@/components/ReportPreviewModal";
@@ -726,6 +727,7 @@ export default function SettingsPage() {
             {isAdmin && <TabsTrigger value="approvals">Approval Rules</TabsTrigger>}
             {canManageUnits && <TabsTrigger value="units">Units</TabsTrigger>}
             {isAdmin && <TabsTrigger value="report-templates">Report Templates</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="billing"><CreditCard className="h-3.5 w-3.5 mr-1" />Billing</TabsTrigger>}
           </TabsList>
 
           {/* Platform (superadmin only) */}
@@ -1371,6 +1373,13 @@ export default function SettingsPage() {
                   </div>
                 </TabsContent>
               </Tabs>
+            </TabsContent>
+          )}
+
+          {/* Billing (admin only) */}
+          {isAdmin && (
+            <TabsContent value="billing">
+              <BillingTab />
             </TabsContent>
           )}
         </Tabs>

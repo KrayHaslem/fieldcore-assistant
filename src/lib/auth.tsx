@@ -23,6 +23,14 @@ type UserRole = {
 
 type OrgOption = { id: string; name: string };
 
+type SubscriptionInfo = {
+  subscribed: boolean;
+  status?: string;
+  trialEnd?: string;
+  subscriptionEnd?: string;
+  cancelAtPeriodEnd?: boolean;
+};
+
 type AuthContextType = {
   session: Session | null;
   user: User | null;
@@ -32,10 +40,12 @@ type AuthContextType = {
   orgOnboarded: boolean;
   orgName: string | null;
   organizations: OrgOption[];
+  subscription: SubscriptionInfo | null;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshRoles: () => Promise<void>;
+  refreshSubscription: () => Promise<void>;
   switchOrg: (orgId: string) => Promise<void>;
 };
 
@@ -48,10 +58,12 @@ const AuthContext = createContext<AuthContextType>({
   orgOnboarded: false,
   orgName: null,
   organizations: [],
+  subscription: null,
   loading: true,
   signOut: async () => {},
   refreshProfile: async () => {},
   refreshRoles: async () => {},
+  refreshSubscription: async () => {},
   switchOrg: async () => {},
 });
 
@@ -63,6 +75,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<string[]>([]);
   const [organizations, setOrganizations] = useState<OrgOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+
+  const checkSubscription = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("check-subscription");
+      if (error) throw error;
+      setSubscription({
+        subscribed: data?.subscribed ?? false,
+        status: data?.status,
+        trialEnd: data?.trial_end,
+        subscriptionEnd: data?.subscription_end,
+        cancelAtPeriodEnd: data?.cancel_at_period_end,
+      });
+    } catch (e) {
+      console.error("check-subscription error:", e);
+      setSubscription({ subscribed: false });
+    }
+  }, []);
 
   const fetchProfileAndOrg = useCallback(async (userId: string) => {
     // Get all profiles for this user (multi-org)
@@ -148,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(true);
           setTimeout(async () => {
             await fetchProfileAndOrg(session.user.id);
+            await checkSubscription();
             setLoading(false);
           }, 0);
         } else {
@@ -155,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setOrgInfo(null);
           setRoles([]);
           setOrganizations([]);
+          setSubscription(null);
           setLoading(false);
         }
       }
@@ -165,7 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchProfileAndOrg]);
+  }, [fetchProfileAndOrg, checkSubscription]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -220,6 +252,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         orgOnboarded: orgInfo?.is_onboarded ?? false,
         orgName: orgInfo?.name ?? null,
         organizations,
+        subscription,
         loading,
         signOut,
         refreshProfile: async () => {
@@ -227,6 +260,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await fetchProfileAndOrg(user.id);
         },
         refreshRoles,
+        refreshSubscription: checkSubscription,
         switchOrg,
       }}
     >
