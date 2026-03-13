@@ -250,6 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         orgOnboarded: orgInfo?.is_onboarded ?? false,
         orgName: orgInfo?.name ?? null,
         organizations,
+        subscription,
         loading,
         signOut,
         refreshProfile: async () => {
@@ -257,6 +258,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await fetchProfileAndOrg(user.id);
         },
         refreshRoles,
+        refreshSubscription: checkSubscription,
         switchOrg,
       }}
     >
