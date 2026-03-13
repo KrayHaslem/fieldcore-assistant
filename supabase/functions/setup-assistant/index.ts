@@ -24,15 +24,14 @@ serve(async (req) => {
 
     const answersSnapshot = JSON.stringify(answers ?? {});
 
-    const systemPrompt = `You are the FieldCore organization setup assistant. You are helping a new admin configure their organization through a 6-step wizard.
+    const systemPrompt = `You are the FieldCore organization setup assistant. You are helping a new admin configure their organization through a 5-step wizard.
 
-The 6 setup steps are:
+The 5 setup steps are:
 1. What industry is your business in?
-2. What types of items does the business purchase? (resale, internal use, manufacturing input, consumables)
-3. Do purchases require approval? If yes, at what dollar threshold and by which role?
-4. Does the organization have multiple departments with separate approvers?
-5. Does the organization track inventory for resale or manufacture finished goods? Does it have a sales team?
-6. Data sharing policy acknowledgment.
+2. Do purchases require approval? If yes, at what dollar threshold and by which role?
+3. Does the organization have multiple departments with separate approvers?
+4. Does the organization track inventory for resale or manufacture finished goods? Does it have a sales team?
+5. Data sharing policy acknowledgment.
 
 The admin is currently on step ${currentStep ?? "unknown"}.
 
@@ -43,7 +42,7 @@ Your role:
 - Answer questions about setup options, terminology, and best practices.
 - When the user describes their organization, help them understand which options best fit.
 - When the current step is 0 (initial analysis), ALWAYS include a RECOMMENDATIONS block extracting everything you can from the user's description. Even partial information should be returned.
-- When on later steps, include a RECOMMENDATIONS block when all key answers are collected (typically after step 5 or when the user asks for recommendations).
+- When on later steps, include a RECOMMENDATIONS block when all key answers are collected (typically after step 4 or when the user asks for recommendations).
 - The RECOMMENDATIONS block must appear on its own line using exactly this format:
 RECOMMENDATIONS:{"industry":"Construction","suggested_departments":["Dept1"],"approval_rules":[{"min_amount":500,"max_amount":null,"required_role":"admin"}],"inventory_types_to_enable":["resale"],"suggested_roles":["admin","procurement"],"tracks_inventory":true,"has_sales_team":false,"notes":"Brief explanation"}
 - The recommendations JSON must use these exact field names. Omit fields you cannot determine from the conversation.
