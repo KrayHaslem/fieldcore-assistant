@@ -26,7 +26,9 @@ import {
   PackageCheck,
   Lock,
   AlertTriangle,
+  Printer,
 } from "lucide-react";
+import { PrintableOrder } from "@/components/PrintableOrder";
 
 type POStatus = "draft" | "submitted" | "approved" | "ordered" | "partially_received" | "received" | "closed";
 
