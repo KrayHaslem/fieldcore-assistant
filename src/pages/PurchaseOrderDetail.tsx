@@ -334,16 +334,48 @@ export default function PurchaseOrderDetail() {
     return isCreator || canApprove;
   });
 
+  const printLineItems = (lineItems ?? []).map((li: any) => ({
+    id: li.id,
+    itemName: li.inventory_items?.name ?? "—",
+    sku: li.inventory_items?.sku,
+    quantity: li.quantity,
+    unitPrice: Number(li.unit_cost),
+    total: li.quantity * Number(li.unit_cost),
+    unitNumber: li.units?.unit_number,
+  }));
+
   return (
     <div>
+      <PrintableOrder
+        type="purchase"
+        orderNumber={po.po_number}
+        date={po.created_at}
+        status={po.status}
+        orgName={orgName ?? "Organization"}
+        contact={{
+          name: (po as any).suppliers?.name,
+          contactName: (po as any).suppliers?.contact_name,
+          contactEmail: (po as any).suppliers?.contact_email,
+        }}
+        lineItems={printLineItems}
+        totalAmount={Number(po.total_amount)}
+        notes={po.notes}
+        department={(po as any).departments?.name}
+        createdBy={createdByProfile?.full_name}
+      />
+
       <PageHeader
         title={po.po_number}
         description="Order details"
         actions={
-          <Button variant="outline" size="sm" onClick={() => navigate("/orders")}>
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => window.print()}>
+              <Printer className="h-4 w-4" /> Print
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/orders")}>
+              <ArrowLeft className="h-4 w-4" /> Back
+            </Button>
+          </div>
         }
       />
 

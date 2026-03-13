@@ -134,15 +134,47 @@ export default function SalesOrderDetail() {
 
   const actions = statusFlow[so.status] || [];
 
+  const printLineItems = (lineItems ?? []).map((li: any) => ({
+    id: li.id,
+    itemName: li.inventory_items?.name ?? "—",
+    sku: li.inventory_items?.sku,
+    quantity: li.quantity,
+    unitPrice: Number(li.unit_price),
+    total: li.quantity * Number(li.unit_price),
+  }));
+
   return (
     <div>
+      <PrintableOrder
+        type="sales"
+        orderNumber={so.so_number}
+        date={so.created_at}
+        status={so.status}
+        orgName={orgName ?? "Organization"}
+        contact={{
+          name: customer?.name ?? so.customer_name,
+          contactName: customer?.contact_name,
+          contactEmail: customer?.contact_email,
+          contactPhone: customer?.contact_phone,
+          address: customer?.address,
+        }}
+        lineItems={printLineItems}
+        totalAmount={Number(so.total_amount)}
+        notes={so.notes}
+      />
+
       <PageHeader
         title={so.so_number}
         description="Sales order details"
         actions={
-          <Button variant="outline" size="sm" onClick={() => navigate("/sales")}>
-            <ArrowLeft className="h-4 w-4" /> Back
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => window.print()}>
+              <Printer className="h-4 w-4" /> Print
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/sales")}>
+              <ArrowLeft className="h-4 w-4" /> Back
+            </Button>
+          </div>
         }
       />
 
