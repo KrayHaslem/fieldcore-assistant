@@ -281,7 +281,7 @@ export default function OrgSetupWizard() {
 
       toast({ title: "Setup Complete", description: "Organization has been configured successfully." });
       await refreshProfile();
-      navigate("/");
+      navigate("/settings?tab=billing");
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
