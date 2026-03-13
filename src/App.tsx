@@ -51,11 +51,19 @@ function ProtectedRoutes() {
     return <Navigate to={`/setup/${orgId}`} replace />;
   }
 
+  // Orgs exempt from subscription gating (demo + platform admin)
+  const EXEMPT_ORG_IDS = [
+    "00000000-0000-0000-0000-000000000000",
+    "00000000-0000-0000-0000-000000000001",
+  ];
+  const isExemptOrg = orgId ? EXEMPT_ORG_IDS.includes(orgId) : false;
+
   // Subscription gate: allow settings page (for billing), block everything else
   if (
     subscription &&
     !subscription.subscribed &&
     orgOnboarded &&
+    !isExemptOrg &&
     !location.pathname.startsWith("/settings")
   ) {
     return <Navigate to="/settings?tab=billing" replace />;
