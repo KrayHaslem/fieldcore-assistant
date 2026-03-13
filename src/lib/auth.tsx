@@ -192,7 +192,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(true);
           setTimeout(async () => {
             await fetchProfileAndOrg(session.user.id);
-            await checkSubscription();
+            // checkSubscription needs orgId - get it after profile fetch
+            const { data: orgIdData } = await supabase.rpc("get_user_org_id", { _user_id: session.user.id });
+            await checkSubscription(orgIdData as string | undefined);
             setLoading(false);
           }, 0);
         } else {
