@@ -653,15 +653,23 @@ export default function OrgSetupWizard() {
         <div className="border-t p-3">
           <form
             onSubmit={(e) => { e.preventDefault(); handleChatSend(); }}
-            className="flex gap-2"
+            className="flex gap-2 items-center"
           >
-            <Input
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Ask about setup..."
-              className="text-sm"
-              disabled={chatSending}
-            />
+            <div className="relative flex-1">
+              <Input
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Ask about setup..."
+                className="text-sm pr-9"
+                disabled={chatSending}
+              />
+              <div className="absolute right-1.5 top-1/2 -translate-y-1/2">
+                <VoiceInputButton
+                  size="sm"
+                  onTranscript={(text) => setChatInput((prev) => prev ? `${prev} ${text}` : text)}
+                />
+              </div>
+            </div>
             <Button type="submit" size="icon" disabled={chatSending || !chatInput.trim()}>
               <Send className="h-4 w-4" />
             </Button>
