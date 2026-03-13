@@ -72,8 +72,10 @@ serve(async (req) => {
     }
 
     const subscriptionEnd = new Date(activeSub.current_period_end * 1000).toISOString();
-    const trialEnd = activeSub.trial_end ? new Date(activeSub.trial_end * 1000).toISOString() : null;
-    const productId = activeSub.items.data[0]?.price?.product as string;
+    const trialEnd = activeSub.trial_end
+      ? new Date(activeSub.trial_end * 1000).toISOString()
+      : null;
+    const productId = (activeSub.items.data[0]?.price?.product as string) ?? null;
     const priceId = activeSub.items.data[0]?.price?.id;
 
     logStep("Active subscription found", {
