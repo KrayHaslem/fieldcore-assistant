@@ -25,6 +25,7 @@ type AuthContextType = {
   profile: Profile | null;
   roles: string[];
   orgId: string | null;
+  orgOnboarded: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
