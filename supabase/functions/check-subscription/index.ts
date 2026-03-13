@@ -87,10 +87,7 @@ serve(async (req) => {
       priceId,
     });
 
-    // Sync: mark org as active
-    if (userOrgId) {
-      await supabaseClient.from("organizations").update({ subscription_active: true }).eq("id", userOrgId);
-    }
+
 
     return new Response(JSON.stringify({
       subscribed: true,
