@@ -308,66 +308,47 @@ export default function OrgSetupWizard() {
 
   const renderStepContent = () => {
     switch (step) {
-      case 1:
+      case 0:
         return (
           <div className="space-y-6">
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-foreground">What industry is your business in?</h2>
-              <p className="text-sm text-muted-foreground">This helps us tailor default settings for your organization.</p>
-              <div className="relative">
-                <Input
-                  placeholder="e.g. Construction, Manufacturing, Healthcare..."
-                  value={industry}
-                  onChange={(e) => setIndustry(e.target.value)}
-                  className="pr-10"
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                  <VoiceInputButton
-                    size="sm"
-                    onTranscript={(text) => setIndustry(text)}
-                  />
-                </div>
+            <div className="text-center space-y-2">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-2">
+                <Sparkles className="h-6 w-6 text-primary" />
               </div>
-            </div>
-
-            <div className="relative py-4">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">or quick setup with AI</span>
-              </div>
+              <h2 className="text-xl font-semibold text-foreground">Quick Setup with AI</h2>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                Describe your organization and we'll pre-fill all the setup fields for you. You can review and adjust everything afterwards.
+              </p>
             </div>
 
             <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Textarea
-                    className="min-h-[100px] resize-none pr-10"
-                    placeholder="Describe your organization..."
-                    value={aiInput}
-                    onChange={(e) => setAiInput(e.target.value)}
+              <div className="relative">
+                <Textarea
+                  className="min-h-[120px] resize-none pr-10"
+                  placeholder="Describe your organization in a few sentences..."
+                  value={aiInput}
+                  onChange={(e) => setAiInput(e.target.value)}
+                />
+                <div className="absolute right-2 top-2">
+                  <VoiceInputButton
+                    size="sm"
+                    onTranscript={(text) => setAiInput(text)}
                   />
-                  <div className="absolute right-2 top-2">
-                    <VoiceInputButton
-                      size="sm"
-                      onTranscript={(text) => setAiInput(text)}
-                    />
-                  </div>
                 </div>
-                <Button
-                  onClick={handleAnalyze}
-                  disabled={aiLoading || !aiInput.trim()}
-                  className="shrink-0"
-                >
-                  {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Analyze"}
-                </Button>
               </div>
+              <Button
+                onClick={handleAnalyze}
+                disabled={aiLoading || !aiInput.trim()}
+                className="w-full"
+              >
+                {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                {aiLoading ? "Analyzing..." : "Analyze with AI"}
+              </Button>
               {aiError && (
                 <p className="text-sm text-destructive">{aiError}</p>
               )}
               <div className="text-xs text-muted-foreground space-y-1">
-                <p className="font-medium">Describe your organization and we'll pre-fill your setup. Try to include:</p>
+                <p className="font-medium">Try to include:</p>
                 <ul className="list-disc list-inside space-y-0.5 ml-2">
                   <li>Your industry (e.g. oilfield equipment manufacturing, construction supply)</li>
                   <li>Whether purchases require approval, and at what dollar amount</li>
@@ -376,6 +357,28 @@ export default function OrgSetupWizard() {
                   <li>Whether you manufacture finished goods, buy for resale, or both</li>
                   <li>Whether you have a dedicated sales team</li>
                 </ul>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 1:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-foreground">{getStepHeading(1, "What industry is your business in?")}</h2>
+            <p className="text-sm text-muted-foreground">This helps us tailor default settings for your organization.</p>
+            <div className="relative">
+              <Input
+                placeholder="e.g. Construction, Manufacturing, Healthcare..."
+                value={industry}
+                onChange={(e) => setIndustry(e.target.value)}
+                className="pr-10"
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                <VoiceInputButton
+                  size="sm"
+                  onTranscript={(text) => setIndustry(text)}
+                />
               </div>
             </div>
           </div>
