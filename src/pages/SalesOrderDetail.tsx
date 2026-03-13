@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { PrintableOrder } from "@/components/PrintableOrder";
 import {
   ArrowLeft,
   ShoppingCart,
@@ -14,6 +15,7 @@ import {
   FileText,
   CreditCard,
   Lock,
+  Printer,
 } from "lucide-react";
 
 type SOStatus = "quote" | "order" | "fulfilled" | "invoiced" | "paid" | "closed";
@@ -30,7 +32,7 @@ const statusFlow: Record<string, { next: SOStatus; label: string; icon: typeof S
 export default function SalesOrderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, orgId } = useAuth();
+  const { user, orgId, orgName } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isUpdating, setIsUpdating] = useState(false);
@@ -58,6 +60,19 @@ export default function SalesOrderDetail() {
         .select("*, inventory_items:item_id(name, sku)")
         .eq("sales_order_id", id!);
       return data ?? [];
+    },
+  });
+
+  const { data: customer } = useQuery({
+    queryKey: ["customer", so?.customer_id],
+    enabled: !!so?.customer_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("customers")
+        .select("name, contact_name, contact_email, contact_phone, address")
+        .eq("id", so!.customer_id!)
+        .single();
+      return data;
     },
   });
 
@@ -119,15 +134,47 @@ export default function SalesOrderDetail() {
 
   const actions = statusFlow[so.status] || [];
 
+  const printLineItems = (lineItems ?? []).map((li: any) => ({
+    id: li.id,
+    itemName: li.inventory_items?.name ?? "—",
+    sku: li.inventory_items?.sku,
+    quantity: li.quantity,
+    unitPrice: Number(li.unit_price),
+    total: li.quantity * Number(li.unit_price),
+  }));
+
   return (
     <div>
+      <PrintableOrder
+        type="sales"
+        orderNumber={so.so_number}
+        date={so.created_at}
+        status={so.status}
+        orgName={orgName ?? "Organization"}
+        contact={{
+          name: customer?.name ?? so.customer_name,
+          contactName: customer?.contact_name,
+          contactEmail: customer?.contact_email,
+          contactPhone: customer?.contact_phone,
+          address: customer?.address,
+        }}
+        lineItems={printLineItems}
+        totalAmount={Number(so.total_amount)}
+        notes={so.notes}
+      />
+
       <PageHeader
         title={so.so_number}
         description="Sales order details"
         actions={
-          <Button variant="outline" size="sm" onClick={() => navigate("/sales")}>
-            <ArrowLeft className="h-4 w-4" /> Back
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => window.print()}>
+              <Printer className="h-4 w-4" /> Print
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/sales")}>
+              <ArrowLeft className="h-4 w-4" /> Back
+            </Button>
+          </div>
         }
       />
 

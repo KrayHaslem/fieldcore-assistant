@@ -135,3 +135,28 @@
     @apply bg-muted text-muted-foreground;
   }
 }
+
+@media print {
+  /* Hide everything except printable content */
+  body * {
+    visibility: hidden;
+  }
+  .printable-order,
+  .printable-order * {
+    visibility: visible !important;
+    display: revert !important;
+  }
+  .printable-order {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 24px;
+    background: white;
+    color: black;
+  }
+  @page {
+    margin: 1cm;
+    size: A4;
+  }
+}
