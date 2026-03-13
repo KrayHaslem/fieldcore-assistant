@@ -298,13 +298,13 @@ export default function OrgSetupWizard() {
   };
 
   const getStepHeading = (stepNum: number, defaultHeading: string) => {
-    if (aiPrefilled && stepNum >= 2 && stepNum <= 5) {
+    if (aiPrefilled && stepNum >= 1 && stepNum <= 5) {
       return `Review: ${defaultHeading}`;
     }
     return defaultHeading;
   };
 
-  const showAssistantPanel = aiPrefilled && step >= 2 && step <= 5;
+  const showAssistantPanel = aiPrefilled && step >= 1 && step <= 5;
 
   const renderStepContent = () => {
     switch (step) {
