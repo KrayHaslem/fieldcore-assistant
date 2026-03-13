@@ -543,15 +543,17 @@ export default function OrgSetupWizard() {
             <p className="text-muted-foreground italic">{recommendations.notes}</p>
           )}
 
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-full mt-2"
-            onClick={() => applyRecommendations(recommendations)}
-          >
-            <Sparkles className="h-3 w-3 mr-1" />
-            Apply Recommendations
-          </Button>
+          {!aiPrefilled && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full mt-2"
+              onClick={() => applyRecommendations(recommendations)}
+            >
+              <Sparkles className="h-3 w-3 mr-1" />
+              Apply Recommendations
+            </Button>
+          )}
         </CardContent>
       </Card>
     );
