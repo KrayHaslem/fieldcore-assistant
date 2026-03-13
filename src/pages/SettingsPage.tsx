@@ -24,6 +24,68 @@ import { Switch } from "@/components/ui/switch";
 
 const ALL_ROLES = ["admin", "procurement", "sales", "finance", "employee"] as const;
 
+function AccountTab({ profile, roles, user, toast }: { profile: any; roles: string[]; user: any; toast: any }) {
+  const [editing, setEditing] = useState(false);
+  const [fullName, setFullName] = useState(profile?.full_name ?? "");
+  const [saving, setSaving] = useState(false);
+  const { refreshProfile } = useAuth();
+
+  useEffect(() => {
+    setFullName(profile?.full_name ?? "");
+  }, [profile?.full_name]);
+
+  const handleSave = async () => {
+    if (!fullName.trim() || !profile) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ full_name: fullName.trim() })
+      .eq("id", profile.id);
+    if (error) {
+      toast({ title: "Failed to update name", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Name updated" });
+      await refreshProfile();
+      setEditing(false);
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="fieldcore-card p-6 space-y-3">
+      <h3 className="text-sm font-semibold text-foreground mb-4">Account Information</h3>
+      <div>
+        <Label className="text-xs text-muted-foreground">Name</Label>
+        {editing ? (
+          <div className="flex items-center gap-2 mt-1">
+            <Input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="max-w-xs"
+              autoFocus
+            />
+            <Button size="sm" onClick={handleSave} disabled={saving || !fullName.trim()}>
+              {saving ? "Saving…" : "Save"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setFullName(profile?.full_name ?? ""); }}>
+              Cancel
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-foreground">{profile?.full_name ?? "—"}</p>
+            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setEditing(true)}>
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
+      </div>
+      <div><Label className="text-xs text-muted-foreground">Email</Label><p className="text-sm text-foreground">{profile?.email ?? "—"}</p></div>
+      <div><Label className="text-xs text-muted-foreground">Roles</Label><div className="flex gap-1 mt-1">{roles.map((r) => <Badge key={r} variant="secondary" className="capitalize">{r}</Badge>)}</div></div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { user, profile, roles, orgId, refreshRoles } = useAuth();
   const [searchParams] = useSearchParams();
