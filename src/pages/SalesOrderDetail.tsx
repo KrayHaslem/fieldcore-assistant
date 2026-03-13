@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { PrintableOrder } from "@/components/PrintableOrder";
 import {
   ArrowLeft,
   ShoppingCart,
@@ -14,6 +15,7 @@ import {
   FileText,
   CreditCard,
   Lock,
+  Printer,
 } from "lucide-react";
 
 type SOStatus = "quote" | "order" | "fulfilled" | "invoiced" | "paid" | "closed";
