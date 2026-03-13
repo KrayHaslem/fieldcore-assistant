@@ -35,7 +35,7 @@ export default function CreateSalesOrder() {
   const location = useLocation();
   const prefill = (location.state as any)?.prefill;
   const { user, orgId } = useAuth();
-  const { toast } = useToast();
+  const { toast, showErrorToast } = useSubscriptionToast();
   const [showAssistant, setShowAssistant] = useState(!!prefill);
 
   const [customerName, setCustomerName] = useState("");
