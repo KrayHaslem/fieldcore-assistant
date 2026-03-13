@@ -14,14 +14,7 @@ import { Bot, Send, Loader2, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-const TOTAL_STEPS = 7; // 0 = AI landing, 1-6 = manual steps
-
-const PURCHASE_TYPES = [
-  { id: "resale", label: "Resale" },
-  { id: "internal_use", label: "Internal Use" },
-  { id: "manufacturing_input", label: "Manufacturing" },
-  { id: "consumable", label: "Consumables" },
-] as const;
+const TOTAL_STEPS = 6; // 0 = AI landing, 1-5 = manual steps
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -49,18 +42,16 @@ export default function OrgSetupWizard() {
   // Step 1
   const [industry, setIndustry] = useState("");
   // Step 2
-  const [purchaseTypes, setPurchaseTypes] = useState<string[]>([]);
-  // Step 3
   const [requiresApproval, setRequiresApproval] = useState(false);
   const [approvalThreshold, setApprovalThreshold] = useState("");
   const [approvalRole, setApprovalRole] = useState("admin");
-  // Step 4
+  // Step 3
   const [hasDepartments, setHasDepartments] = useState(false);
   const [departmentNames, setDepartmentNames] = useState("");
-  // Step 5
+  // Step 4
   const [tracksInventory, setTracksInventory] = useState(false);
   const [hasSalesTeam, setHasSalesTeam] = useState(false);
-  // Step 6
+  // Step 5
   const [policyAccepted, setPolicyAccepted] = useState(false);
 
   // AI Quick Setup state
@@ -85,7 +76,6 @@ export default function OrgSetupWizard() {
   /** Collect all current answers into an object for the edge function. */
   const collectAnswers = () => ({
     industry,
-    purchase_types: purchaseTypes,
     requires_approval: requiresApproval,
     approval_threshold: approvalThreshold,
     approval_role: approvalRole,
@@ -234,13 +224,6 @@ export default function OrgSetupWizard() {
       setApprovalThreshold(String(firstRule.min_amount));
       setApprovalRole(firstRule.required_role);
     }
-    if (recs.inventory_types_to_enable && recs.inventory_types_to_enable.length > 0) {
-      setPurchaseTypes(recs.inventory_types_to_enable);
-      const hasResaleOrMfg = recs.inventory_types_to_enable.some(
-        (t) => t === "resale" || t === "manufacturing_input"
-      );
-      if (hasResaleOrMfg) setTracksInventory(true);
-    }
     if (recs.suggested_roles) {
       const hasSales = recs.suggested_roles.includes("sales");
       if (hasSales) setHasSalesTeam(true);
@@ -255,18 +238,12 @@ export default function OrgSetupWizard() {
     toast({ title: "Recommendations Applied", description: "Fields have been pre-populated. Review each step before finishing." });
   };
 
-  const togglePurchaseType = (id: string) => {
-    setPurchaseTypes((prev) =>
-      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
-    );
-  };
-
   const canGoNext = () => {
-    if (step === 0) return true; // skip always allowed
+    if (step === 0) return true;
     if (step === 1) return industry.trim().length > 0;
-    if (step === 3 && requiresApproval) return !!approvalThreshold && parseFloat(approvalThreshold) > 0;
-    if (step === 4 && hasDepartments) return departmentNames.trim().length > 0;
-    if (step === 6) return policyAccepted;
+    if (step === 2 && requiresApproval) return !!approvalThreshold && parseFloat(approvalThreshold) > 0;
+    if (step === 3 && hasDepartments) return departmentNames.trim().length > 0;
+    if (step === 5) return policyAccepted;
     return true;
   };
 
@@ -310,13 +287,13 @@ export default function OrgSetupWizard() {
   };
 
   const getStepHeading = (stepNum: number, defaultHeading: string) => {
-    if (aiPrefilled && stepNum >= 1 && stepNum <= 5) {
+    if (aiPrefilled && stepNum >= 1 && stepNum <= 4) {
       return `Review: ${defaultHeading}`;
     }
     return defaultHeading;
   };
 
-  const showAssistantPanel = aiPrefilled && step >= 1 && step <= 5;
+  const showAssistantPanel = aiPrefilled && step >= 1 && step <= 4;
 
   const renderStepContent = () => {
     switch (step) {
@@ -362,11 +339,11 @@ export default function OrgSetupWizard() {
               <div className="text-xs text-muted-foreground space-y-1">
                 <p className="font-medium">Try to include:</p>
                 <ul className="list-disc list-inside space-y-0.5 ml-2">
-                  <li>Your industry (e.g. oilfield equipment manufacturing, construction supply)</li>
+                  <li>Your industry (e.g. construction, oilfield equipment, healthcare)</li>
                   <li>Whether purchases require approval, and at what dollar amount</li>
                   <li>Whether approvals are handled company-wide or per department</li>
                   <li>Your department names if applicable</li>
-                  <li>Whether you manufacture finished goods, buy for resale, or both</li>
+                  <li>Whether you track inventory, manufacture finished goods, or buy for resale</li>
                   <li>Whether you have a dedicated sales team</li>
                 </ul>
               </div>
@@ -399,29 +376,7 @@ export default function OrgSetupWizard() {
       case 2:
         return (
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">{getStepHeading(2, "Purchase Types")}</h2>
-            <p className="text-sm text-muted-foreground">What types of items does your business purchase? Select all that apply.</p>
-            <div className="space-y-3">
-              {PURCHASE_TYPES.map((pt) => (
-                <label
-                  key={pt.id}
-                  className="flex items-center gap-3 rounded-md border px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
-                >
-                  <Checkbox
-                    checked={purchaseTypes.includes(pt.id)}
-                    onCheckedChange={() => togglePurchaseType(pt.id)}
-                  />
-                  <span className="text-sm font-medium text-foreground">{pt.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 3:
-        return (
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">{getStepHeading(3, "Approval Requirements")}</h2>
+            <h2 className="text-xl font-semibold text-foreground">{getStepHeading(2, "Approval Requirements")}</h2>
             <p className="text-sm text-muted-foreground">Do your purchases require approval? If yes, specify the dollar threshold and approver role.</p>
             <div className="flex items-center gap-3">
               <Switch checked={requiresApproval} onCheckedChange={setRequiresApproval} />
@@ -454,10 +409,10 @@ export default function OrgSetupWizard() {
           </div>
         );
 
-      case 4:
+      case 3:
         return (
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">{getStepHeading(4, "Departments")}</h2>
+            <h2 className="text-xl font-semibold text-foreground">{getStepHeading(3, "Departments")}</h2>
             <p className="text-sm text-muted-foreground">Do you have multiple departments with separate approvers?</p>
             <div className="flex items-center gap-3">
               <Switch checked={hasDepartments} onCheckedChange={setHasDepartments} />
@@ -485,10 +440,10 @@ export default function OrgSetupWizard() {
           </div>
         );
 
-      case 5:
+      case 4:
         return (
           <div className="space-y-5">
-            <h2 className="text-xl font-semibold text-foreground">{getStepHeading(5, "Inventory & Sales")}</h2>
+            <h2 className="text-xl font-semibold text-foreground">{getStepHeading(4, "Inventory & Sales")}</h2>
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-foreground mb-2">Do you track inventory for resale or manufacture finished goods?</p>
@@ -508,7 +463,7 @@ export default function OrgSetupWizard() {
           </div>
         );
 
-      case 6:
+      case 5:
         return (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold text-foreground">Data Sharing Policy</h2>
@@ -570,17 +525,6 @@ export default function OrgSetupWizard() {
                   {rule.max_amount ? `–$${rule.max_amount.toLocaleString()}` : "+"} → {rule.required_role}
                 </p>
               ))}
-            </div>
-          )}
-
-          {recommendations.inventory_types_to_enable && recommendations.inventory_types_to_enable.length > 0 && (
-            <div>
-              <p className="font-medium text-muted-foreground mb-1">Inventory Types</p>
-              <div className="flex flex-wrap gap-1">
-                {recommendations.inventory_types_to_enable.map((t) => (
-                  <Badge key={t} variant="outline" className="text-xs">{t.replace(/_/g, " ")}</Badge>
-                ))}
-              </div>
             </div>
           )}
 
