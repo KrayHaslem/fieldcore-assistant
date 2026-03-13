@@ -183,6 +183,13 @@ export default function SettingsPage() {
   const [editingUserDept, setEditingUserDept] = useState<ComboBoxOption | null>(null);
   const [roleSaving, setRoleSaving] = useState(false);
 
+  // Invite dialog
+  const [inviteDialog, setInviteDialog] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRoles, setInviteRoles] = useState<string[]>(["employee"]);
+  const [inviteSaving, setInviteSaving] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+
   const { data: orgProfiles } = useQuery({
     queryKey: ["org-profiles", orgId], enabled: !!orgId && isAdmin,
     queryFn: async () => { const { data } = await supabase.from("profiles").select("*").order("full_name"); return data ?? []; },
@@ -191,6 +198,19 @@ export default function SettingsPage() {
   const { data: allUserRoles } = useQuery({
     queryKey: ["all-user-roles", orgId], enabled: !!orgId && isAdmin,
     queryFn: async () => { const { data } = await supabase.from("user_roles").select("*"); return data ?? []; },
+  });
+
+  const { data: pendingInvitations } = useQuery({
+    queryKey: ["invitations", orgId], enabled: !!orgId && isAdmin,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("invitations")
+        .select("*")
+        .is("accepted_at", null)
+        .gte("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false });
+      return data ?? [];
+    },
   });
 
   const getRolesFor = (userId: string) => (allUserRoles ?? []).filter((r: any) => r.user_id === userId).map((r: any) => r.role);
@@ -243,6 +263,59 @@ export default function SettingsPage() {
     setRoleDialog(null);
     qc.invalidateQueries({ queryKey: ["all-user-roles"] });
     qc.invalidateQueries({ queryKey: ["org-profiles"] });
+  };
+
+  const toggleUserActive = async (userId: string, currentlyActive: boolean) => {
+    if (userId === user?.id) {
+      toast({ title: "Cannot deactivate yourself", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_active: !currentlyActive })
+      .eq("user_id", userId)
+      .eq("organization_id", orgId!);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: currentlyActive ? "User deactivated" : "User reactivated" });
+      qc.invalidateQueries({ queryKey: ["org-profiles"] });
+    }
+  };
+
+  const sendInvite = async () => {
+    if (!inviteEmail.trim() || !orgId) return;
+    setInviteSaving(true);
+    setInviteLink(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("invite-user", {
+        body: {
+          email: inviteEmail.trim(),
+          roles: inviteRoles,
+          organization_id: orgId,
+          origin: window.location.origin,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setInviteLink(data.invite_link);
+      toast({ title: "Invitation created", description: "Share the link or copy it below." });
+      qc.invalidateQueries({ queryKey: ["invitations"] });
+    } catch (e: any) {
+      toast({ title: "Failed to invite", description: e.message, variant: "destructive" });
+    }
+    setInviteSaving(false);
+  };
+
+  const revokeInvitation = async (id: string) => {
+    // Delete the invitation
+    const { error } = await supabase.from("invitations").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Invitation revoked" });
+      qc.invalidateQueries({ queryKey: ["invitations"] });
+    }
   };
 
   // ---- Suppliers ----
