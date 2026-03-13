@@ -29,10 +29,13 @@ interface ChatMessage {
 }
 
 interface Recommendations {
+  industry?: string;
   suggested_departments?: string[];
   approval_rules?: { min_amount: number; max_amount: number | null; required_role: string }[];
   inventory_types_to_enable?: string[];
   suggested_roles?: string[];
+  tracks_inventory?: boolean;
+  has_sales_team?: boolean;
   notes?: string;
 }
 
