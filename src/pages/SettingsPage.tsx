@@ -727,6 +727,7 @@ export default function SettingsPage() {
             {isAdmin && <TabsTrigger value="approvals">Approval Rules</TabsTrigger>}
             {canManageUnits && <TabsTrigger value="units">Units</TabsTrigger>}
             {isAdmin && <TabsTrigger value="report-templates">Report Templates</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="billing"><CreditCard className="h-3.5 w-3.5 mr-1" />Billing</TabsTrigger>}
           </TabsList>
 
           {/* Platform (superadmin only) */}
