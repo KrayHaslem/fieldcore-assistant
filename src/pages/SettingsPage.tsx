@@ -744,21 +744,100 @@ export default function SettingsPage() {
 
           {/* Users & Roles */}
           <TabsContent value="users">
-            <div className="fieldcore-card overflow-hidden">
-              <div className="border-b px-5 py-3"><h3 className="text-sm font-semibold text-foreground">Users & Roles</h3></div>
-              <table className="w-full text-sm">
-                <thead><tr className="border-b bg-muted/50"><th className="px-5 py-2 text-left font-medium text-muted-foreground">Name</th><th className="px-5 py-2 text-left font-medium text-muted-foreground">Email</th><th className="px-5 py-2 text-left font-medium text-muted-foreground">Roles</th><th className="px-5 py-2 w-24" /></tr></thead>
-                <tbody className="divide-y">
-                  {orgProfiles?.map((p: any) => (
-                    <tr key={p.id} className="hover:bg-muted/30">
-                      <td className="px-5 py-2 text-foreground">{p.full_name}</td>
-                      <td className="px-5 py-2 text-muted-foreground">{p.email}</td>
-                      <td className="px-5 py-2"><div className="flex gap-1 flex-wrap">{getRolesFor(p.user_id).map((r: string) => <Badge key={r} variant="outline" className="capitalize text-xs">{r}</Badge>)}</div></td>
-                      <td className="px-5 py-2"><Button variant="ghost" size="sm" onClick={() => openRoleDialog(p.user_id)}><Pencil className="h-3.5 w-3.5 mr-1" />Roles</Button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-4">
+              <div className="fieldcore-card overflow-hidden">
+                <div className="flex items-center justify-between border-b px-5 py-3">
+                  <h3 className="text-sm font-semibold text-foreground">Users & Roles</h3>
+                  <Button size="sm" onClick={() => { setInviteDialog(true); setInviteEmail(""); setInviteRoles(["employee"]); setInviteLink(null); }}>
+                    <UserPlus className="h-4 w-4" /> Invite User
+                  </Button>
+                </div>
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b bg-muted/50">
+                    <th className="px-5 py-2 text-left font-medium text-muted-foreground">Name</th>
+                    <th className="px-5 py-2 text-left font-medium text-muted-foreground">Email</th>
+                    <th className="px-5 py-2 text-left font-medium text-muted-foreground">Roles</th>
+                    <th className="px-5 py-2 text-left font-medium text-muted-foreground">Status</th>
+                    <th className="px-5 py-2 w-32" />
+                  </tr></thead>
+                  <tbody className="divide-y">
+                    {orgProfiles?.map((p: any) => {
+                      const isActive = p.is_active !== false;
+                      const isSelf = p.user_id === user?.id;
+                      return (
+                        <tr key={p.id} className={cn("hover:bg-muted/30", !isActive && "opacity-60")}>
+                          <td className="px-5 py-2 text-foreground">{p.full_name}</td>
+                          <td className="px-5 py-2 text-muted-foreground">{p.email}</td>
+                          <td className="px-5 py-2"><div className="flex gap-1 flex-wrap">{getRolesFor(p.user_id).map((r: string) => <Badge key={r} variant="outline" className="capitalize text-xs">{r}</Badge>)}</div></td>
+                          <td className="px-5 py-2">
+                            <Badge variant={isActive ? "default" : "secondary"} className={cn("text-xs", isActive ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "")}>
+                              {isActive ? "Active" : "Inactive"}
+                            </Badge>
+                          </td>
+                          <td className="px-5 py-2 flex gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => openRoleDialog(p.user_id)}>
+                              <Pencil className="h-3.5 w-3.5 mr-1" />Roles
+                            </Button>
+                            {!isSelf && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className={cn("h-8 w-8", !isActive && "text-green-600")}
+                                      onClick={() => toggleUserActive(p.user_id, isActive)}
+                                    >
+                                      {isActive ? <UserX className="h-3.5 w-3.5" /> : <UserCheck className="h-3.5 w-3.5" />}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{isActive ? "Deactivate user" : "Reactivate user"}</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pending Invitations */}
+              {pendingInvitations && pendingInvitations.length > 0 && (
+                <div className="fieldcore-card overflow-hidden">
+                  <div className="border-b px-5 py-3">
+                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <Mail className="h-4 w-4" /> Pending Invitations
+                    </h3>
+                  </div>
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b bg-muted/50">
+                      <th className="px-5 py-2 text-left font-medium text-muted-foreground">Email</th>
+                      <th className="px-5 py-2 text-left font-medium text-muted-foreground">Roles</th>
+                      <th className="px-5 py-2 text-left font-medium text-muted-foreground">Expires</th>
+                      <th className="px-5 py-2 w-16" />
+                    </tr></thead>
+                    <tbody className="divide-y">
+                      {pendingInvitations.map((inv: any) => (
+                        <tr key={inv.id} className="hover:bg-muted/30">
+                          <td className="px-5 py-2 text-foreground">{inv.email}</td>
+                          <td className="px-5 py-2"><div className="flex gap-1 flex-wrap">{(inv.roles || []).map((r: string) => <Badge key={r} variant="outline" className="capitalize text-xs">{r}</Badge>)}</div></td>
+                          <td className="px-5 py-2 text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {new Date(inv.expires_at).toLocaleDateString()}
+                          </td>
+                          <td className="px-5 py-2">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => revokeInvitation(inv.id)}>
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </TabsContent>
 
