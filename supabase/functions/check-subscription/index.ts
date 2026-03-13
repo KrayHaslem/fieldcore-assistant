@@ -73,6 +73,10 @@ serve(async (req) => {
 
     if (!activeSub) {
       logStep("No active/trialing subscription found");
+      // Sync: mark org as inactive
+      if (userOrgId) {
+        await supabaseClient.from("organizations").update({ subscription_active: false }).eq("id", userOrgId);
+      }
       return new Response(JSON.stringify({ subscribed: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
