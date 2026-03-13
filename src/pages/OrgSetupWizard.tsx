@@ -280,7 +280,8 @@ export default function OrgSetupWizard() {
       }
 
       toast({ title: "Setup Complete", description: "Organization has been configured successfully." });
-      navigate("/settings");
+      await refreshProfile();
+      navigate("/");
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
