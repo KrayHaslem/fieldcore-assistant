@@ -77,8 +77,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
 
-  const checkSubscription = useCallback(async () => {
+  const checkSubscription = useCallback(async (orgId?: string) => {
     try {
+      // First, try the org's subscription_active flag (works for all users in the org)
+      if (orgId) {
+        const { data: orgData } = await supabase
+          .from("organizations")
+          .select("subscription_active")
+          .eq("id", orgId)
+          .single();
+        if (orgData?.subscription_active) {
+          setSubscription({ subscribed: true });
+          return;
+        }
+      }
+
+      // Fall back to Stripe check (triggers sync for the billing admin)
       const { data, error } = await supabase.functions.invoke("check-subscription");
       if (error) throw error;
       setSubscription({
@@ -178,7 +192,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(true);
           setTimeout(async () => {
             await fetchProfileAndOrg(session.user.id);
-            await checkSubscription();
+            // checkSubscription needs orgId - get it after profile fetch
+            const { data: orgIdData } = await supabase.rpc("get_user_org_id", { _user_id: session.user.id });
+            await checkSubscription(orgIdData as string | undefined);
             setLoading(false);
           }, 0);
         } else {
