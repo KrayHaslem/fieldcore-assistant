@@ -16,12 +16,12 @@ const PLANS = {
     description: "$50/month, billed monthly",
   },
   annual: {
-    price_id: "price_1TAclM1UbJLrggAK7RjuLntx",
-    product_id: "prod_U8ua5fkLM5AVCH",
+    price_id: "price_1TAcpD1UbJLrggAKh25YjSdE",
+    product_id: "prod_U8ueQWrIai94JN",
     name: "Annual",
-    price: "$1,000",
+    price: "$500",
     interval: "year",
-    description: "$1,000/year (save $200)",
+    description: "$500/year (save $100)",
   },
 } as const;
 
