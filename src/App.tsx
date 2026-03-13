@@ -27,7 +27,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
-  const { session, profile, loading } = useAuth();
+  const { session, profile, orgId, orgOnboarded, loading } = useAuth();
 
   if (loading) {
     return (
@@ -44,6 +44,9 @@ function ProtectedRoutes() {
 
   // Authenticated but no profile → send to onboarding
   if (!profile) return <Navigate to="/onboarding" replace />;
+
+  // Profile exists but org setup not completed → send back to wizard
+  if (!orgOnboarded && orgId) return <Navigate to={`/setup/${orgId}`} replace />;
 
   return (
     <Routes>
