@@ -178,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(true);
           setTimeout(async () => {
             await fetchProfileAndOrg(session.user.id);
+            await checkSubscription();
             setLoading(false);
           }, 0);
         } else {
@@ -185,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setOrgInfo(null);
           setRoles([]);
           setOrganizations([]);
+          setSubscription(null);
           setLoading(false);
         }
       }
