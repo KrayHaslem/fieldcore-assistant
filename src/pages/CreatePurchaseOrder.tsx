@@ -210,7 +210,7 @@ export default function CreatePurchaseOrder() {
       .select()
       .single();
     if (err) {
-      setSupplierModalError(err.message);
+      if (isSubscriptionError(err.message)) { showErrorToast(err); } else { setSupplierModalError(err.message); }
       return;
     }
     setSupplier({ ...data, label: data.name });
