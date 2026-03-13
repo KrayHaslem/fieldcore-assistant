@@ -169,7 +169,7 @@ export default function OrgSetupWizard() {
       ]);
 
       setAiPrefilled(true);
-      setStep(2);
+      setStep(1); // Jump to step 1 with fields pre-filled
     } catch (err: any) {
       setAiError(err.message || "Failed to analyze. Please try again.");
     } finally {
