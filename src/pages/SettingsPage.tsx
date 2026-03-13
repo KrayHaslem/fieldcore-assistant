@@ -201,6 +201,11 @@ export default function SettingsPage() {
       message: `Delete organization "${name}"? This will remove all associated data.`,
       onConfirm: async () => {
         setConfirmAction(null);
+        // Clear user_preferences referencing this org to avoid FK violation
+        await supabase.from("user_preferences").update({ active_organization_id: null }).eq("active_organization_id", id);
+        // Clear profiles and user_roles in this org
+        await supabase.from("user_roles").delete().eq("organization_id", id);
+        await supabase.from("profiles").delete().eq("organization_id", id);
         const { error } = await supabase.from("organizations").delete().eq("id", id);
         if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         toast({ title: "Organization deleted" });
