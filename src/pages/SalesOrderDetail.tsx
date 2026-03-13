@@ -63,6 +63,19 @@ export default function SalesOrderDetail() {
     },
   });
 
+  const { data: customer } = useQuery({
+    queryKey: ["customer", so?.customer_id],
+    enabled: !!so?.customer_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("customers")
+        .select("name, contact_name, contact_email, contact_phone, address")
+        .eq("id", so!.customer_id!)
+        .single();
+      return data;
+    },
+  });
+
   const handleStatusChange = async (newStatus: SOStatus) => {
     setIsUpdating(true);
     try {
