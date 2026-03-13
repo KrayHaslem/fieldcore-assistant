@@ -190,7 +190,7 @@ export default function Reports() {
         .map((name) => allReports.find((r) => r.name === name))
         .filter((r): r is ReportDef => !!r),
     }));
-  }, [allReports]);
+  }, [allReports, customTemplates]);
 
   useEffect(() => {
     const state = location.state as any;
