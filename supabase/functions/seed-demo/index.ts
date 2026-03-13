@@ -90,6 +90,7 @@ serve(async (req) => {
     await sb.from("organizations").upsert({
       id: ORG_ID, name: "Innovex Oilfield Equipment", industry: "Oilfield Manufacturing & Distribution",
       is_onboarded: true, terms_accepted_at: new Date().toISOString(),
+      subscription_active: true,
     }, { onConflict: "id" });
 
     // ===== STEP 3: DEPARTMENTS =====
