@@ -1512,6 +1512,72 @@ export default function SettingsPage() {
           data={rtTestResult}
         />
       )}
+
+      {/* Invite User Dialog */}
+      <Dialog open={inviteDialog} onOpenChange={(open) => { setInviteDialog(open); if (!open) setInviteLink(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Invite User</DialogTitle>
+            <DialogDescription>Send an invitation to join your organization.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Email Address *</Label>
+              <Input
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="user@example.com"
+              />
+            </div>
+            <div>
+              <Label className="mb-2 block">Roles</Label>
+              <div className="space-y-2">
+                {ALL_ROLES.map((r) => (
+                  <div key={r} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`invite-role-${r}`}
+                      checked={inviteRoles.includes(r)}
+                      onCheckedChange={(checked) => {
+                        setInviteRoles((prev) => checked ? [...prev, r] : prev.filter((x) => x !== r));
+                      }}
+                    />
+                    <label htmlFor={`invite-role-${r}`} className="text-sm capitalize cursor-pointer">{r}</label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {inviteLink && (
+              <div className="rounded-md border bg-muted/50 p-3 space-y-2">
+                <p className="text-xs font-medium text-foreground">Invitation Link (expires in 7 days)</p>
+                <div className="flex gap-2">
+                  <Input value={inviteLink} readOnly className="text-xs font-mono" />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(inviteLink);
+                      toast({ title: "Copied to clipboard" });
+                    }}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">Share this link with the user. They'll be prompted to sign in or create an account.</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            {!inviteLink ? (
+              <Button onClick={sendInvite} disabled={inviteSaving || !inviteEmail.trim() || inviteRoles.length === 0}>
+                {inviteSaving ? "Sending..." : "Send Invitation"}
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={() => { setInviteDialog(false); setInviteLink(null); }}>Done</Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
