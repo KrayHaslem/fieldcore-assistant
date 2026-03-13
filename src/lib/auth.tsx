@@ -23,6 +23,14 @@ type UserRole = {
 
 type OrgOption = { id: string; name: string };
 
+type SubscriptionInfo = {
+  subscribed: boolean;
+  status?: string;
+  trialEnd?: string;
+  subscriptionEnd?: string;
+  cancelAtPeriodEnd?: boolean;
+};
+
 type AuthContextType = {
   session: Session | null;
   user: User | null;
@@ -32,10 +40,12 @@ type AuthContextType = {
   orgOnboarded: boolean;
   orgName: string | null;
   organizations: OrgOption[];
+  subscription: SubscriptionInfo | null;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshRoles: () => Promise<void>;
+  refreshSubscription: () => Promise<void>;
   switchOrg: (orgId: string) => Promise<void>;
 };
 
