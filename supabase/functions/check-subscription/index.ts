@@ -48,6 +48,10 @@ serve(async (req) => {
 
     if (customers.data.length === 0) {
       logStep("No Stripe customer found");
+      // Sync: mark org as inactive
+      if (userOrgId) {
+        await supabaseClient.from("organizations").update({ subscription_active: false }).eq("id", userOrgId);
+      }
       return new Response(JSON.stringify({ subscribed: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
