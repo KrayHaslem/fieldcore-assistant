@@ -73,7 +73,7 @@ export default function CreatePurchaseOrder() {
   const prefill = (location.state as any)?.prefill;
   const commandText = (location.state as any)?.commandText || "";
   const { orgId, user } = useAuth();
-  const { toast } = useToast();
+  const { toast, showErrorToast } = useSubscriptionToast();
   const [showAssistant, setShowAssistant] = useState(!!prefill);
 
   const [supplier, setSupplier] = useState<SupplierOption | null>(null);
