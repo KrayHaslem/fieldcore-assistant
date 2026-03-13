@@ -712,12 +712,7 @@ export default function SettingsPage() {
 
           {/* My Account */}
           <TabsContent value="account">
-            <div className="fieldcore-card p-6 space-y-3">
-              <h3 className="text-sm font-semibold text-foreground mb-4">Account Information</h3>
-              <div><Label className="text-xs text-muted-foreground">Name</Label><p className="text-sm text-foreground">{profile?.full_name ?? "—"}</p></div>
-              <div><Label className="text-xs text-muted-foreground">Email</Label><p className="text-sm text-foreground">{profile?.email ?? "—"}</p></div>
-              <div><Label className="text-xs text-muted-foreground">Roles</Label><div className="flex gap-1 mt-1">{roles.map((r) => <Badge key={r} variant="secondary" className="capitalize">{r}</Badge>)}</div></div>
-            </div>
+            <AccountTab profile={profile} roles={roles} user={user} toast={toast} />
           </TabsContent>
 
           {/* Departments */}
