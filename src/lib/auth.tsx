@@ -75,6 +75,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<string[]>([]);
   const [organizations, setOrganizations] = useState<OrgOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+
+  const checkSubscription = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("check-subscription");
+      if (error) throw error;
+      setSubscription({
+        subscribed: data?.subscribed ?? false,
+        status: data?.status,
+        trialEnd: data?.trial_end,
+        subscriptionEnd: data?.subscription_end,
+        cancelAtPeriodEnd: data?.cancel_at_period_end,
+      });
+    } catch (e) {
+      console.error("check-subscription error:", e);
+      setSubscription({ subscribed: false });
+    }
+  }, []);
 
   const fetchProfileAndOrg = useCallback(async (userId: string) => {
     // Get all profiles for this user (multi-org)
