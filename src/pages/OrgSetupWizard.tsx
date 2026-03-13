@@ -665,22 +665,24 @@ export default function OrgSetupWizard() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className={`w-full ${showAssistantPanel ? "max-w-4xl" : "max-w-xl"}`}>
-        {/* Progress */}
-        <div className="mb-6 text-center">
-          <p className="text-sm font-medium text-muted-foreground mb-2">
-            Step {step} of {TOTAL_STEPS}
-          </p>
-          <div className="flex gap-1.5 justify-center">
-            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-              <div
-                key={i}
-                className={`h-1.5 w-10 rounded-full transition-colors ${
-                  i < step ? "bg-primary" : "bg-muted"
-                }`}
-              />
-            ))}
+        {/* Progress — hide on step 0 */}
+        {step > 0 && (
+          <div className="mb-6 text-center">
+            <p className="text-sm font-medium text-muted-foreground mb-2">
+              Step {step} of {TOTAL_STEPS - 1}
+            </p>
+            <div className="flex gap-1.5 justify-center">
+              {Array.from({ length: TOTAL_STEPS - 1 }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1.5 w-10 rounded-full transition-colors ${
+                    i < step ? "bg-primary" : "bg-muted"
+                  }`}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="fieldcore-card p-8">
           <div className={`${showAssistantPanel ? "flex gap-6" : ""}`}>
