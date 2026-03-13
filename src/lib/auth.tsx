@@ -11,6 +11,10 @@ type Profile = {
   department_id: string | null;
 };
 
+type OrgInfo = {
+  is_onboarded: boolean;
+};
+
 type UserRole = {
   role: "admin" | "procurement" | "sales" | "finance" | "employee";
 };
@@ -21,6 +25,7 @@ type AuthContextType = {
   profile: Profile | null;
   roles: string[];
   orgId: string | null;
+  orgOnboarded: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -33,6 +38,7 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   roles: [],
   orgId: null,
+  orgOnboarded: false,
   loading: true,
   signOut: async () => {},
   refreshProfile: async () => {},
@@ -43,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [orgInfo, setOrgInfo] = useState<OrgInfo | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -62,6 +69,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               .single();
             setProfile(profileData);
 
+            if (profileData?.organization_id) {
+              const { data: orgData } = await supabase
+                .from("organizations")
+                .select("is_onboarded")
+                .eq("id", profileData.organization_id)
+                .single();
+              setOrgInfo(orgData ? { is_onboarded: orgData.is_onboarded } : null);
+            } else {
+              setOrgInfo(null);
+            }
+
             const { data: rolesData } = await supabase
               .from("user_roles")
               .select("role")
@@ -71,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }, 0);
         } else {
           setProfile(null);
+          setOrgInfo(null);
           setRoles([]);
           setLoading(false);
         }
@@ -88,15 +107,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
-  const refreshProfile = async () => {
-    if (!user) return;
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", user.id)
-      .single();
-    setProfile(profileData);
-  };
 
   const refreshRoles = async () => {
     if (!user) return;
@@ -115,9 +125,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         roles,
         orgId: profile?.organization_id ?? null,
+        orgOnboarded: orgInfo?.is_onboarded ?? false,
         loading,
         signOut,
-        refreshProfile,
+        refreshProfile: async () => {
+          if (!user) return;
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("user_id", user.id)
+            .single();
+          setProfile(profileData);
+          if (profileData?.organization_id) {
+            const { data: orgData } = await supabase
+              .from("organizations")
+              .select("is_onboarded")
+              .eq("id", profileData.organization_id)
+              .single();
+            setOrgInfo(orgData ? { is_onboarded: orgData.is_onboarded } : null);
+          }
+        },
         refreshRoles,
       }}
     >
