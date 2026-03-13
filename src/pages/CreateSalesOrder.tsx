@@ -220,7 +220,7 @@ export default function CreateSalesOrder() {
       toast({ title: "Sales Order Created", description: `${soNumber} saved as ${status}.` });
       navigate(`/sales/${so.id}`);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      showErrorToast(err);
     } finally { setIsSaving(false); }
   };
 
