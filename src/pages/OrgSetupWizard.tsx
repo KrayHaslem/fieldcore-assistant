@@ -250,6 +250,7 @@ export default function OrgSetupWizard() {
   };
 
   const canGoNext = () => {
+    if (step === 0) return true; // skip always allowed
     if (step === 1) return industry.trim().length > 0;
     if (step === 3 && requiresApproval) return !!approvalThreshold && parseFloat(approvalThreshold) > 0;
     if (step === 4 && hasDepartments) return departmentNames.trim().length > 0;
