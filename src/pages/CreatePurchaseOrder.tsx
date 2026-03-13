@@ -26,7 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Plus, Trash2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useSubscriptionToast } from "@/hooks/use-subscription-toast";
 
 type InventoryType = "resale" | "manufacturing_input" | "internal_use" | "consumable";
 
