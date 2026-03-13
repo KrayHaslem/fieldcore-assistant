@@ -29,10 +29,13 @@ interface ChatMessage {
 }
 
 interface Recommendations {
+  industry?: string;
   suggested_departments?: string[];
   approval_rules?: { min_amount: number; max_amount: number | null; required_role: string }[];
   inventory_types_to_enable?: string[];
   suggested_roles?: string[];
+  tracks_inventory?: boolean;
+  has_sales_team?: boolean;
   notes?: string;
 }
 
@@ -147,7 +150,7 @@ export default function OrgSetupWizard() {
     try {
       const userMessages: ChatMessage[] = [{ role: "user", content: aiInput.trim() }];
       const { data, error } = await supabase.functions.invoke("setup-assistant", {
-        body: { messages: userMessages, currentStep: 1, answers: collectAnswers() },
+        body: { messages: userMessages, currentStep: 0, answers: collectAnswers() },
       });
 
       if (error) throw error;
@@ -218,6 +221,9 @@ export default function OrgSetupWizard() {
 
   /** Apply recommendations to wizard fields without finishing setup. */
   const applyRecommendations = (recs: Recommendations) => {
+    if (recs.industry) {
+      setIndustry(recs.industry);
+    }
     if (recs.suggested_departments && recs.suggested_departments.length > 0) {
       setHasDepartments(true);
       setDepartmentNames(recs.suggested_departments.join(", "));
@@ -238,6 +244,12 @@ export default function OrgSetupWizard() {
     if (recs.suggested_roles) {
       const hasSales = recs.suggested_roles.includes("sales");
       if (hasSales) setHasSalesTeam(true);
+    }
+    if (recs.tracks_inventory !== undefined) {
+      setTracksInventory(recs.tracks_inventory);
+    }
+    if (recs.has_sales_team !== undefined) {
+      setHasSalesTeam(recs.has_sales_team);
     }
 
     toast({ title: "Recommendations Applied", description: "Fields have been pre-populated. Review each step before finishing." });
