@@ -87,13 +87,26 @@ RECOMMENDATIONS:{"industry":"Construction","suggested_departments":["Dept1"],"ap
     let recommendations: Record<string, unknown> | null = null;
     let reply = content;
 
-    const recsMatch = content.match(/RECOMMENDATIONS:\s*(\{[\s\S]*?\})\s*$/m);
-    if (recsMatch) {
-      try {
-        recommendations = JSON.parse(recsMatch[1]);
-        reply = content.replace(/RECOMMENDATIONS:\s*\{[\s\S]*?\}\s*$/m, "").trim();
-      } catch {
-        // parse failed, treat as conversational
+    // Extract everything after RECOMMENDATIONS: to end of content and find valid JSON
+    const recsIdx = content.indexOf("RECOMMENDATIONS:");
+    if (recsIdx !== -1) {
+      const jsonStart = content.indexOf("{", recsIdx);
+      if (jsonStart !== -1) {
+        // Find matching closing brace by counting depth
+        let depth = 0;
+        let jsonEnd = -1;
+        for (let i = jsonStart; i < content.length; i++) {
+          if (content[i] === "{") depth++;
+          else if (content[i] === "}") { depth--; if (depth === 0) { jsonEnd = i; break; } }
+        }
+        if (jsonEnd !== -1) {
+          try {
+            recommendations = JSON.parse(content.substring(jsonStart, jsonEnd + 1));
+            reply = (content.substring(0, recsIdx) + content.substring(jsonEnd + 1)).trim();
+          } catch {
+            // parse failed, treat as conversational
+          }
+        }
       }
     }
 
