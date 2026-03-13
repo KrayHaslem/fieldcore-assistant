@@ -14,7 +14,7 @@ import { Bot, Send, Loader2, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7; // 0 = AI landing, 1-6 = manual steps
 
 const PURCHASE_TYPES = [
   { id: "resale", label: "Resale" },
