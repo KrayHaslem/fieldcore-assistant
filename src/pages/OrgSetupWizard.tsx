@@ -692,14 +692,22 @@ export default function OrgSetupWizard() {
 
               {/* Navigation */}
               <div className="flex justify-between pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setStep((s) => s - 1)}
-                  disabled={step === 1}
-                >
-                  Back
-                </Button>
-                {step < TOTAL_STEPS ? (
+                {step === 0 ? (
+                  <div /> /* empty spacer */
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => setStep((s) => s - 1)}
+                    disabled={step === 0}
+                  >
+                    Back
+                  </Button>
+                )}
+                {step === 0 ? (
+                  <Button variant="outline" onClick={() => setStep(1)}>
+                    Skip, enter manually →
+                  </Button>
+                ) : step < TOTAL_STEPS - 1 ? (
                   <Button onClick={() => setStep((s) => s + 1)} disabled={!canGoNext()}>
                     Next
                   </Button>
