@@ -69,6 +69,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               .single();
             setProfile(profileData);
 
+            if (profileData?.organization_id) {
+              const { data: orgData } = await supabase
+                .from("organizations")
+                .select("is_onboarded")
+                .eq("id", profileData.organization_id)
+                .single();
+              setOrgInfo(orgData ? { is_onboarded: orgData.is_onboarded } : null);
+            } else {
+              setOrgInfo(null);
+            }
+
             const { data: rolesData } = await supabase
               .from("user_roles")
               .select("role")
