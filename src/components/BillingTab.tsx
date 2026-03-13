@@ -201,7 +201,7 @@ export function BillingTab() {
                   </li>
                   {key === "annual" && (
                     <li className="text-sm text-primary font-medium flex items-center gap-1.5">
-                      <Check className="h-3.5 w-3.5" /> Save $200/year
+                      <Check className="h-3.5 w-3.5" /> Save $100/year
                     </li>
                   )}
                 </ul>
