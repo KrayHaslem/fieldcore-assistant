@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/lib/auth";
@@ -10,14 +10,41 @@ import { AppLogo } from "@/components/AppLogo";
 import { toast } from "sonner";
 
 export default function AuthPage() {
-  const { session, loading: authLoading } = useAuth();
+  const { session, loading: authLoading, refreshProfile } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get("invite");
+  const [acceptingInvite, setAcceptingInvite] = useState(false);
+  const [inviteAccepted, setInviteAccepted] = useState(false);
 
-  if (!authLoading && session) return <Navigate to="/" replace />;
+  // Accept invitation after login/signup if token present
+  useEffect(() => {
+    if (session && inviteToken && !acceptingInvite && !inviteAccepted) {
+      setAcceptingInvite(true);
+      (async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke("invite-user", {
+            body: { action: "accept", token: inviteToken },
+          });
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
+          toast.success("Invitation accepted! Switching to the new organization...");
+          setInviteAccepted(true);
+          await refreshProfile();
+        } catch (e: any) {
+          toast.error("Failed to accept invitation: " + e.message);
+        }
+        setAcceptingInvite(false);
+      })();
+    }
+  }, [session, inviteToken, acceptingInvite, inviteAccepted, refreshProfile]);
+
+  if (!authLoading && session && !inviteToken) return <Navigate to="/" replace />;
+  if (!authLoading && session && inviteAccepted) return <Navigate to="/" replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,9 +75,19 @@ export default function AuthPage() {
           </div>
           <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground">FieldCore Resource Systems</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {isLogin ? "Sign in to your organization" : "Create a new account"}
+            {inviteToken
+              ? "Sign in or create an account to accept your invitation"
+              : isLogin ? "Sign in to your organization" : "Create a new account"}
           </p>
         </div>
+
+        {/* Accepting invite loading state */}
+        {acceptingInvite && (
+          <div className="fieldcore-card p-6 text-center">
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="mt-3 text-sm text-muted-foreground">Accepting invitation...</p>
+          </div>
+        )}
 
         {/* Form */}
         <div className="fieldcore-card p-6 space-y-4">
@@ -60,8 +97,11 @@ export default function AuthPage() {
             variant="outline"
             className="w-full gap-2"
             onClick={async () => {
+              const redirectUrl = inviteToken
+                ? `${window.location.origin}/auth?invite=${inviteToken}`
+                : window.location.origin;
               const { error } = await lovable.auth.signInWithOAuth("google", {
-                redirect_uri: window.location.origin,
+                redirect_uri: redirectUrl,
               });
               if (error) toast.error(error.message);
             }}
@@ -137,11 +177,13 @@ export default function AuthPage() {
         </p>
 
         {/* Demo hint */}
-        <div className="fieldcore-card p-4 text-center">
-          <p className="text-xs text-muted-foreground">
-            <strong className="text-foreground">Demo:</strong> Use the seed data to explore. Sign in with any demo account to get started.
-          </p>
-        </div>
+        {!inviteToken && (
+          <div className="fieldcore-card p-4 text-center">
+            <p className="text-xs text-muted-foreground">
+              <strong className="text-foreground">Demo:</strong> Use the seed data to explore. Sign in with any demo account to get started.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -9,15 +9,19 @@ type Profile = {
   full_name: string;
   email: string;
   department_id: string | null;
+  is_active?: boolean;
 };
 
 type OrgInfo = {
   is_onboarded: boolean;
+  name: string;
 };
 
 type UserRole = {
   role: "admin" | "procurement" | "sales" | "finance" | "employee";
 };
+
+type OrgOption = { id: string; name: string };
 
 type AuthContextType = {
   session: Session | null;
@@ -26,10 +30,13 @@ type AuthContextType = {
   roles: string[];
   orgId: string | null;
   orgOnboarded: boolean;
+  orgName: string | null;
+  organizations: OrgOption[];
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshRoles: () => Promise<void>;
+  switchOrg: (orgId: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -39,10 +46,13 @@ const AuthContext = createContext<AuthContextType>({
   roles: [],
   orgId: null,
   orgOnboarded: false,
+  orgName: null,
+  organizations: [],
   loading: true,
   signOut: async () => {},
   refreshProfile: async () => {},
   refreshRoles: async () => {},
+  switchOrg: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -51,7 +61,82 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [orgInfo, setOrgInfo] = useState<OrgInfo | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
+  const [organizations, setOrganizations] = useState<OrgOption[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const fetchProfileAndOrg = useCallback(async (userId: string) => {
+    // Get all profiles for this user (multi-org)
+    const { data: allProfiles } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", userId);
+
+    if (!allProfiles || allProfiles.length === 0) {
+      setProfile(null);
+      setOrgInfo(null);
+      setOrganizations([]);
+      setRoles([]);
+      return;
+    }
+
+    // Get user preference for active org
+    const { data: prefs } = await supabase
+      .from("user_preferences")
+      .select("active_organization_id")
+      .eq("user_id", userId)
+      .single();
+
+    const activeOrgId = prefs?.active_organization_id;
+    
+    // Find the active profile (prefer preference, then first)
+    const activeProfile = activeOrgId
+      ? allProfiles.find((p: any) => p.organization_id === activeOrgId) || allProfiles[0]
+      : allProfiles[0];
+
+    // Check is_active
+    if (activeProfile.is_active === false) {
+      // User deactivated in this org — sign out
+      await supabase.auth.signOut();
+      return;
+    }
+
+    setProfile(activeProfile);
+
+    // Fetch org info for the active profile
+    if (activeProfile.organization_id) {
+      const { data: orgData } = await supabase
+        .from("organizations")
+        .select("is_onboarded, name")
+        .eq("id", activeProfile.organization_id)
+        .single();
+      setOrgInfo(orgData ? { is_onboarded: orgData.is_onboarded, name: orgData.name } : null);
+    } else {
+      setOrgInfo(null);
+    }
+
+    // Build organizations list
+    const orgIds = [...new Set(allProfiles.map((p: any) => p.organization_id))];
+    if (orgIds.length > 1) {
+      const { data: orgsData } = await supabase
+        .from("organizations")
+        .select("id, name")
+        .in("id", orgIds);
+      setOrganizations(orgsData ?? []);
+    } else if (orgIds.length === 1) {
+      const orgName = orgInfo?.name;
+      // We already fetched org above, reuse
+      setOrganizations([{ id: orgIds[0], name: orgInfo?.name || "Organization" }]);
+    } else {
+      setOrganizations([]);
+    }
+
+    // Fetch roles for active org
+    const { data: rolesData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    setRoles(rolesData?.map((r: UserRole) => r.role) ?? []);
+  }, []);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -61,37 +146,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (session?.user) {
           setLoading(true);
-          // Defer profile fetch to avoid deadlock
           setTimeout(async () => {
-            const { data: profileData } = await supabase
-              .from("profiles")
-              .select("*")
-              .eq("user_id", session.user.id)
-              .single();
-            setProfile(profileData);
-
-            if (profileData?.organization_id) {
-              const { data: orgData } = await supabase
-                .from("organizations")
-                .select("is_onboarded")
-                .eq("id", profileData.organization_id)
-                .single();
-              setOrgInfo(orgData ? { is_onboarded: orgData.is_onboarded } : null);
-            } else {
-              setOrgInfo(null);
-            }
-
-            const { data: rolesData } = await supabase
-              .from("user_roles")
-              .select("role")
-              .eq("user_id", session.user.id);
-            setRoles(rolesData?.map((r: UserRole) => r.role) ?? []);
+            await fetchProfileAndOrg(session.user.id);
             setLoading(false);
           }, 0);
         } else {
           setProfile(null);
           setOrgInfo(null);
           setRoles([]);
+          setOrganizations([]);
           setLoading(false);
         }
       }
@@ -102,12 +165,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchProfileAndOrg]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
   };
-
 
   const refreshRoles = async () => {
     if (!user) return;
@@ -118,6 +180,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRoles(rolesData?.map((r: UserRole) => r.role) ?? []);
   };
 
+  const switchOrg = async (newOrgId: string) => {
+    if (!user) return;
+    setLoading(true);
+    // Upsert preference
+    await supabase.from("user_preferences").upsert({
+      user_id: user.id,
+      active_organization_id: newOrgId,
+      updated_at: new Date().toISOString(),
+    });
+    await fetchProfileAndOrg(user.id);
+    setLoading(false);
+  };
+
+  // Fix: update organizations list after orgInfo is set
+  useEffect(() => {
+    if (profile && orgInfo) {
+      setOrganizations((prev) => {
+        const exists = prev.find((o) => o.id === profile.organization_id);
+        if (exists && exists.name !== orgInfo.name) {
+          return prev.map((o) => o.id === profile.organization_id ? { ...o, name: orgInfo.name } : o);
+        }
+        if (!exists) {
+          return [{ id: profile.organization_id, name: orgInfo.name }];
+        }
+        return prev;
+      });
+    }
+  }, [profile, orgInfo]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -127,26 +218,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         roles,
         orgId: profile?.organization_id ?? null,
         orgOnboarded: orgInfo?.is_onboarded ?? false,
+        orgName: orgInfo?.name ?? null,
+        organizations,
         loading,
         signOut,
         refreshProfile: async () => {
           if (!user) return;
-          const { data: profileData } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("user_id", user.id)
-            .single();
-          setProfile(profileData);
-          if (profileData?.organization_id) {
-            const { data: orgData } = await supabase
-              .from("organizations")
-              .select("is_onboarded")
-              .eq("id", profileData.organization_id)
-              .single();
-            setOrgInfo(orgData ? { is_onboarded: orgData.is_onboarded } : null);
-          }
+          await fetchProfileAndOrg(user.id);
         },
         refreshRoles,
+        switchOrg,
       }}
     >
       {children}

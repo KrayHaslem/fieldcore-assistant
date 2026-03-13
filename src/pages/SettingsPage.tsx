@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -12,13 +13,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
-import { Plus, Trash2, Pencil, FlaskConical, RotateCcw, AlertTriangle, Copy, ArrowLeft, Bot, Play } from "lucide-react";
+import { Plus, Trash2, Pencil, FlaskConical, RotateCcw, AlertTriangle, Copy, ArrowLeft, Bot, Play, UserPlus, UserX, UserCheck, Mail, Clock, X } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TemplateAssistantPanel, type TemplateFieldUpdates } from "@/components/TemplateAssistantPanel";
 import { ReportPreviewModal } from "@/components/ReportPreviewModal";
+import { Switch } from "@/components/ui/switch";
 
 const ALL_ROLES = ["admin", "procurement", "sales", "finance", "employee"] as const;
 
@@ -182,6 +184,13 @@ export default function SettingsPage() {
   const [editingUserDept, setEditingUserDept] = useState<ComboBoxOption | null>(null);
   const [roleSaving, setRoleSaving] = useState(false);
 
+  // Invite dialog
+  const [inviteDialog, setInviteDialog] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRoles, setInviteRoles] = useState<string[]>(["employee"]);
+  const [inviteSaving, setInviteSaving] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+
   const { data: orgProfiles } = useQuery({
     queryKey: ["org-profiles", orgId], enabled: !!orgId && isAdmin,
     queryFn: async () => { const { data } = await supabase.from("profiles").select("*").order("full_name"); return data ?? []; },
@@ -190,6 +199,19 @@ export default function SettingsPage() {
   const { data: allUserRoles } = useQuery({
     queryKey: ["all-user-roles", orgId], enabled: !!orgId && isAdmin,
     queryFn: async () => { const { data } = await supabase.from("user_roles").select("*"); return data ?? []; },
+  });
+
+  const { data: pendingInvitations } = useQuery({
+    queryKey: ["invitations", orgId], enabled: !!orgId && isAdmin,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("invitations")
+        .select("*")
+        .is("accepted_at", null)
+        .gte("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false });
+      return data ?? [];
+    },
   });
 
   const getRolesFor = (userId: string) => (allUserRoles ?? []).filter((r: any) => r.user_id === userId).map((r: any) => r.role);
@@ -242,6 +264,59 @@ export default function SettingsPage() {
     setRoleDialog(null);
     qc.invalidateQueries({ queryKey: ["all-user-roles"] });
     qc.invalidateQueries({ queryKey: ["org-profiles"] });
+  };
+
+  const toggleUserActive = async (userId: string, currentlyActive: boolean) => {
+    if (userId === user?.id) {
+      toast({ title: "Cannot deactivate yourself", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_active: !currentlyActive })
+      .eq("user_id", userId)
+      .eq("organization_id", orgId!);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: currentlyActive ? "User deactivated" : "User reactivated" });
+      qc.invalidateQueries({ queryKey: ["org-profiles"] });
+    }
+  };
+
+  const sendInvite = async () => {
+    if (!inviteEmail.trim() || !orgId) return;
+    setInviteSaving(true);
+    setInviteLink(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("invite-user", {
+        body: {
+          email: inviteEmail.trim(),
+          roles: inviteRoles,
+          organization_id: orgId,
+          origin: window.location.origin,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setInviteLink(data.invite_link);
+      toast({ title: "Invitation created", description: "Share the link or copy it below." });
+      qc.invalidateQueries({ queryKey: ["invitations"] });
+    } catch (e: any) {
+      toast({ title: "Failed to invite", description: e.message, variant: "destructive" });
+    }
+    setInviteSaving(false);
+  };
+
+  const revokeInvitation = async (id: string) => {
+    // Delete the invitation
+    const { error } = await supabase.from("invitations").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Invitation revoked" });
+      qc.invalidateQueries({ queryKey: ["invitations"] });
+    }
   };
 
   // ---- Suppliers ----
@@ -670,21 +745,100 @@ export default function SettingsPage() {
 
           {/* Users & Roles */}
           <TabsContent value="users">
-            <div className="fieldcore-card overflow-hidden">
-              <div className="border-b px-5 py-3"><h3 className="text-sm font-semibold text-foreground">Users & Roles</h3></div>
-              <table className="w-full text-sm">
-                <thead><tr className="border-b bg-muted/50"><th className="px-5 py-2 text-left font-medium text-muted-foreground">Name</th><th className="px-5 py-2 text-left font-medium text-muted-foreground">Email</th><th className="px-5 py-2 text-left font-medium text-muted-foreground">Roles</th><th className="px-5 py-2 w-24" /></tr></thead>
-                <tbody className="divide-y">
-                  {orgProfiles?.map((p: any) => (
-                    <tr key={p.id} className="hover:bg-muted/30">
-                      <td className="px-5 py-2 text-foreground">{p.full_name}</td>
-                      <td className="px-5 py-2 text-muted-foreground">{p.email}</td>
-                      <td className="px-5 py-2"><div className="flex gap-1 flex-wrap">{getRolesFor(p.user_id).map((r: string) => <Badge key={r} variant="outline" className="capitalize text-xs">{r}</Badge>)}</div></td>
-                      <td className="px-5 py-2"><Button variant="ghost" size="sm" onClick={() => openRoleDialog(p.user_id)}><Pencil className="h-3.5 w-3.5 mr-1" />Roles</Button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-4">
+              <div className="fieldcore-card overflow-hidden">
+                <div className="flex items-center justify-between border-b px-5 py-3">
+                  <h3 className="text-sm font-semibold text-foreground">Users & Roles</h3>
+                  <Button size="sm" onClick={() => { setInviteDialog(true); setInviteEmail(""); setInviteRoles(["employee"]); setInviteLink(null); }}>
+                    <UserPlus className="h-4 w-4" /> Invite User
+                  </Button>
+                </div>
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b bg-muted/50">
+                    <th className="px-5 py-2 text-left font-medium text-muted-foreground">Name</th>
+                    <th className="px-5 py-2 text-left font-medium text-muted-foreground">Email</th>
+                    <th className="px-5 py-2 text-left font-medium text-muted-foreground">Roles</th>
+                    <th className="px-5 py-2 text-left font-medium text-muted-foreground">Status</th>
+                    <th className="px-5 py-2 w-32" />
+                  </tr></thead>
+                  <tbody className="divide-y">
+                    {orgProfiles?.map((p: any) => {
+                      const isActive = p.is_active !== false;
+                      const isSelf = p.user_id === user?.id;
+                      return (
+                        <tr key={p.id} className={cn("hover:bg-muted/30", !isActive && "opacity-60")}>
+                          <td className="px-5 py-2 text-foreground">{p.full_name}</td>
+                          <td className="px-5 py-2 text-muted-foreground">{p.email}</td>
+                          <td className="px-5 py-2"><div className="flex gap-1 flex-wrap">{getRolesFor(p.user_id).map((r: string) => <Badge key={r} variant="outline" className="capitalize text-xs">{r}</Badge>)}</div></td>
+                          <td className="px-5 py-2">
+                            <Badge variant={isActive ? "default" : "secondary"} className={cn("text-xs", isActive ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "")}>
+                              {isActive ? "Active" : "Inactive"}
+                            </Badge>
+                          </td>
+                          <td className="px-5 py-2 flex gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => openRoleDialog(p.user_id)}>
+                              <Pencil className="h-3.5 w-3.5 mr-1" />Roles
+                            </Button>
+                            {!isSelf && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className={cn("h-8 w-8", !isActive && "text-green-600")}
+                                      onClick={() => toggleUserActive(p.user_id, isActive)}
+                                    >
+                                      {isActive ? <UserX className="h-3.5 w-3.5" /> : <UserCheck className="h-3.5 w-3.5" />}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{isActive ? "Deactivate user" : "Reactivate user"}</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pending Invitations */}
+              {pendingInvitations && pendingInvitations.length > 0 && (
+                <div className="fieldcore-card overflow-hidden">
+                  <div className="border-b px-5 py-3">
+                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <Mail className="h-4 w-4" /> Pending Invitations
+                    </h3>
+                  </div>
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b bg-muted/50">
+                      <th className="px-5 py-2 text-left font-medium text-muted-foreground">Email</th>
+                      <th className="px-5 py-2 text-left font-medium text-muted-foreground">Roles</th>
+                      <th className="px-5 py-2 text-left font-medium text-muted-foreground">Expires</th>
+                      <th className="px-5 py-2 w-16" />
+                    </tr></thead>
+                    <tbody className="divide-y">
+                      {pendingInvitations.map((inv: any) => (
+                        <tr key={inv.id} className="hover:bg-muted/30">
+                          <td className="px-5 py-2 text-foreground">{inv.email}</td>
+                          <td className="px-5 py-2"><div className="flex gap-1 flex-wrap">{(inv.roles || []).map((r: string) => <Badge key={r} variant="outline" className="capitalize text-xs">{r}</Badge>)}</div></td>
+                          <td className="px-5 py-2 text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {new Date(inv.expires_at).toLocaleDateString()}
+                          </td>
+                          <td className="px-5 py-2">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => revokeInvitation(inv.id)}>
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </TabsContent>
 
@@ -1358,6 +1512,72 @@ export default function SettingsPage() {
           data={rtTestResult}
         />
       )}
+
+      {/* Invite User Dialog */}
+      <Dialog open={inviteDialog} onOpenChange={(open) => { setInviteDialog(open); if (!open) setInviteLink(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Invite User</DialogTitle>
+            <DialogDescription>Send an invitation to join your organization.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Email Address *</Label>
+              <Input
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="user@example.com"
+              />
+            </div>
+            <div>
+              <Label className="mb-2 block">Roles</Label>
+              <div className="space-y-2">
+                {ALL_ROLES.map((r) => (
+                  <div key={r} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`invite-role-${r}`}
+                      checked={inviteRoles.includes(r)}
+                      onCheckedChange={(checked) => {
+                        setInviteRoles((prev) => checked ? [...prev, r] : prev.filter((x) => x !== r));
+                      }}
+                    />
+                    <label htmlFor={`invite-role-${r}`} className="text-sm capitalize cursor-pointer">{r}</label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {inviteLink && (
+              <div className="rounded-md border bg-muted/50 p-3 space-y-2">
+                <p className="text-xs font-medium text-foreground">Invitation Link (expires in 7 days)</p>
+                <div className="flex gap-2">
+                  <Input value={inviteLink} readOnly className="text-xs font-mono" />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(inviteLink);
+                      toast({ title: "Copied to clipboard" });
+                    }}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">Share this link with the user. They'll be prompted to sign in or create an account.</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            {!inviteLink ? (
+              <Button onClick={sendInvite} disabled={inviteSaving || !inviteEmail.trim() || inviteRoles.length === 0}>
+                {inviteSaving ? "Sending..." : "Send Invitation"}
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={() => { setInviteDialog(false); setInviteLink(null); }}>Done</Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
