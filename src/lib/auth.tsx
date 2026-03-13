@@ -60,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
+          setLoading(true);
           // Defer profile fetch to avoid deadlock
           setTimeout(async () => {
             const { data: profileData } = await supabase
