@@ -285,7 +285,7 @@ export default function CreatePurchaseOrder() {
       .select()
       .single();
     if (err) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      showErrorToast(err);
       return;
     }
     if (unitModalLineId) {
