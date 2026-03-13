@@ -11,6 +11,10 @@ type Profile = {
   department_id: string | null;
 };
 
+type OrgInfo = {
+  is_onboarded: boolean;
+};
+
 type UserRole = {
   role: "admin" | "procurement" | "sales" | "finance" | "employee";
 };

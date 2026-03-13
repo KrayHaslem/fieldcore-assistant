@@ -254,7 +254,7 @@ export default function OrgSetupWizard() {
     try {
       await supabase
         .from("organizations")
-        .update({ industry: industry.trim(), is_onboarded: true } as any)
+        .update({ industry: industry.trim(), is_onboarded: true, terms_accepted_at: new Date().toISOString() } as any)
         .eq("id", orgId);
 
       if (hasDepartments && departmentNames.trim()) {
