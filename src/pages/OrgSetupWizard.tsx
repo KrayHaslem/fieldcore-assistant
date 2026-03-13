@@ -150,7 +150,7 @@ export default function OrgSetupWizard() {
     try {
       const userMessages: ChatMessage[] = [{ role: "user", content: aiInput.trim() }];
       const { data, error } = await supabase.functions.invoke("setup-assistant", {
-        body: { messages: userMessages, currentStep: 1, answers: collectAnswers() },
+        body: { messages: userMessages, currentStep: 0, answers: collectAnswers() },
       });
 
       if (error) throw error;
