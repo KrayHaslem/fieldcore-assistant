@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
+import { useSubscriptionToast } from "@/hooks/use-subscription-toast";
+import { isSubscriptionError } from "@/lib/subscription-error";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { FormAssistantPanel, type DirectAction, type UnmatchedSupplier } from "@/components/FormAssistantPanel";
 
