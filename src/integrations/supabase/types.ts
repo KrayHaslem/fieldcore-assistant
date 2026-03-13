@@ -478,6 +478,7 @@ export type Database = {
           is_onboarded: boolean
           name: string
           settings: Json | null
+          subscription_active: boolean
           terms_accepted_at: string | null
           updated_at: string
         }
@@ -488,6 +489,7 @@ export type Database = {
           is_onboarded?: boolean
           name: string
           settings?: Json | null
+          subscription_active?: boolean
           terms_accepted_at?: string | null
           updated_at?: string
         }
@@ -498,6 +500,7 @@ export type Database = {
           is_onboarded?: boolean
           name?: string
           settings?: Json | null
+          subscription_active?: boolean
           terms_accepted_at?: string | null
           updated_at?: string
         }
@@ -1257,6 +1260,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_org_subscription_active: {
+        Args: { _org_id: string }
         Returns: boolean
       }
       list_all_organizations: {
