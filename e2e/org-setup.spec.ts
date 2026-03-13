@@ -3,30 +3,30 @@ import { test, expect } from "@playwright/test";
 /**
  * Tests the organization setup wizard flow.
  * 
- * NOTE: This test creates a SECOND test org via the UI (the superadmin creates it
- * from Settings). It exercises the full org setup wizard flow.
- * Since we're logged in as a test admin (not superadmin), these tests verify
- * the wizard UI can render and be navigated when accessed directly.
+ * NOTE: Step 0 is the AI quick-setup landing. Step 1+ are manual steps.
  */
 test.describe("Organization Setup Wizard", () => {
-  test("wizard page renders with industry input", async ({ page }) => {
-    // Access the wizard directly with the test org ID
-    // The wizard should render even if we're already onboarded
+  test("wizard page renders with AI quick setup", async ({ page }) => {
     await page.goto("/setup/00000000-0000-0000-0000-e2e000000001");
 
-    await expect(page.getByText(/What industry is your business in/i)).toBeVisible({ timeout: 10000 });
-    await expect(page.getByPlaceholder(/e.g. Construction/i)).toBeVisible();
+    await expect(page.getByText(/Quick Setup with AI/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder(/Describe your organization/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /Skip, enter manually/i })).toBeVisible();
   });
 
-  test("wizard shows AI quick setup option", async ({ page }) => {
+  test("skip AI goes to industry step", async ({ page }) => {
     await page.goto("/setup/00000000-0000-0000-0000-e2e000000001");
 
-    await expect(page.getByText(/quick setup with AI/i)).toBeVisible();
-    await expect(page.getByPlaceholder(/Describe your organization/i)).toBeVisible();
+    await page.getByRole("button", { name: /Skip, enter manually/i }).click();
+    await expect(page.getByText(/What industry is your business in/i)).toBeVisible();
+    await expect(page.getByPlaceholder(/e.g. Construction/i)).toBeVisible();
   });
 
   test("wizard can navigate through steps manually", async ({ page }) => {
     await page.goto("/setup/00000000-0000-0000-0000-e2e000000001");
+
+    // Step 0: Skip AI
+    await page.getByRole("button", { name: /Skip, enter manually/i }).click();
 
     // Step 1: Enter industry
     await page.getByPlaceholder(/e.g. Construction/i).fill("E2E Testing Industry");
@@ -57,7 +57,8 @@ test.describe("Organization Setup Wizard", () => {
   test("approval step shows threshold field when enabled", async ({ page }) => {
     await page.goto("/setup/00000000-0000-0000-0000-e2e000000001");
 
-    // Go to step 3
+    // Skip AI, go to step 3
+    await page.getByRole("button", { name: /Skip, enter manually/i }).click();
     await page.getByPlaceholder(/e.g. Construction/i).fill("Testing");
     await page.getByRole("button", { name: /Next/i }).click();
     await page.getByRole("button", { name: /Next/i }).click();
@@ -75,7 +76,8 @@ test.describe("Organization Setup Wizard", () => {
   test("departments step shows name input when enabled", async ({ page }) => {
     await page.goto("/setup/00000000-0000-0000-0000-e2e000000001");
 
-    // Navigate to step 4
+    // Skip AI, navigate to step 4
+    await page.getByRole("button", { name: /Skip, enter manually/i }).click();
     await page.getByPlaceholder(/e.g. Construction/i).fill("Testing");
     await page.getByRole("button", { name: /Next/i }).click();
     await page.getByRole("button", { name: /Next/i }).click();
