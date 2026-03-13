@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { FormAssistantPanel, type UnmatchedItem, type UnmatchedSupplier, type DirectAction } from "@/components/FormAssistantPanel";
 import { useAuth } from "@/lib/auth";
 import { toTitleCase } from "@/lib/utils";
+import { isSubscriptionError } from "@/lib/subscription-error";
 import { PageHeader } from "@/components/PageHeader";
 import { ComboBox, type ComboBoxOption } from "@/components/ComboBox";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Plus, Trash2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useSubscriptionToast } from "@/hooks/use-subscription-toast";
 
 type InventoryType = "resale" | "manufacturing_input" | "internal_use" | "consumable";
 
@@ -73,7 +74,7 @@ export default function CreatePurchaseOrder() {
   const prefill = (location.state as any)?.prefill;
   const commandText = (location.state as any)?.commandText || "";
   const { orgId, user } = useAuth();
-  const { toast } = useToast();
+  const { toast, showErrorToast } = useSubscriptionToast();
   const [showAssistant, setShowAssistant] = useState(!!prefill);
 
   const [supplier, setSupplier] = useState<SupplierOption | null>(null);
@@ -209,7 +210,7 @@ export default function CreatePurchaseOrder() {
       .select()
       .single();
     if (err) {
-      setSupplierModalError(err.message);
+      if (isSubscriptionError(err.message)) { showErrorToast(err); } else { setSupplierModalError(err.message); }
       return;
     }
     setSupplier({ ...data, label: data.name });
@@ -255,7 +256,7 @@ export default function CreatePurchaseOrder() {
       .select()
       .single();
     if (err) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      showErrorToast(err);
       return;
     }
     if (itemModalLineId) {
@@ -284,7 +285,7 @@ export default function CreatePurchaseOrder() {
       .select()
       .single();
     if (err) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      showErrorToast(err);
       return;
     }
     if (unitModalLineId) {
@@ -408,7 +409,11 @@ export default function CreatePurchaseOrder() {
         navigate("/orders");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to create order");
+      if (isSubscriptionError(err.message)) {
+        showErrorToast(err);
+      } else {
+        setError(err.message || "Failed to create order");
+      }
     } finally {
       setIsSubmitting(false);
     }
