@@ -218,6 +218,9 @@ export default function OrgSetupWizard() {
 
   /** Apply recommendations to wizard fields without finishing setup. */
   const applyRecommendations = (recs: Recommendations) => {
+    if (recs.industry) {
+      setIndustry(recs.industry);
+    }
     if (recs.suggested_departments && recs.suggested_departments.length > 0) {
       setHasDepartments(true);
       setDepartmentNames(recs.suggested_departments.join(", "));
@@ -238,6 +241,12 @@ export default function OrgSetupWizard() {
     if (recs.suggested_roles) {
       const hasSales = recs.suggested_roles.includes("sales");
       if (hasSales) setHasSalesTeam(true);
+    }
+    if (recs.tracks_inventory !== undefined) {
+      setTracksInventory(recs.tracks_inventory);
+    }
+    if (recs.has_sales_team !== undefined) {
+      setHasSalesTeam(recs.has_sales_team);
     }
 
     toast({ title: "Recommendations Applied", description: "Fields have been pre-populated. Review each step before finishing." });
