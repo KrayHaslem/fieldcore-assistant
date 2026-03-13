@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { VoiceInputButton } from "@/components/VoiceInputButton";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +37,7 @@ export default function OrgSetupWizard() {
   const { orgId } = useParams<{ orgId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { refreshProfile } = useAuth();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
 
@@ -278,7 +280,8 @@ export default function OrgSetupWizard() {
       }
 
       toast({ title: "Setup Complete", description: "Organization has been configured successfully." });
-      navigate("/settings");
+      await refreshProfile();
+      navigate("/");
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
