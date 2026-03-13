@@ -134,9 +134,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         roles,
         orgId: profile?.organization_id ?? null,
+        orgOnboarded: orgInfo?.is_onboarded ?? false,
         loading,
         signOut,
-        refreshProfile,
+        refreshProfile: async () => {
+          if (!user) return;
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("user_id", user.id)
+            .single();
+          setProfile(profileData);
+          if (profileData?.organization_id) {
+            const { data: orgData } = await supabase
+              .from("organizations")
+              .select("is_onboarded")
+              .eq("id", profileData.organization_id)
+              .single();
+            setOrgInfo(orgData ? { is_onboarded: orgData.is_onboarded } : null);
+          }
+        },
         refreshRoles,
       }}
     >
