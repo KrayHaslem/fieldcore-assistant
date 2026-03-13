@@ -21,7 +21,7 @@ const PLANS = {
     name: "Annual",
     price: "$500",
     interval: "year",
-    description: "$500/year (save $100)",
+    description: "$500/year",
   },
 } as const;
 
