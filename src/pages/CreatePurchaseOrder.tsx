@@ -408,7 +408,11 @@ export default function CreatePurchaseOrder() {
         navigate("/orders");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to create order");
+      if (isSubscriptionError(err.message)) {
+        showErrorToast(err);
+      } else {
+        setError(err.message || "Failed to create order");
+      }
     } finally {
       setIsSubmitting(false);
     }
