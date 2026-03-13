@@ -1375,6 +1375,13 @@ export default function SettingsPage() {
               </Tabs>
             </TabsContent>
           )}
+
+          {/* Billing (admin only) */}
+          {isAdmin && (
+            <TabsContent value="billing">
+              <BillingTab />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
