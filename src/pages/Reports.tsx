@@ -190,17 +190,47 @@ export default function Reports() {
         .map((name) => allReports.find((r) => r.name === name))
         .filter((r): r is ReportDef => !!r),
     }));
-  }, [allReports]);
+  }, [allReports, customTemplates]);
 
   useEffect(() => {
     const state = location.state as any;
     if (state?.startDate) setStartDate(new Date(state.startDate));
     if (state?.endDate) setEndDate(new Date(state.endDate));
-    if (state?.prefill?.report_name && allReports.length > 0) {
-      const match = allReports.find((r) =>
-        r.name.toLowerCase().includes(state.prefill.report_name.toLowerCase())
-      );
-      if (match) setSelectedKey(match.key);
+    if (state?.prefill && allReports.length > 0) {
+      // Try matching by report_match.id first (exact match from command center)
+      const matchId = state.prefill.report_match?.id;
+      if (matchId) {
+        // Check custom templates first (org-specific)
+        const customMatch = customTemplates.find((t) => t.id === matchId);
+        if (customMatch) {
+          setSelectedCustomId(customMatch.id);
+          setSelectedKey(null);
+        } else {
+          // Check system reports by finding the template name from the match
+          const matchName = state.prefill.report_match?.name;
+          if (matchName) {
+            const key = REPORT_KEY_MAP[matchName];
+            if (key) setSelectedKey(key);
+          }
+        }
+      } else if (state.prefill.report_name) {
+        // Fallback: fuzzy match by report_name string
+        const systemMatch = allReports.find((r) =>
+          r.name.toLowerCase().includes(state.prefill.report_name.toLowerCase())
+        );
+        if (systemMatch) {
+          setSelectedKey(systemMatch.key);
+        } else {
+          // Also check custom templates by name
+          const customMatch = customTemplates.find((t) =>
+            t.name.toLowerCase().includes(state.prefill.report_name.toLowerCase())
+          );
+          if (customMatch) {
+            setSelectedCustomId(customMatch.id);
+            setSelectedKey(null);
+          }
+        }
+      }
     }
     if (state?.prefill?.search_term) {
       setSearchFilter(state.prefill.search_term);
