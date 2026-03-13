@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { AppLayout } from "@/components/AppLayout";
 import AuthPage from "./pages/AuthPage";
@@ -28,6 +28,7 @@ const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
   const { session, profile, orgId, orgOnboarded, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -45,8 +46,10 @@ function ProtectedRoutes() {
   // Authenticated but no profile → send to onboarding
   if (!profile) return <Navigate to="/onboarding" replace />;
 
-  // Profile exists but org setup not completed → send back to wizard
-  if (!orgOnboarded && orgId) return <Navigate to={`/setup/${orgId}`} replace />;
+  // Profile exists but org setup not completed → send back to wizard (unless already there)
+  if (!orgOnboarded && orgId && !location.pathname.startsWith("/setup/")) {
+    return <Navigate to={`/setup/${orgId}`} replace />;
+  }
 
   return (
     <Routes>
